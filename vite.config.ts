@@ -68,6 +68,25 @@ export default defineConfig({
         main: fileURLToPath(new URL('index.html', import.meta.url)),
         admin: fileURLToPath(new URL('admin.html', import.meta.url)),
       },
+      output: {
+        // Split the formerly-monolithic client bundle into cacheable chunks so no single
+        // chunk trips the size warning and third-party code caches across app deploys.
+        // Only third-party packages are grouped here — app code (src/) is left to Rollup's
+        // default graphing to avoid cross-chunk circular-init hazards.
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('/three/') || id.includes('/three-')) return 'three';
+            return 'vendor';
+          }
+          // The deterministic sim core never imports render/ui/game/net/i18n (sim-purity
+          // invariant), so it has no back-edges into app chunks and is safe to isolate.
+          if (id.includes('/src/sim/')) return 'sim';
+          // The locale tables are large data leaves (i18n.ts only imports its sibling
+          // phase9_i18n), so they isolate cleanly.
+          if (id.includes('/src/ui/i18n.ts') || id.includes('/src/ui/phase9_i18n')) return 'i18n';
+          return undefined;
+        },
+      },
     },
   },
   test: {
