@@ -1,171 +1,70 @@
-# World of Warden
+# World of Claudecraft ⚔️🤖
 
-> A 2D dark-fantasy action-RPG, forked from [Wardenfall](https://github.com/chriseg0996-star/Wardenfall).
-> Three hero classes with WoW-style class resources, generated gear, four
-> chapters, four bosses, Nightmare endgame. The entire game lives in a
-> single `index.html` — vanilla JS, no build step, no dependencies.
+**Build AI Agents with an RPG Loadout System.**
 
-_World of Warden is a standalone continuation of Wardenfall (forked at Phase AJ)._
+Stop managing Markdown files. World of Claudecraft lets you construct powerful Claude agent configurations using a familiar RPG equipment interface. Drag and drop Roles, Skills, and Behaviors to craft the perfect build.
 
-Descend a procedurally generated dungeon by lantern light. Pick one of
-three classes (Knight / Ranger / Mage), each with its own skill kit and
-sprite. Fight skeletons, spiders, archers, shield-bearers, necromancers,
-and four chapter bosses. Loot epic and legendary gear from generated drop
-tables. Beat The Warden, unlock Nightmare difficulty, and grind back
-through for top-tier rolls.
+![World of Claudecraft](main.png)
 
-Every stage is reproducible from a seed.
+## ✨ Features
 
----
+- **🛡️ Visual Equipment UI**: WoW-inspired character equipment interface
+- **🐉 Drag & Drop**: Drag items from inventory to equipment slots
+- **💰 Token Budget**: Track token usage with build-wide budget limits and rarity colors based on token count
+- **📜 Category System**: Items categorized as roles, skills, behaviors, etc.
+- **💾 Loadouts**: Save and load different equipment configurations
+- **🚀 Export**: Save directly to `~/.claude/agents/your-agent-name.md` or clipboard
 
-## Features (v1.0)
+## 🎮 Getting Started
 
-- **Three playable classes** — Knight (tank: Bash / Stalwart Stance /
-  Whirlwind), Ranger (kiter: Powershot / Multishot / Tumble), Mage
-  (caster: Firebolt / Mend / Nova). Each has a unique sprite, portrait,
-  growth curve, and skill kit.
-- **Chapter map** — 4 chapters × 5 stages × per-stage star rating (1-3
-  ★ based on HP remaining + boss-bonus + no-deaths). Stage 5 of each
-  chapter is the boss arena.
-- **Generated gear** — 5 slots (weapon / helm / armor / boots / ring)
-  × 5 rarities (common / uncommon / rare / epic / legendary). Stat
-  budgets scale with ilvl; rarity drives lines and roll variance.
-  Loot cards on enemy + boss drops, run-scoped stash, account-saved
-  equipped gear.
-- **Four bosses** — Bone Colossus (ch1), Brood Mother (ch2 — summons
-  + web slow), Grave Monarch (ch3 — Grave Lurch pull + bone barrage),
-  The Warden (ch4 — 3-phase AI with Shadow Lances + wraith summons).
-- **Nightmare difficulty** — unlocked after first Warden kill. Enemies
-  ×1.5 HP / ×1.15 ATK, +35% rewards, bosses gain a rage timer at 30 s.
-  Stages reseed via a Nightmare salt so layouts differ.
-- **Account save** — 3 character slots + persistent stash. Per-character
-  level, gear, gold, and stage stars. Stored in `localStorage`.
-- **Procedural music** — 5 synthesized tracks via Web Audio (no asset
-  files): cursed_keep (ch1-2 ambient), bone_crypt (ch3),
-  infernal_depths / black_bastion (ch4), boss. 800 ms crossfade on
-  stage launch + boss spawn + chapter map.
-- **Procedural SFX** — 13 synthesized one-shots (swing, impact, per-type
-  death, per-spell cast, pickup tiers, level-up, descend, boss roar).
-- **Lantern lighting** — near-blackout fog-of-war (alpha 0.92) with
-  destination-out radial cuts around the player and every torch tile.
-- **A\* enemy pathing** — 4-connected pathfinder with min-heap open
-  set, staggered re-planning, and walkable cache. Enemies route around
-  pillars, walls, and corners.
-- **Custom keybinds** — full settings overlay (ESC), three presets
-  (Default / Alt QER+F / Arrows), per-action rebind, persisted.
-- **Mobile-first** — joystick + spell buttons + attack/potion/pause/
-  gear/settings touch controls scale to viewport. Tested on Chrome
-  desktop + iOS Safari.
+```bash
+# Install dependencies
+npm install
 
----
-
-## Hero classes
-
-| Class | Role | Base HP / MP / ATK / DEF | Kit |
-|---|---|---|---|
-| Knight | Tank / melee | 140 / 20 / 14 / 8 | Bash (stun) · Stalwart Stance (DR) · Whirlwind (AoE) |
-| Ranger | DPS / kiter | 90 / 30 / 13 / 4 | Powershot · Multishot · Tumble (iframes) |
-| Mage | Caster / control | 100 / 50 / 12 / 5 | Firebolt · Mend (HoT) · Nova (AoE) |
-
-Each class also has a basic attack: Knight + Mage use a melee swing,
-Ranger fires a bow shot.
-
----
-
-## Controls
-
-### Default
-
-| Action | Keyboard | Mobile |
-|---|---|---|
-| Move | `WASD` or arrows | left joystick |
-| Attack | `Space` | ⚔ button |
-| Potion | `H` | 🧪 button |
-| Skill 1 / 2 / 3 | `2` / `3` / `4` | 🔥 / ➕ / 💥 buttons (per class) |
-| Settings / Pause | `Esc` | ⏸ button |
-| Gear | `G` | ⚙ gear button |
-
-### Alt preset (Settings → "ALT (QER+F)")
-
-| Action | Key |
-|---|---|
-| Move | `WASD` |
-| Attack | `Space` |
-| Potion | `F` |
-| Skill 1 / 2 / 3 | `Q` / `E` / `R` |
-
-Every action is rebindable from the in-game settings overlay (ESC).
-
----
-
-## Run it locally
-
-Wardenfall is a single static HTML file. Either open it directly
-(`file://...`), or serve it over HTTP (recommended — some browser APIs
-behave better that way):
-
-```sh
-# From the project root:
-python -m http.server 8000
-# Then open http://localhost:8000/
+# Run in development mode
+npm run dev
 ```
 
-Any static HTTP server works (`npx serve`, `caddy`, etc.). The dev-server
-launch config lives at `.claude/launch.json`.
+### 📂 Using Sample items
+To play with our samples:
+1. Click the **Gear Icon** (Settings) in the UI.
+2. Select the `sample-components` directory.
+3. The inventory will populate with the sample items.
 
-If you see a stale build on the live URL after an update, append
-`?v=` + something (e.g. `?v=2`) to bust the Pages cache.
+## ⚔️ Slot Configuration
 
----
+Each slot represents a different aspect of your agent's personality and capabilities:
 
-## Tech
+| Slot | Category | Description |
+|------|----------|-------------|
+| **HEAD** | `roles` | Primary role & persona |
+| **CHEST** | `behaviors` | Core behavioral patterns |
+| **HANDS** | `skills` | Abilities & specific skills |
+| **LEGS** | `constraints` | Rules & operational boundaries |
+| **FEET** | `formats` | Output formatting rules |
+| **RINGS** | `personalities`/`contexts` | Communication style & Context |
+| **OFFHAND** | `tools` | Tool integrations (MCP, scripts) |
 
-- **HTML5 Canvas** — single 2D context for everything visual, offscreen
-  light layer composited via `globalCompositeOperation = 'destination-out'`.
-- **Vanilla JS only** — no frameworks, no bundler, no `package.json`.
-- **Web Audio API** — procedural music + SFX, no asset files.
-- **localStorage** — bindings, audio settings, account (characters
-  + stash + Nightmare unlock).
-- **Single file**, ~7400 lines of JavaScript inside one `index.html`.
 
----
+## 📤 Exporting Agents
 
-## Dev tools
+1. **Initiate Export**: Click the **Export** button in the preview panel and select "Save to Claude".
+   
+   ![Export Menu](image-1.png)
 
-The game exposes a small dev API for tuning + debugging from the browser
-console:
+2. **Name Your Agent**: Enter a unique name for your agent configuration.
+   
+   ![Agent Naming Modal](image-2.png)
 
-```js
-__setClass('knight')        // hot-switch class mid-run
-__simBalance()              // print combat sim table per recLevel
-__simBossClearRates()       // normal vs Nightmare per-class boss survival
-__verifySeeds()             // assert seeded layouts are reproducible
-__sidescroll()              // dev-only side-scroll vertical slice
-```
+3. **Activate in Claude**: Execute the `/agent` command in Claude to see and use your new agent.
+   
+   ![Claude Agent Integration](image-3.png)
 
-The side-scroll mode is reachable via `#sidescroll` in the URL or by
-calling `__sidescroll()` in the console. It is a separate feel
-experiment — not part of the v1.0 product.
 
----
+## 🛠️ Tech Stack
 
-## Roadmap
-
-Shipped in chronological phases, see git log for detail:
-
-- Phases 1-3 — combat, loot, HUD, spells & MP
-- Phases A-O — visual overhaul (hooded hero, lantern lighting, redesigned
-  enemies, viewport zoom, pillars, attack lunge, keybinds, audio, A\*
-  pathing, biomes, perf pass)
-- RPG pivot P-S — stats / classes / gear / account / chapter map
-- Phase T — bosses & endgame (Grave Monarch + The Warden + Nightmare)
-- Phase U — procedural music
-- Phase V — balance pass (recLevel curves + simBalance harness + DR
-  refactor)
-- **Phase W — v1.0 release** ← you are here
-
----
-
-## License
-
-[MIT](./LICENSE).
+- **Electron** & **React 18**
+- **TypeScript** & **Vite**
+- **Tailwind CSS** for styling
+- **Zustand** for state management
+- **react-dnd** for drag-and-drop interactions
