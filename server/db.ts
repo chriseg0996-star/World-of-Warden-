@@ -5,6 +5,7 @@ import type { ChatLogRow } from './chat_log';
 import { SOCIAL_SCHEMA } from './social_db';
 import { seedChatFilterDefaults } from './chat_filter_db';
 import { REALM } from './realm';
+import { type Migration, runMigrations, POST_BASELINE_MIGRATIONS } from './migrations';
 
 try {
   process.loadEnvFile?.();
@@ -164,18 +165,28 @@ CREATE TABLE IF NOT EXISTS chat_violations (
 CREATE INDEX IF NOT EXISTS chat_violations_account ON chat_violations(account_id, created_at DESC);
 `;
 
+// Ordered schema migrations. `0001_baseline` is the original pre-migrations
+// schema (frozen — never edit SCHEMA/SOCIAL_SCHEMA again); future changes are
+// appended as new entries in server/migrations/. On an already-deployed database
+// the baseline's IF NOT EXISTS DDL is a harmless no-op and is simply recorded.
+export const MIGRATIONS: Migration[] = [
+  { id: '0001_baseline', sql: `${SCHEMA}\n${SOCIAL_SCHEMA}` },
+  ...POST_BASELINE_MIGRATIONS,
+];
+
 export async function ensureSchema(): Promise<void> {
   // In the process-per-realm model several server processes boot against the
   // same database at once. Their idempotent CREATE/ALTER statements would
   // otherwise deadlock when run concurrently, so serialize schema setup behind
   // a transaction-scoped advisory lock (auto-released on COMMIT). The lock key
-  // is an arbitrary constant shared by every process.
+  // is an arbitrary constant shared by every process. runMigrations re-reads the
+  // applied set inside this locked transaction, so the losers of the lock race
+  // simply find every migration already applied and do nothing.
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock($1)', [0x57_4f_43_01]); // "WOC\x01"
-    await client.query(SCHEMA);
-    await client.query(SOCIAL_SCHEMA);
+    await runMigrations(client, MIGRATIONS);
     // Seed the chat-filter word lists + config on first boot only (idempotent).
     // Runs under the same advisory lock so concurrent realm boots don't race.
     await seedChatFilterDefaults(client);
