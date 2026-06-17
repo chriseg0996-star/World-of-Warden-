@@ -5402,10 +5402,19 @@ const phase5En = {
       copper: "copper",
     },
     slots: {
-      mainhand: "Main Hand",
+      head: "Head",
+      neck: "Neck",
+      shoulder: "Shoulder",
+      back: "Back",
       chest: "Chest",
+      wrist: "Wrist",
+      hands: "Hands",
+      waist: "Waist",
       legs: "Legs",
       feet: "Feet",
+      ring: "Ring",
+      trinket: "Trinket",
+      mainhand: "Main Hand",
     },
     quality: {
       poor: "Poor",
@@ -5538,7 +5547,7 @@ const phase5 = {
   es: {
     itemUi: {
       money: { goldShort: "o", silverShort: "p", copperShort: "c", gold: "oro", silver: "plata", copper: "cobre" },
-      slots: { mainhand: "Mano principal", chest: "Pecho", legs: "Piernas", feet: "Pies" },
+      slots: { head: "Cabeza", neck: "Cuello", shoulder: "Hombros", back: "Espalda", chest: "Pecho", wrist: "Muñecas", hands: "Manos", waist: "Cintura", legs: "Piernas", feet: "Pies", ring: "Anillo", trinket: "Abalorio", mainhand: "Mano principal" },
       quality: { poor: "Pobre", common: "Común", uncommon: "Poco común", rare: "Raro", epic: "Épico" },
       kind: { weapon: "Arma", armor: "Armadura", quest: "Objeto de misión", junk: "Chatarra", food: "Comida", drink: "Bebida" },
       stats: { armor: "Armadura", str: "Fuerza", agi: "Agilidad", sta: "Aguante", int: "Intelecto", spi: "Espíritu", attackPower: "Poder de ataque", dps: "Daño/seg", critChance: "Prob. de crítico", dodge: "Esquiva" },
@@ -5561,7 +5570,7 @@ const phase5 = {
   fr_FR: {
     itemUi: {
       money: { goldShort: "po", silverShort: "pa", copperShort: "pc", gold: "or", silver: "argent", copper: "cuivre" },
-      slots: { mainhand: "Main droite", chest: "Torse", legs: "Jambes", feet: "Pieds" },
+      slots: { head: "Tête", neck: "Cou", shoulder: "Épaules", back: "Dos", chest: "Torse", wrist: "Poignets", hands: "Mains", waist: "Taille", legs: "Jambes", feet: "Pieds", ring: "Anneau", trinket: "Bijou", mainhand: "Main droite" },
       quality: { poor: "Médiocre", common: "Commun", uncommon: "Inhabituel", rare: "Rare", epic: "Épique" },
       kind: { weapon: "Arme", armor: "Armure", quest: "Objet de quête", junk: "Camelote", food: "Nourriture", drink: "Boisson" },
       stats: { armor: "Armure", str: "Force", agi: "Agilité", sta: "Endurance", int: "Intelligence", spi: "Esprit", attackPower: "Puissance d'attaque", dps: "Dégâts/s", critChance: "Chances de critique", dodge: "Esquive" },
@@ -5585,7 +5594,7 @@ const phase5 = {
   it_IT: {
     itemUi: {
       money: { goldShort: "o", silverShort: "a", copperShort: "r", gold: "oro", silver: "argento", copper: "rame" },
-      slots: { mainhand: "Mano principale", chest: "Torace", legs: "Gambe", feet: "Piedi" },
+      slots: { head: "Testa", neck: "Collo", shoulder: "Spalle", back: "Schiena", chest: "Torace", wrist: "Polsi", hands: "Mani", waist: "Vita", legs: "Gambe", feet: "Piedi", ring: "Anello", trinket: "Ninnolo", mainhand: "Mano principale" },
       quality: { poor: "Scadente", common: "Comune", uncommon: "Non comune", rare: "Raro", epic: "Epico" },
       kind: { weapon: "Arma", armor: "Armatura", quest: "Oggetto missione", junk: "Cianfrusaglia", food: "Cibo", drink: "Bevanda" },
       stats: { armor: "Armatura", str: "Forza", agi: "Agilità", sta: "Tempra", int: "Intelletto", spi: "Spirito", attackPower: "Potenza d'attacco", dps: "Danni/sec", critChance: "Prob. critico", dodge: "Schivata" },
@@ -5607,7 +5616,7 @@ const phase5 = {
   de_DE: {
     itemUi: {
       money: { goldShort: "G", silverShort: "S", copperShort: "K", gold: "Gold", silver: "Silber", copper: "Kupfer" },
-      slots: { mainhand: "Waffenhand", chest: "Brust", legs: "Beine", feet: "Füße" },
+      slots: { head: "Kopf", neck: "Hals", shoulder: "Schultern", back: "Rücken", chest: "Brust", wrist: "Handgelenke", hands: "Hände", waist: "Hüfte", legs: "Beine", feet: "Füße", ring: "Ring", trinket: "Schmuck", mainhand: "Waffenhand" },
       quality: { poor: "Schlecht", common: "Gewöhnlich", uncommon: "Ungewöhnlich", rare: "Selten", epic: "Episch" },
       kind: { weapon: "Waffe", armor: "Rüstung", quest: "Questgegenstand", junk: "Plunder", food: "Essen", drink: "Getränk" },
       stats: { armor: "Rüstung", str: "Stärke", agi: "Beweglichkeit", sta: "Ausdauer", int: "Intelligenz", spi: "Willenskraft", attackPower: "Angriffskraft", dps: "Schaden/Sek.", critChance: "Krit. Chance", dodge: "Ausweichen" },
@@ -5629,7 +5638,7 @@ const phase5 = {
   zh_CN: {
     itemUi: {
       money: { goldShort: "金", silverShort: "银", copperShort: "铜", gold: "金币", silver: "银币", copper: "铜币" },
-      slots: { mainhand: "主手", chest: "胸部", legs: "腿部", feet: "脚部" },
+      slots: { head: "头部", neck: "颈部", shoulder: "肩部", back: "背部", chest: "胸部", wrist: "手腕", hands: "双手", waist: "腰部", legs: "腿部", feet: "脚部", ring: "戒指", trinket: "饰品", mainhand: "主手" },
       quality: { poor: "粗糙", common: "普通", uncommon: "优秀", rare: "精良", epic: "史诗" },
       kind: { weapon: "武器", armor: "护甲", quest: "任务物品", junk: "杂物", food: "食物", drink: "饮料" },
       stats: { armor: "护甲", str: "力量", agi: "敏捷", sta: "耐力", int: "智力", spi: "精神", attackPower: "攻击强度", dps: "每秒伤害", critChance: "暴击几率", dodge: "躲闪" },
@@ -5651,7 +5660,7 @@ const phase5 = {
   zh_TW: {
     itemUi: {
       money: { goldShort: "金", silverShort: "銀", copperShort: "銅", gold: "金幣", silver: "銀幣", copper: "銅幣" },
-      slots: { mainhand: "主手", chest: "胸部", legs: "腿部", feet: "腳部" },
+      slots: { head: "頭部", neck: "頸部", shoulder: "肩部", back: "背部", chest: "胸部", wrist: "手腕", hands: "雙手", waist: "腰部", legs: "腿部", feet: "腳部", ring: "戒指", trinket: "飾品", mainhand: "主手" },
       quality: { poor: "粗糙", common: "普通", uncommon: "優秀", rare: "精良", epic: "史詩" },
       kind: { weapon: "武器", armor: "護甲", quest: "任務物品", junk: "雜物", food: "食物", drink: "飲料" },
       stats: { armor: "護甲", str: "力量", agi: "敏捷", sta: "耐力", int: "智力", spi: "精神", attackPower: "攻擊強度", dps: "每秒傷害", critChance: "爆擊機率", dodge: "閃躲" },
@@ -5673,7 +5682,7 @@ const phase5 = {
   ko_KR: {
     itemUi: {
       money: { goldShort: "금", silverShort: "은", copperShort: "동", gold: "금화", silver: "은화", copper: "동화" },
-      slots: { mainhand: "주장비", chest: "가슴", legs: "다리", feet: "발" },
+      slots: { head: "머리", neck: "목", shoulder: "어깨", back: "등", chest: "가슴", wrist: "손목", hands: "손", waist: "허리", legs: "다리", feet: "발", ring: "반지", trinket: "장신구", mainhand: "주장비" },
       quality: { poor: "하급", common: "일반", uncommon: "고급", rare: "희귀", epic: "영웅" },
       kind: { weapon: "무기", armor: "방어구", quest: "퀘스트 아이템", junk: "잡동사니", food: "음식", drink: "음료" },
       stats: { armor: "방어도", str: "힘", agi: "민첩성", sta: "체력", int: "지능", spi: "정신력", attackPower: "전투력", dps: "초당 피해", critChance: "치명타율", dodge: "회피" },
@@ -5695,7 +5704,7 @@ const phase5 = {
   ja_JP: {
     itemUi: {
       money: { goldShort: "金", silverShort: "銀", copperShort: "銅", gold: "金貨", silver: "銀貨", copper: "銅貨" },
-      slots: { mainhand: "メインハンド", chest: "胸", legs: "脚", feet: "足" },
+      slots: { head: "頭", neck: "首", shoulder: "肩", back: "背中", chest: "胸", wrist: "手首", hands: "手", waist: "腰", legs: "脚", feet: "足", ring: "指輪", trinket: "アクセサリー", mainhand: "メインハンド" },
       quality: { poor: "粗悪", common: "一般", uncommon: "良質", rare: "レア", epic: "エピック" },
       kind: { weapon: "武器", armor: "防具", quest: "クエストアイテム", junk: "雑貨", food: "食べ物", drink: "飲み物" },
       stats: { armor: "防御力", str: "筋力", agi: "敏捷性", sta: "スタミナ", int: "知力", spi: "精神力", attackPower: "攻撃力", dps: "秒間ダメージ", critChance: "クリティカル率", dodge: "回避" },
@@ -5717,7 +5726,7 @@ const phase5 = {
   pt_BR: {
     itemUi: {
       money: { goldShort: "o", silverShort: "p", copperShort: "c", gold: "ouro", silver: "prata", copper: "cobre" },
-      slots: { mainhand: "Mão principal", chest: "Peito", legs: "Pernas", feet: "Pés" },
+      slots: { head: "Cabeça", neck: "Pescoço", shoulder: "Ombros", back: "Costas", chest: "Peito", wrist: "Pulsos", hands: "Mãos", waist: "Cintura", legs: "Pernas", feet: "Pés", ring: "Anel", trinket: "Bugiganga", mainhand: "Mão principal" },
       quality: { poor: "Ruim", common: "Comum", uncommon: "Incomum", rare: "Raro", epic: "Épico" },
       kind: { weapon: "Arma", armor: "Armadura", quest: "Item de missão", junk: "Sucata", food: "Comida", drink: "Bebida" },
       stats: { armor: "Armadura", str: "Força", agi: "Agilidade", sta: "Vigor", int: "Intelecto", spi: "Espírito", attackPower: "Poder de ataque", dps: "Dano/s", critChance: "Chance crítica", dodge: "Esquiva" },
@@ -5739,7 +5748,7 @@ const phase5 = {
   ru_RU: {
     itemUi: {
       money: { goldShort: "з", silverShort: "с", copperShort: "м", gold: "золото", silver: "серебро", copper: "медь" },
-      slots: { mainhand: "Правая рука", chest: "Грудь", legs: "Ноги", feet: "Ступни" },
+      slots: { head: "Голова", neck: "Шея", shoulder: "Плечи", back: "Спина", chest: "Грудь", wrist: "Запястья", hands: "Кисти", waist: "Пояс", legs: "Ноги", feet: "Ступни", ring: "Кольцо", trinket: "Безделушка", mainhand: "Правая рука" },
       quality: { poor: "Низкое", common: "Обычное", uncommon: "Необычное", rare: "Редкое", epic: "Эпическое" },
       kind: { weapon: "Оружие", armor: "Броня", quest: "Задание", junk: "Хлам", food: "Еда", drink: "Напиток" },
       stats: { armor: "Броня", str: "Сила", agi: "Ловкость", sta: "Выносливость", int: "Интеллект", spi: "Дух", attackPower: "Сила атаки", dps: "Урон/сек", critChance: "Шанс крита", dodge: "Уклонение" },
@@ -7128,6 +7137,7 @@ const ITEM_ENTITY_IDS = [
   "fang_of_korzul", "trail_hardtack", "meltwater_flask", "roast_mountain_goat", "glacier_melt", "highwatch_warblade", "craghorn_staff",
   "icevein_dirk", "highwatch_breastplate", "peakwool_robe", "stalkerhide_jerkin", "cragwalker_boots", "windguard_leggings",
   "ogre_toe_ring", "inert_storm_shard", "frayed_prayer_beads", "cracked_wyrm_scale",
+  "worn_leather_cap", "rough_spaulders", "patched_cloak", "frayed_choker", "leather_bracers", "work_gloves", "rope_belt", "copper_band",
 ] as const;
 
 type ItemEntityId = typeof ITEM_ENTITY_IDS[number];
@@ -7174,6 +7184,7 @@ const phase8En = {
       "Wyrmcult Grand Robe", "Wyrmscale Jerkin", "Wyrmfang Greatblade", "Staff of the Gravewyrm", "Fang of Korzul", "Highwatch Trail Hardtack", "Meltwater Flask",
       "Roast Mountain Goat", "Glacier Melt", "Highwatch Warblade", "Craghorn Staff", "Icevein Dirk", "Highwatch Breastplate", "Peakwool Robe", "Stalkerhide Jerkin",
       "Cragwalker Boots", "Windguard Leggings", "Ogre Toe Ring", "Inert Storm Shard", "Frayed Prayer Beads", "Cracked Wyrm Scale",
+      "Worn Leather Cap", "Rough Spaulders", "Patched Cloak", "Frayed Choker", "Leather Bracers", "Work Gloves", "Rope Belt", "Copper Band",
     ]),
   },
 };
@@ -7207,6 +7218,7 @@ const phase8 = {
         "Gran toga del Culto del Wyrm", "Jubón de escamas de wyrm", "Gran hoja Colmillo de Wyrm", "Bastón del Gravewyrm", "Colmillo de Korzul", "Galleta de viaje de Highwatch", "Frasco de agua de deshielo",
         "Cabra montesa asada", "Agua de glaciar", "Hoja de guerra de Highwatch", "Bastón de Cuernorroca", "Puñal Vena de Hielo", "Coraza de Highwatch", "Toga de lana de cumbre", "Jubón de piel de acechador",
         "Botas Caminarrocas", "Leotardos Guardavientos", "Anillo de dedo de ogro", "Fragmento de tormenta inerte", "Cuentas de oración deshilachadas", "Escama de wyrm agrietada",
+        "Gorro de cuero gastado", "Hombreras toscas", "Capa remendada", "Gargantilla deshilachada", "Brazales de cuero", "Guantes de trabajo", "Cinturón de cuerda", "Anillo de cobre",
       ]),
     },
   },
@@ -7238,6 +7250,7 @@ const phase8 = {
         "Grande robe du Culte du Wyrm", "Pourpoint en écailles de wyrm", "Grande lame Croc-de-wyrm", "Bâton du Gravewyrm", "Croc de Korzul", "Biscuit de route de Highwatch", "Flasque d'eau de fonte",
         "Chèvre de montagne rôtie", "Fonte de glacier", "Lame de guerre de Highwatch", "Bâton de corne-roche", "Dague Veine-de-glace", "Cuirasse de Highwatch", "Robe en laine des cimes", "Pourpoint en peau de rôdeur",
         "Bottes Marchecrag", "Jambières Gardevent", "Anneau d'orteil ogre", "Éclat de tempête inerte", "Perles de prière effilochées", "Écaille de wyrm fendue",
+        "Casque de cuir usé", "Épaulières grossières", "Cape rapiécée", "Collier effiloché", "Bracelets de cuir", "Gants de travail", "Ceinture de corde", "Anneau de cuivre",
       ]),
     },
   },
@@ -7270,6 +7283,7 @@ const phase8 = {
         "Grande veste del Culto del Wyrm", "Giaco di scaglie di wyrm", "Spadone Zanna di Wyrm", "Bastone del Gravewyrm", "Zanna di Korzul", "Galletta da sentiero di Highwatch", "Fiasca di acqua di disgelo",
         "Capra di montagna arrosto", "Fusione glaciale", "Lama da guerra di Highwatch", "Bastone di Corno Roccioso", "Pugnale Venaghiaccio", "Corazza di Highwatch", "Veste di lana delle vette", "Giaco di pelle di predatore",
         "Stivali Camminarocce", "Gambiere Guardavento", "Anello da dito d'ogre", "Scheggia di tempesta inerte", "Grani di preghiera sfilacciati", "Scaglia di wyrm incrinata",
+        "Berretto di cuoio logoro", "Spalline grezze", "Mantello rattoppato", "Collana sfilacciata", "Bracciali di cuoio", "Guanti da lavoro", "Cintura di corda", "Anello di rame",
       ]),
     },
   },
@@ -7300,6 +7314,7 @@ const phase8 = {
         "Große Robe des Wyrmkults", "Wyrmschuppenwams", "Wyrmzahn-Großklinge", "Stab des Gravewyrm", "Korzuls Fangzahn", "Highwatch-Reisezwieback", "Schmelzwasserflasche",
         "Gebratene Bergziege", "Gletscherschmelze", "Highwatch-Kriegsklinge", "Felshornstab", "Eisaderdolch", "Highwatch-Brustplatte", "Gipfelwollrobe", "Pirschhauttunika",
         "Felswandererstiefel", "Windwachtgamaschen", "Ogerzehenring", "Träger Sturmsplitter", "Ausgefranste Gebetsperlen", "Gesprungene Wyrmschuppe",
+        "Abgenutzte Lederkappe", "Grobe Schulterstücke", "Geflickter Umhang", "Ausgefranster Halsreif", "Lederarmschienen", "Arbeitshandschuhe", "Seilgürtel", "Kupferring",
       ]),
     },
   },
@@ -7330,6 +7345,7 @@ const phase8 = {
         "龙教大长袍", "龙鳞皮甲", "龙牙巨刃", "墓龙法杖", "科祖尔之牙", "高望行军硬饼", "融雪水瓶",
         "烤山羊", "冰川融水", "高望战刃", "岩角法杖", "冰脉短匕", "高望胸甲", "峰羊毛长袍", "潜猎者皮甲",
         "岩行者长靴", "风卫护腿", "食人魔趾环", "惰性风暴碎片", "磨损的祈祷珠", "裂开的龙鳞",
+        "破旧皮帽", "粗糙肩甲", "打补丁的披风", "磨损的项圈", "皮护腕", "工作手套", "绳腰带", "铜戒指",
       ]),
     },
   },
@@ -7360,6 +7376,7 @@ const phase8 = {
         "龍教大長袍", "龍鱗皮甲", "龍牙巨刃", "墓龍法杖", "科祖爾之牙", "高望行軍硬餅", "融雪水瓶",
         "烤山羊", "冰川融水", "高望戰刃", "岩角法杖", "冰脈短匕", "高望胸甲", "峰羊毛長袍", "潛獵者皮甲",
         "岩行者長靴", "風衛護腿", "巨魔趾環", "惰性風暴碎片", "磨損的祈禱珠", "裂開的龍鱗",
+        "破舊皮帽", "粗糙肩甲", "打補丁的披風", "磨損的項圈", "皮護腕", "工作手套", "繩腰帶", "銅戒指",
       ]),
     },
   },
@@ -7390,6 +7407,7 @@ const phase8 = {
         "고룡교단 대로브", "고룡비늘 웃옷", "고룡송곳니 대검", "무덤고룡의 지팡이", "코르줄의 송곳니", "하이워치 여정 건빵", "눈녹은 물 플라스크",
         "구운 산양", "빙하 녹은물", "하이워치 전투검", "바위뿔 지팡이", "얼음맥 더크", "하이워치 흉갑", "봉우리양모 로브", "추적자가죽 웃옷",
         "바위걸음 장화", "바람수호 다리보호구", "오우거 발가락 반지", "비활성 폭풍 파편", "해진 기도 구슬", "갈라진 고룡 비늘",
+        "낡은 가죽 모자", "거친 어깨보호구", "기운 망토", "해진 목걸이", "가죽 손목보호구", "작업 장갑", "밧줄 허리띠", "구리 반지",
       ]),
     },
   },
@@ -7420,6 +7438,7 @@ const phase8 = {
         "ワーム教団の大ローブ", "ワーム鱗のジャーキン", "ワーム牙の大剣", "墓ワームの杖", "コルズルの牙", "ハイウォッチの旅堅パン", "雪解け水のフラスコ",
         "焼き山羊肉", "氷河の融け水", "ハイウォッチの戦刃", "岩角の杖", "氷脈のダーク", "ハイウォッチの胸当て", "峰羊毛のローブ", "追跡者革のジャーキン",
         "岩歩きのブーツ", "風守りのレギンス", "オーガの足指輪", "不活性の嵐片", "ほつれた祈りの数珠", "割れたワームの鱗",
+        "使い古した革帽子", "粗い肩当て", "継ぎ接ぎのマント", "擦り切れた首輪", "革のリストガード", "作業用手袋", "縄のベルト", "銅の指輪",
       ]),
     },
   },
@@ -7450,6 +7469,7 @@ const phase8 = {
         "Grande veste do Culto do Wyrm", "Gibão de escamas de wyrm", "Grande lâmina Presa de Wyrm", "Cajado do Gravewyrm", "Presa de Korzul", "Biscoito de trilha de Highwatch", "Frasco de água de degelo",
         "Cabra montesa assada", "Derretimento glacial", "Lâmina de guerra de Highwatch", "Cajado Chifre de Rocha", "Punhal Veiogelo", "Peitoral de Highwatch", "Veste de lã das alturas", "Gibão de pele de espreitador",
         "Botas Caminhapedra", "Perneiras Guardavento", "Anel de dedo de ogro", "Estilhaço de tempestade inerte", "Contas de oração desfiadas", "Escama de wyrm rachada",
+        "Boné de Couro Gasto", "Ombreiras Rústicas", "Capa Remendada", "Colar Puído", "Braçadeiras de Couro", "Luvas de Trabalho", "Cinto de Corda", "Anel de Cobre",
       ]),
     },
   },
@@ -7480,6 +7500,7 @@ const phase8 = {
         "Великая роба Культа Вирма", "Куртка из вирмовой чешуи", "Великий клинок Клык Вирма", "Посох Могильного Вирма", "Клык Корзула", "Походный сухарь Хайвотча", "Фляга талой воды",
         "Жареный горный козел", "Ледниковая талая вода", "Боевой клинок Хайвотча", "Посох Камнерога", "Кортик Ледяной Жилы", "Кираса Хайвотча", "Роба из горной шерсти", "Куртка из шкуры охотника",
         "Сапоги Камнехода", "Поножи Ветростража", "Кольцо на палец огра", "Инертный осколок бури", "Истрепанные молитвенные четки", "Треснувшая чешуя вирма",
+        "Потёртый кожаный шлем", "Грубые наплечники", "Залатанный плащ", "Истёртый воротник", "Кожаные наручи", "Рабочие перчатки", "Верёвочный пояс", "Медное кольцо",
       ]),
     },
   },

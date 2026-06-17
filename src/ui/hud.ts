@@ -12,7 +12,7 @@ import {
 import type { ZoneDef } from '../sim/data';
 import type { AbilityDef, EquipSlot, InvSlot, PetMode, PlayerClass, ResourceType, Stats } from '../sim/types';
 import {
-  AbilityEffect, CONSUME_DURATION, Entity, FISHING_CAST_ID, GCD, ItemDef, SimEvent,
+  AbilityEffect, CONSUME_DURATION, Entity, EQUIP_SLOTS, FISHING_CAST_ID, GCD, ItemDef, SimEvent,
   dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
 } from '../sim/types';
 import { xpBarView, formatXp } from './xp_bar';
@@ -112,10 +112,20 @@ const PET_MODE_DESC_KEYS: Record<PetMode, TranslationKey> = {
 };
 type ItemQuality = NonNullable<ItemDef['quality']>;
 const ITEM_SLOT_LABEL_KEYS: Record<EquipSlot, TranslationKey> = {
-  mainhand: 'itemUi.slots.mainhand',
+  head: 'itemUi.slots.head',
+  neck: 'itemUi.slots.neck',
+  shoulder: 'itemUi.slots.shoulder',
+  back: 'itemUi.slots.back',
   chest: 'itemUi.slots.chest',
+  wrist: 'itemUi.slots.wrist',
+  hands: 'itemUi.slots.hands',
+  waist: 'itemUi.slots.waist',
   legs: 'itemUi.slots.legs',
   feet: 'itemUi.slots.feet',
+  ring1: 'itemUi.slots.ring',
+  ring2: 'itemUi.slots.ring',
+  trinket: 'itemUi.slots.trinket',
+  mainhand: 'itemUi.slots.mainhand',
 };
 const ITEM_QUALITY_LABEL_KEYS: Record<ItemQuality, TranslationKey> = {
   poor: 'itemUi.quality.poor',
@@ -3702,12 +3712,8 @@ export class Hud {
     el.innerHTML = html;
     el.querySelector('[data-act="prestige"]')?.addEventListener('click', () => this.openPrestigeDialog());
     const col = el.querySelector('#equip-col')!;
-    const slots: { key: EquipSlot; name: string }[] = [
-      { key: 'mainhand', name: itemSlotName('mainhand') },
-      { key: 'chest', name: itemSlotName('chest') },
-      { key: 'legs', name: itemSlotName('legs') },
-      { key: 'feet', name: itemSlotName('feet') },
-    ];
+    const slots: { key: EquipSlot; name: string }[] =
+      EQUIP_SLOTS.map((key) => ({ key, name: itemSlotName(key) }));
     for (const slot of slots) {
       const itemId = sim.equipment[slot.key];
       const item = itemId ? ITEMS[itemId] : null;

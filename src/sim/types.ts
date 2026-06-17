@@ -81,7 +81,21 @@ export interface WeaponInfo {
   dagger?: boolean; // backstab requires a dagger
 }
 
-export type EquipSlot = 'mainhand' | 'chest' | 'legs' | 'feet';
+export type EquipSlot =
+  | 'head' | 'neck' | 'shoulder' | 'back' | 'chest' | 'wrist' | 'hands'
+  | 'waist' | 'legs' | 'feet' | 'ring1' | 'ring2' | 'trinket' | 'mainhand';
+
+/**
+ * Every equipment slot, in paperdoll display order. THE single source of truth —
+ * stat aggregation (`recalcPlayerStats`) and the character-window UI both iterate
+ * this, so adding a slot here wires it everywhere. `ring1`/`ring2` are the two
+ * ring slots; ring items declare `slot: 'ring1'` and the equip logic routes them
+ * to the first free ring slot (see `Sim.equipItem`).
+ */
+export const EQUIP_SLOTS: readonly EquipSlot[] = [
+  'head', 'neck', 'shoulder', 'back', 'chest', 'wrist', 'hands',
+  'waist', 'legs', 'feet', 'ring1', 'ring2', 'trinket', 'mainhand',
+];
 
 export type ItemUse =
   | { type: 'fishing' };

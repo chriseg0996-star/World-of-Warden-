@@ -20,15 +20,18 @@ describe('/gear command', () => {
     sim.chat('/gear', a);
     const text = errorText(sim.tick());
     expect(text).toBeDefined();
-    expect(text).toMatch(/^Equipped \(2\/4\):/);
+    // 14 equip slots now (head/neck/shoulder/back/chest/wrist/hands/waist/legs/feet/2 rings/trinket/mainhand)
+    expect(text).toMatch(/^Equipped \(2\/14\):/);
     expect(text).toContain('Main Hand:');
     expect(text).toContain('Chest:');
+    expect(text).toContain('Head: (empty)');
     expect(text).toContain('Legs: (empty)');
     expect(text).toContain('Feet: (empty)');
-    // fixed slot order: main hand before chest before legs before feet
-    expect(text!.indexOf('Main Hand')).toBeLessThan(text!.indexOf('Chest'));
+    // fixed paperdoll order: head before chest, chest before legs/feet, main hand last
+    expect(text!.indexOf('Head')).toBeLessThan(text!.indexOf('Chest'));
     expect(text!.indexOf('Chest')).toBeLessThan(text!.indexOf('Legs'));
     expect(text!.indexOf('Legs')).toBeLessThan(text!.indexOf('Feet'));
+    expect(text!.indexOf('Feet')).toBeLessThan(text!.indexOf('Main Hand'));
   });
 
   it('reflects newly equipped gear and resolves item names', () => {
@@ -39,10 +42,11 @@ describe('/gear command', () => {
     sim.tick();
     sim.chat('/gear', a);
     const text = errorText(sim.tick());
-    expect(text).toMatch(/^Equipped \(4\/4\):/);
+    expect(text).toMatch(/^Equipped \(4\/14\):/);
     expect(text).toContain('Worn Shortsword');
     expect(text).toContain('Quilted Trousers');
-    expect(text).not.toContain('(empty)');
+    // the other 10 slots remain empty
+    expect(text).toContain('Head: (empty)');
   });
 
   it('reports nothing equipped when every slot is empty', () => {

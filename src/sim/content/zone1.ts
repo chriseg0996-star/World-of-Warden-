@@ -275,6 +275,8 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
       'eastbrook_arming_sword', 'bronzework_mace', 'vale_carving_knife', 'hickory_shortstaff',
       'eastbrook_chain_vest', 'valespun_robe', 'tanned_leather_jerkin',
       'hobnail_boots', 'eastbrook_wool_trousers',
+      'worn_leather_cap', 'rough_spaulders', 'patched_cloak', 'frayed_choker',
+      'leather_bracers', 'work_gloves', 'rope_belt', 'copper_band',
     ],
     greeting: 'Mind the sparks, $C. Good steel is the difference between a scar and a grave.',
   },

@@ -23,7 +23,7 @@ import { groundHeight, WATER_LEVEL } from './world';
 import type { LeaderboardEntry } from '../world_api';
 import {
   AbilityDef, AbilityEffect, Aura, AuraKind, CAST_PUSHBACK_SEC, CHANNEL_PUSHBACK_FRACTION, CONSUME_DURATION,
-  CONSUME_TICKS, CrowdControlDrCategory, DT, Entity, EquipSlot, FISHING_CAST_ID, FISHING_CAST_TIME, GCD,
+  CONSUME_TICKS, CrowdControlDrCategory, DT, Entity, EquipSlot, EQUIP_SLOTS, FISHING_CAST_ID, FISHING_CAST_TIME, GCD,
   INTERACT_RANGE, InvSlot, LootEntry, LootSlot, MELEE_RANGE, MAX_LEVEL, MobFamily, MobTemplate,
   MoveInput, OverheadEmoteId, PetMode, PlayerClass, QuestProgress, QuestState, RUN_SPEED, SimConfig, SimEvent, TURN_SPEED, Vec3,
   angleTo, armorReduction, dist2d, emptyMoveInput, isConsuming, meleeMissChance, mobXpValue, normAngle,
@@ -4603,7 +4603,10 @@ export class Sim {
       this.error(meta.entityId, 'You cannot equip that.');
       return;
     }
-    const slot = def.slot;
+    // Rings declare slot 'ring1' but fill the first free ring slot (ring1 then
+    // ring2); only swap an occupied ring if both are full.
+    let slot = def.slot;
+    if (slot === 'ring1' && meta.equipment.ring1 && !meta.equipment.ring2) slot = 'ring2';
     const old = meta.equipment[slot];
     this.removeItem(itemId, 1, meta.entityId);
     if (old) this.addItemSilent(old, 1, meta);
@@ -7281,21 +7284,22 @@ export class Sim {
   // Self-only readout of equipped items, walked in a fixed slot order so the
   // line is stable and empty slots are visible (the point of a gear check).
   private gearReadout(meta: PlayerMeta): string {
-    const slots: [EquipSlot, string][] = [
-      ['mainhand', 'Main Hand'],
-      ['chest', 'Chest'],
-      ['legs', 'Legs'],
-      ['feet', 'Feet'],
-    ];
+    // Diagnostic chat readout (English; same class as /stats, /xp). Slot order
+    // follows EQUIP_SLOTS so it stays in lockstep with the paperdoll UI.
+    const labels: Record<EquipSlot, string> = {
+      head: 'Head', neck: 'Neck', shoulder: 'Shoulder', back: 'Back', chest: 'Chest',
+      wrist: 'Wrist', hands: 'Hands', waist: 'Waist', legs: 'Legs', feet: 'Feet',
+      ring1: 'Ring 1', ring2: 'Ring 2', trinket: 'Trinket', mainhand: 'Main Hand',
+    };
     let worn = 0;
-    const parts = slots.map(([slot, label]) => {
+    const parts = EQUIP_SLOTS.map((slot) => {
       const itemId = meta.equipment[slot];
-      if (!itemId) return `${label}: (empty)`;
+      if (!itemId) return `${labels[slot]}: (empty)`;
       worn++;
-      return `${label}: ${ITEMS[itemId]?.name ?? itemId}`;
+      return `${labels[slot]}: ${ITEMS[itemId]?.name ?? itemId}`;
     });
     if (worn === 0) return 'You have nothing equipped.';
-    return `Equipped (${worn}/${slots.length}): ${parts.join(', ')}.`;
+    return `Equipped (${worn}/${EQUIP_SLOTS.length}): ${parts.join(', ')}.`;
   }
   private abilitiesReadout(meta: PlayerMeta, e: Entity): string {
     const known = abilitiesKnownAt(meta.cls, e.level);
