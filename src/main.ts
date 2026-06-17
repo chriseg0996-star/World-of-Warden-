@@ -13,7 +13,7 @@ import { Api, ClientWorld, CharacterSummary } from './net/online';
 import type { IWorld, LeaderboardEntry } from './world_api';
 import { formatXp } from './ui/xp_bar';
 import { assetsReady } from './render/assets/preload';
-import { CharacterPreview } from './render/characters';
+import type { CharacterPreview } from './render/characters';
 import { skinCount } from './render/characters/manifest';
 import { DT, INTERACT_RANGE, PlayerClass, dist2d } from './sim/types';
 import { togglePasswordVisibility, syncInputAriaState, validateForm, handleKeyboardActivation, validateCharacterName } from './ui/auth_utils';
@@ -1051,8 +1051,34 @@ function refreshOnlineSkins(cls: PlayerClass): void {
   });
 }
 
+// The 3D class preview (and its three.js dependency) is deferred off the DOM-only
+// landing page: render/characters is dynamically imported only when a class panel opens.
+let charactersModulePromise: Promise<typeof import('./render/characters')> | null = null;
+let characterPreviewLoading = false;
+async function ensureCharacterPreview(panelId: string): Promise<void> {
+  if (characterPreview || characterPreviewLoading) return;
+  characterPreviewLoading = true;
+  try {
+    // Importing render/characters registers its player-model preloads (preload.ts registry),
+    // which MUST happen before assetsReady() is awaited — otherwise the models aren't fetched.
+    if (!charactersModulePromise) charactersModulePromise = import('./render/characters');
+    const mod = await charactersModulePromise;
+    await assetsReady();
+    const canvas = $('#char-preview-canvas') as HTMLCanvasElement | null;
+    const containerId = panelId === '#charselect-panel' ? '#online-preview-container' : '#offline-preview-container';
+    const container = $(containerId);
+    if (!characterPreview && container && canvas) {
+      characterPreview = new mod.CharacterPreview(container, canvas);
+    }
+  } finally {
+    characterPreviewLoading = false;
+  }
+  // Now that the preview exists, wire it to the active panel + current class selection.
+  if (characterPreview) updatePreviewContainer(panelId);
+}
+
 function updatePreviewContainer(panelId: string): void {
-  if (!characterPreview) return;
+  if (!characterPreview) { void ensureCharacterPreview(panelId); return; }
   const containerId = panelId === '#charselect-panel' ? '#online-preview-container' : '#offline-preview-container';
   const container = $(containerId);
   if (container) {
@@ -2728,22 +2754,9 @@ function wireStartScreens(): void {
 
   initBackgroundEmbers();
 
-  // Initialize 3D character preview once assets are ready
-  assetsReady().then(() => {
-    const activePanelId = ['#charselect-panel', '#offline-select'].find(id => !$(id).hasAttribute('hidden'));
-    const containerId = activePanelId === '#offline-select' ? '#offline-preview-container' : '#online-preview-container';
-    const container = $(containerId);
-    const canvas = $('#char-preview-canvas') as HTMLCanvasElement | null;
-    if (container && canvas) {
-      characterPreview = new CharacterPreview(container, canvas);
-      const selSelector = activePanelId === '#offline-select'
-        ? '#offline-select .mini-class.sel'
-        : '#charselect-panel .mini-class.sel';
-      const selEl = document.querySelector(selSelector) as HTMLElement | null;
-      const cls = selEl ? (selEl.dataset.class as PlayerClass) : 'warrior';
-      characterPreview.setClass(cls);
-    }
-  });
+  // The 3D character preview is created lazily the first time a class panel is shown
+  // (see ensureCharacterPreview, triggered via updatePreviewContainer in show()) so the
+  // landing page never downloads three.js / render/characters.
 }
 
 wireStartScreens();
