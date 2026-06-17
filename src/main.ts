@@ -1,10 +1,10 @@
 import { Sim } from './sim/sim';
-import { Renderer } from './render/renderer';
+import type { Renderer } from './render/renderer';
 import { Input } from './game/input';
 import { Keybinds } from './game/keybinds';
 import { Settings, GameSettings, SETTING_RANGES, normalizeClickMoveButton } from './game/settings';
 import { MobileControls, PHONE_TOUCH_QUERY, isPhoneTouchDevice } from './game/mobile_controls';
-import { Hud } from './ui/hud';
+import type { Hud } from './ui/hud';
 import { audio } from './game/audio';
 import { music } from './game/music';
 import { handlePickedEntity, hoverCursorKind } from './game/interactions';
@@ -485,7 +485,18 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   // Paint the loading screen before anything can block — assetsReady may resolve
   // immediately when assets are already cached, and the scene build is synchronous.
   await nextPaint();
+  // Lazy-load the in-world engine (renderer + HUD, which statically pull in all of
+  // render/* and ui/hud) only on world entry — the DOM landing page never ships it.
+  // MUST precede assetsReady(): importing the render modules registers which GLB/HDRI
+  // assets to preload, and assetsReady() must then wait for that full list. Sim/ClientWorld
+  // stay static (Api already pulls them in for landing-page realm status/highscores).
+  let renderModule: typeof import('./render/renderer');
+  let hudModule: typeof import('./ui/hud');
   try {
+    [renderModule, hudModule] = await Promise.all([
+      import('./render/renderer'),
+      import('./ui/hud'),
+    ]);
     await assetsReady((done, total) => setLoadingProgress(done, total));
   } catch (err) {
     fatalOverlay(t('loading.assetsFailed', { error: technicalErrorMessage(err) }));
@@ -506,9 +517,9 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   let hud!: Hud;
   const perf = createPerfMonitor(null);
   try {
-    renderer = new Renderer(world, canvas, nameplates);
+    renderer = new renderModule.Renderer(world, canvas, nameplates);
     perf.setRenderer(renderer);
-    hud = new Hud(world, renderer, keybinds);
+    hud = new hudModule.Hud(world, renderer, keybinds);
     perf.setHud(hud);
     hydrateIcons(); // swap [data-icon] placeholders (micro-menu, mobile bar, meters) for inline SVG
   } catch (err) {
