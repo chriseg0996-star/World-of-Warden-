@@ -7,25 +7,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const indexPath = path.resolve(__dirname, '../index.html');
 const expectedAlternates = [
-  { hreflang: 'en', href: 'https://worldofclaudecraft.com/' },
-  { hreflang: 'es', href: 'https://worldofclaudecraft.com/?lang=es' },
-  { hreflang: 'es-ES', href: 'https://worldofclaudecraft.com/?lang=es_ES' },
-  { hreflang: 'fr-FR', href: 'https://worldofclaudecraft.com/?lang=fr_FR' },
-  { hreflang: 'fr-CA', href: 'https://worldofclaudecraft.com/?lang=fr_CA' },
-  { hreflang: 'en-CA', href: 'https://worldofclaudecraft.com/?lang=en_CA' },
-  { hreflang: 'it-IT', href: 'https://worldofclaudecraft.com/?lang=it_IT' },
-  { hreflang: 'de-DE', href: 'https://worldofclaudecraft.com/?lang=de_DE' },
-  { hreflang: 'zh-CN', href: 'https://worldofclaudecraft.com/?lang=zh_CN' },
-  { hreflang: 'zh-TW', href: 'https://worldofclaudecraft.com/?lang=zh_TW' },
-  { hreflang: 'ko-KR', href: 'https://worldofclaudecraft.com/?lang=ko_KR' },
-  { hreflang: 'ja-JP', href: 'https://worldofclaudecraft.com/?lang=ja_JP' },
-  { hreflang: 'pt-BR', href: 'https://worldofclaudecraft.com/?lang=pt_BR' },
-  { hreflang: 'ru-RU', href: 'https://worldofclaudecraft.com/?lang=ru_RU' },
-  { hreflang: 'x-default', href: 'https://worldofclaudecraft.com/' },
+  { hreflang: 'en', href: 'https://worldofwarden.com/' },
+  { hreflang: 'es', href: 'https://worldofwarden.com/?lang=es' },
+  { hreflang: 'es-ES', href: 'https://worldofwarden.com/?lang=es_ES' },
+  { hreflang: 'fr-FR', href: 'https://worldofwarden.com/?lang=fr_FR' },
+  { hreflang: 'fr-CA', href: 'https://worldofwarden.com/?lang=fr_CA' },
+  { hreflang: 'en-CA', href: 'https://worldofwarden.com/?lang=en_CA' },
+  { hreflang: 'it-IT', href: 'https://worldofwarden.com/?lang=it_IT' },
+  { hreflang: 'de-DE', href: 'https://worldofwarden.com/?lang=de_DE' },
+  { hreflang: 'zh-CN', href: 'https://worldofwarden.com/?lang=zh_CN' },
+  { hreflang: 'zh-TW', href: 'https://worldofwarden.com/?lang=zh_TW' },
+  { hreflang: 'ko-KR', href: 'https://worldofwarden.com/?lang=ko_KR' },
+  { hreflang: 'ja-JP', href: 'https://worldofwarden.com/?lang=ja_JP' },
+  { hreflang: 'pt-BR', href: 'https://worldofwarden.com/?lang=pt_BR' },
+  { hreflang: 'ru-RU', href: 'https://worldofwarden.com/?lang=ru_RU' },
+  { hreflang: 'x-default', href: 'https://worldofwarden.com/' },
 ];
 
 function audit() {
-  console.log('--- World of ClaudeCraft: Local SEO & A11y Audit ---');
+  console.log('--- World of Warden: Local SEO & A11y Audit ---');
   if (!fs.existsSync(indexPath)) {
     console.error(`Error: index.html not found at ${indexPath}`);
     process.exit(1);
@@ -197,14 +197,14 @@ function audit() {
   });
 
   // 8. Canonical Link Check
-  const hasCanonical = html.includes('rel="canonical"') && html.includes('href="https://worldofclaudecraft.com/"');
+  const hasCanonical = html.includes('rel="canonical"') && html.includes('href="https://worldofwarden.com/"');
   checks.push({
     category: 'SEO',
     name: 'Canonical link tag is present and correct',
     passed: hasCanonical,
     score: hasCanonical ? 10 : 0,
     maxScore: 10,
-    details: hasCanonical ? 'Found rel="canonical" pointing to worldofclaudecraft.com.' : 'Missing rel="canonical" link tag.'
+    details: hasCanonical ? 'Found rel="canonical" pointing to worldofwarden.com.' : 'Missing rel="canonical" link tag.'
   });
 
   // 9. GEO / hreflang alternates Check

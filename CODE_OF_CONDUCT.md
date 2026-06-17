@@ -3,7 +3,7 @@
 ## Our pledge
 
 We as members, contributors, and maintainers pledge to make participation in the
-World of ClaudeCraft community a welcoming and harassment-free experience for
+World of Warden community a welcoming and harassment-free experience for
 everyone, regardless of age, body size, visible or invisible disability,
 ethnicity, gender identity and expression, level of experience, education,
 socioeconomic status, nationality, personal appearance, race, religion, or sexual
@@ -58,7 +58,7 @@ community in public spaces.
 If you experience or witness unacceptable behavior, please report it privately to
 the maintainers. The simplest way is to send a direct message to a member of the
 **Levy St**, **Admin**, or **Devs** group on the
-[community Discord](https://discord.gg/GjhnUsBtw) and ask for a private channel to
+[community Discord](https://github.com/chriseg0996-star/world-of-warden-) and ask for a private channel to
 share the details.
 
 All reports will be reviewed and investigated promptly and fairly. Maintainers are

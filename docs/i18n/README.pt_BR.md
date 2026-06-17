@@ -8,17 +8,17 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 [![Version](https://img.shields.io/badge/version-0.6.0-blue)](../../package.json)
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/GjhnUsBtw)
+[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://github.com/chriseg0996-star/world-of-warden-)
 
 [English](../../README.md) · [Español](README.es.md) · [Español (España)](README.es_ES.md) · [Français](README.fr_FR.md) · [Français (Canada)](README.fr_CA.md) · [Italiano](README.it_IT.md) · [Deutsch](README.de_DE.md) · [简体中文](README.zh_CN.md) · [繁體中文](README.zh_TW.md) · [한국어](README.ko_KR.md) · [日本語](README.ja_JP.md) · **Português (Brasil)** · [Русский](README.ru_RU.md)
 
 </div>
 
-# World of ClaudeCraft — um MMO de estilo clássico
+# World of Warden — um MMO de estilo clássico
 
-[Entre no Discord da comunidade](https://discord.gg/GjhnUsBtw)
+[Entre no Discord da comunidade](https://github.com/chriseg0996-star/world-of-warden-)
 
-![Tela de título de World of ClaudeCraft](../../docs/screenshots/title-screen.jpg)
+![Tela de título de World of Warden](../../docs/screenshots/title-screen.jpg)
 
 Um micro-MMO com sabor de MMO da era clássica que você pode hospedar e jogar:
 
@@ -42,7 +42,7 @@ autoritativo roda para todos online.
 
 ![World of Claude](../../worldofclaude.png)
 
-![Comunidade de World of ClaudeCraft](../../woc_community.png)
+![Comunidade de World of Warden](../../woc_community.png)
 
 ---
 
@@ -300,9 +300,9 @@ Contribuições de todo tipo são bem-vindas: código, traduções, relatos de b
 documentação. Comece pelo [CONTRIBUTING.pt_BR.md](CONTRIBUTING.pt_BR.md) para a
 configuração e as diretrizes, e por favor siga o nosso
 [Código de Conduta](../../CODE_OF_CONDUCT.md). É novo por aqui? Procure issues com o
-rótulo [`good first issue`](https://github.com/levy-street/world-of-claudecraft/labels/good%20first%20issue),
-abra uma [issue](https://github.com/levy-street/world-of-claudecraft/issues/new/choose)
-ou dê um oi no [Discord](https://discord.gg/GjhnUsBtw).
+rótulo [`good first issue`](https://github.com/chriseg0996-star/world-of-warden-/labels/good%20first%20issue),
+abra uma [issue](https://github.com/chriseg0996-star/world-of-warden-/issues/new/choose)
+ou dê um oi no [Discord](https://github.com/chriseg0996-star/world-of-warden-).
 
 ## Licença
 

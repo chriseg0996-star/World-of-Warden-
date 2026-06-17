@@ -8,17 +8,17 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 [![Version](https://img.shields.io/badge/version-0.6.0-blue)](../../package.json)
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/GjhnUsBtw)
+[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://github.com/chriseg0996-star/world-of-warden-)
 
 [English](../../README.md) · [Español](README.es.md) · [Español (España)](README.es_ES.md) · [Français](README.fr_FR.md) · [Français (Canada)](README.fr_CA.md) · [Italiano](README.it_IT.md) · [Deutsch](README.de_DE.md) · [简体中文](README.zh_CN.md) · [繁體中文](README.zh_TW.md) · [한국어](README.ko_KR.md) · **日本語** · [Português (Brasil)](README.pt_BR.md) · [Русский](README.ru_RU.md)
 
 </div>
 
-# World of ClaudeCraft — クラシックスタイルのMMO
+# World of Warden — クラシックスタイルのMMO
 
-[コミュニティ Discord に参加する](https://discord.gg/GjhnUsBtw)
+[コミュニティ Discord に参加する](https://github.com/chriseg0996-star/world-of-warden-)
 
-![World of ClaudeCraft タイトル画面](../../docs/screenshots/title-screen.jpg)
+![World of Warden タイトル画面](../../docs/screenshots/title-screen.jpg)
 
 ホストしてプレイできる、クラシック時代のMMOの雰囲気を持つマイクロMMOです。
 
@@ -39,7 +39,7 @@
 
 ![World of Claude](../../worldofclaude.png)
 
-![World of ClaudeCraft コミュニティ](../../woc_community.png)
+![World of Warden コミュニティ](../../woc_community.png)
 
 ---
 
@@ -191,7 +191,7 @@ scripts/      ブラウザ E2E + スクリーンショットツアー + マル�
 
 ## 貢献する
 
-あらゆる形の貢献を歓迎します。コード、翻訳、バグ報告、そしてドキュメント、そのどれもが力になります。まずはセットアップとガイドラインをまとめた [CONTRIBUTING.md](CONTRIBUTING.ja_JP.md) から始めて、[行動規範](../../CODE_OF_CONDUCT.md)に従ってください。初めての方は、[`good first issue`](https://github.com/levy-street/world-of-claudecraft/labels/good%20first%20issue) のラベルが付いた issue を探すか、[issue](https://github.com/levy-street/world-of-claudecraft/issues/new/choose) を立てるか、[Discord](https://discord.gg/GjhnUsBtw) で気軽に挨拶してください。
+あらゆる形の貢献を歓迎します。コード、翻訳、バグ報告、そしてドキュメント、そのどれもが力になります。まずはセットアップとガイドラインをまとめた [CONTRIBUTING.md](CONTRIBUTING.ja_JP.md) から始めて、[行動規範](../../CODE_OF_CONDUCT.md)に従ってください。初めての方は、[`good first issue`](https://github.com/chriseg0996-star/world-of-warden-/labels/good%20first%20issue) のラベルが付いた issue を探すか、[issue](https://github.com/chriseg0996-star/world-of-warden-/issues/new/choose) を立てるか、[Discord](https://github.com/chriseg0996-star/world-of-warden-) で気軽に挨拶してください。
 
 ## License
 

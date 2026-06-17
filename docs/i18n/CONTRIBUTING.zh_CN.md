@@ -4,11 +4,11 @@
 
 </div>
 
-# 为 World of ClaudeCraft 做贡献
+# 为 World of Warden 做贡献
 
-首先，感谢你的到来。World of ClaudeCraft 由一群热爱经典 MMO 的人共同打造，每一份贡献，无论大小，都让它变得更好。修正一个错别字、翻译游戏、报告一个 bug、搭建一座全新的副本：这些都很重要，我们欢迎你的加入。
+首先，感谢你的到来。World of Warden 由一群热爱经典 MMO 的人共同打造，每一份贡献，无论大小，都让它变得更好。修正一个错别字、翻译游戏、报告一个 bug、搭建一座全新的副本：这些都很重要，我们欢迎你的加入。
 
-本指南会帮你完成环境搭建，让你的第一次贡献顺顺利利。你不需要是专家。如果有任何不清楚的地方，欢迎到 [Discord](https://discord.gg/GjhnUsBtw) 上提问，会有人乐意帮你。
+本指南会帮你完成环境搭建，让你的第一次贡献顺顺利利。你不需要是专家。如果有任何不清楚的地方，欢迎到 [Discord](https://github.com/chriseg0996-star/world-of-warden-) 上提问，会有人乐意帮你。
 
 参与即表示你同意遵守我们的[行为准则](../../CODE_OF_CONDUCT.md)。
 
@@ -17,11 +17,11 @@
 这里人人都有用武之地：
 
 - **代码。** 修复 bug、增加功能，或者提升性能。带有
-  [`good first issue`](https://github.com/levy-street/world-of-claudecraft/labels/good%20first%20issue)
-  和 [`help wanted`](https://github.com/levy-street/world-of-claudecraft/labels/help%20wanted)
+  [`good first issue`](https://github.com/chriseg0996-star/world-of-warden-/labels/good%20first%20issue)
+  和 [`help wanted`](https://github.com/chriseg0996-star/world-of-warden-/labels/help%20wanted)
   标签的 issue 是不错的起点。
 - **翻译。** 通过改进或补全某种语言，帮助世界各地的玩家。请看下方的[翻译游戏](#translating-the-game)。这是最容易上手、也最有影响力的入门方式之一。
-- **bug 报告与功能想法。** 提交一个 [issue](https://github.com/levy-street/world-of-claudecraft/issues/new/choose)。一份清晰的 bug 报告本身就是实打实的贡献。
+- **bug 报告与功能想法。** 提交一个 [issue](https://github.com/chriseg0996-star/world-of-warden-/issues/new/choose)。一份清晰的 bug 报告本身就是实打实的贡献。
 - **文档。** 像这份指南、README，以及 `docs/` 里的设计文档，都还有改进的空间。
 - **试玩与反馈。** 玩玩这个游戏，告诉我们哪里感觉不对劲，并在 Discord 上分享你的想法。
 
@@ -31,8 +31,8 @@
 
 ```bash
 # 1. 在 GitHub 上 fork 仓库，然后克隆你的 fork
-git clone https://github.com/<your-username>/world-of-claudecraft.git
-cd world-of-claudecraft
+git clone https://github.com/<your-username>/world-of-warden.git
+cd world-of-warden
 
 # 2. 安装依赖
 npm ci
@@ -99,7 +99,7 @@ CI 全绿加上一份完整的清单，是我们合并前所看重的。维护�
 
 ## 本地化
 
-World of ClaudeCraft 支持多种语言，并且随着游戏的发展，我们会一直保持这一点。每一条玩家可见的字符串都会被翻译成每一种受支持的语言。
+World of Warden 支持多种语言，并且随着游戏的发展，我们会一直保持这一点。每一条玩家可见的字符串都会被翻译成每一种受支持的语言。
 
 - 所有面向用户的文本都是定义在 [`src/ui/i18n.ts`](../../src/ui/i18n.ts) 中的 `t()` 键。请先把新字符串加到 `en` 语言里，然后在 `supportedLanguages` 中的每一种其他语言里都提供真正的翻译。不要留英文占位符，也不要留 `// TODO`。
 - 数字、金额、日期、单位和百分比要经过格式化函数（`formatNumber`、`formatMoney`、`formatDateTime`、`Intl`），而不是手动拼接字符串。
@@ -117,18 +117,18 @@ World of ClaudeCraft 支持多种语言，并且随着游戏的发展，我们�
 2. 改进现有的翻译，或者补全任何读起来别扭的地方。
 3. 运行 `npx tsc --noEmit` 确认没有遗漏，然后提交 PR。
 
-要提议一门全新的语言，或者讨论语气和术语，请到 [Discord](https://discord.gg/GjhnUsBtw) 上开个话题，我们会帮你把它接进来。尤其欢迎母语者和流利使用者。好的翻译能让各地玩家都觉得游戏像家一样亲切。
+要提议一门全新的语言，或者讨论语气和术语，请到 [Discord](https://github.com/chriseg0996-star/world-of-warden-) 上开个话题，我们会帮你把它接进来。尤其欢迎母语者和流利使用者。好的翻译能让各地玩家都觉得游戏像家一样亲切。
 
 ## 报告 bug 与请求功能
 
-请使用 [issue 模板](https://github.com/levy-street/world-of-claudecraft/issues/new/choose)：
+请使用 [issue 模板](https://github.com/chriseg0996-star/world-of-warden-/issues/new/choose)：
 
-- **bug 报告。** 请先搜索[现有的 issue](https://github.com/levy-street/world-of-claudecraft/issues) 以避免重复，然后写明复现步骤、你的预期、实际发生了什么，以及你的环境（离线还是在线、浏览器、桌面端还是移动端）。
+- **bug 报告。** 请先搜索[现有的 issue](https://github.com/chriseg0996-star/world-of-warden-/issues) 以避免重复，然后写明复现步骤、你的预期、实际发生了什么，以及你的环境（离线还是在线、浏览器、桌面端还是移动端）。
 - **功能请求。** 描述你想解决的问题，而不只是解决方案。背景信息能帮我们设计出真正合适的东西。
 
 ## 获取帮助
 
-卡住了，或者只是想打个招呼？欢迎加入[社区 Discord](https://discord.gg/GjhnUsBtw)。没有什么问题是太小的，我们始终欢迎新的贡献者。
+卡住了，或者只是想打个招呼？欢迎加入[社区 Discord](https://github.com/chriseg0996-star/world-of-warden-)。没有什么问题是太小的，我们始终欢迎新的贡献者。
 
 ## 许可证
 
@@ -136,4 +136,4 @@ World of ClaudeCraft 支持多种语言，并且随着游戏的发展，我们�
 
 ---
 
-感谢你为 World of ClaudeCraft 做出贡献。我们迫不及待想看到你和我们一起创造出什么。
+感谢你为 World of Warden 做出贡献。我们迫不及待想看到你和我们一起创造出什么。

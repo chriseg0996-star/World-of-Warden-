@@ -79,7 +79,7 @@ services:
       MEDIAWIKI_DB_PASSWORD: ${MEDIAWIKI_DB_PASSWORD:-mediawiki-change-me}
       MEDIAWIKI_ADMIN_USER: ${MEDIAWIKI_ADMIN_USER:-WikiAdmin}
       MEDIAWIKI_ADMIN_PASS: ${MEDIAWIKI_ADMIN_PASS:-change-me-admin-password}
-      MEDIAWIKI_SECRET_KEY: ${MEDIAWIKI_SECRET_KEY:-local-dev-change-me-world-of-claudecraft}
+      MEDIAWIKI_SECRET_KEY: ${MEDIAWIKI_SECRET_KEY:-local-dev-change-me-world-of-warden}
       MEDIAWIKI_UPGRADE_KEY: ${MEDIAWIKI_UPGRADE_KEY:-local-dev-upgrade-key}
       MEDIAWIKI_SERVER: ${MEDIAWIKI_SERVER:-http://localhost:8080}
     ports:

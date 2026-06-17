@@ -4,16 +4,16 @@
 
 </div>
 
-# Contribuir a World of ClaudeCraft
+# Contribuir a World of Warden
 
-Antes que nada, gracias por estar aquí. World of ClaudeCraft lo construye una
+Antes que nada, gracias por estar aquí. World of Warden lo construye una
 comunidad de personas que aman los MMO clásicos, y cada aporte, grande o pequeño,
 lo hace mejor. Corregir un error de tipeo, traducir el juego, reportar un bug,
 construir una mazmorra completamente nueva: todo cuenta, y aquí eres bienvenido.
 
 Esta guía te ayudará a configurar tu entorno y a que tu primera contribución
 salga sin contratiempos. No necesitas ser una persona experta. Si algo no queda
-claro, pregunta en [Discord](https://discord.gg/GjhnUsBtw) y alguien estará feliz
+claro, pregunta en [Discord](https://github.com/chriseg0996-star/world-of-warden-) y alguien estará feliz
 de ayudarte.
 
 Al participar, aceptas seguir nuestro [Código de Conducta](../../CODE_OF_CONDUCT.md).
@@ -24,13 +24,13 @@ Aquí hay un lugar para todas las personas:
 
 - **Código.** Corrige un bug, agrega una función o mejora el rendimiento. Los
   issues etiquetados como
-  [`good first issue`](https://github.com/levy-street/world-of-claudecraft/labels/good%20first%20issue)
-  y [`help wanted`](https://github.com/levy-street/world-of-claudecraft/labels/help%20wanted)
+  [`good first issue`](https://github.com/chriseg0996-star/world-of-warden-/labels/good%20first%20issue)
+  y [`help wanted`](https://github.com/chriseg0996-star/world-of-warden-/labels/help%20wanted)
   son buenos puntos de partida.
 - **Traducciones.** Ayuda a jugadores de todo el mundo mejorando o completando un
   idioma. Consulta [Traducir el juego](#translating-the-game) más abajo. Esta es
   una de las maneras más fáciles y de mayor impacto para empezar.
-- **Reportes de bugs e ideas de funciones.** Abre un [issue](https://github.com/levy-street/world-of-claudecraft/issues/new/choose).
+- **Reportes de bugs e ideas de funciones.** Abre un [issue](https://github.com/chriseg0996-star/world-of-warden-/issues/new/choose).
   Un reporte de bug claro es una contribución real.
 - **Documentación.** Guías como esta, el README y los documentos de diseño en
   `docs/` siempre se pueden mejorar.
@@ -44,8 +44,8 @@ también querrás [Docker](https://www.docker.com/) para ejecutar Postgres.
 
 ```bash
 # 1. Haz un fork del repo en GitHub y luego clona tu fork
-git clone https://github.com/<your-username>/world-of-claudecraft.git
-cd world-of-claudecraft
+git clone https://github.com/<your-username>/world-of-warden.git
+cd world-of-warden
 
 # 2. Instala las dependencias
 npm ci
@@ -143,7 +143,7 @@ y constructivos en la revisión, y te pedimos lo mismo.
 
 ## Localización
 
-World of ClaudeCraft se publica en muchos idiomas, y lo mantenemos así a medida que
+World of Warden se publica en muchos idiomas, y lo mantenemos así a medida que
 el juego crece. Cada cadena visible para los jugadores se traduce a cada idioma
 admitido.
 
@@ -177,17 +177,17 @@ escribir nada de código de juego para hacerlo:
 3. Ejecuta `npx tsc --noEmit` para confirmar que no falte nada, y luego abre un PR.
 
 Para proponer un idioma totalmente nuevo, o para conversar sobre tono y
-terminología, inicia un hilo en [Discord](https://discord.gg/GjhnUsBtw) y te
+terminología, inicia un hilo en [Discord](https://github.com/chriseg0996-star/world-of-warden-) y te
 ayudaremos a conectarlo. Las personas hablantes nativas y fluidas son
 especialmente bienvenidas. Las buenas traducciones hacen que el juego se sienta
 como en casa para jugadores de todas partes.
 
 ## Reportar bugs y solicitar funciones
 
-Por favor, usa las [plantillas de issue](https://github.com/levy-street/world-of-claudecraft/issues/new/choose):
+Por favor, usa las [plantillas de issue](https://github.com/chriseg0996-star/world-of-warden-/issues/new/choose):
 
 - **Reporte de bug.** Busca primero en los
-  [issues existentes](https://github.com/levy-street/world-of-claudecraft/issues)
+  [issues existentes](https://github.com/chriseg0996-star/world-of-warden-/issues)
   para evitar duplicados, y luego incluye los pasos para reproducirlo, lo que
   esperabas, lo que pasó y tu entorno (offline u online, navegador, escritorio o
   móvil).
@@ -197,7 +197,7 @@ Por favor, usa las [plantillas de issue](https://github.com/levy-street/world-of
 ## Cómo conseguir ayuda
 
 ¿Atascado, o solo quieres saludar? Únete al
-[Discord de la comunidad](https://discord.gg/GjhnUsBtw). Ninguna pregunta es
+[Discord de la comunidad](https://github.com/chriseg0996-star/world-of-warden-). Ninguna pregunta es
 demasiado pequeña, y las personas que contribuyen por primera vez siempre son
 bienvenidas.
 
@@ -208,5 +208,5 @@ Al contribuir, aceptas que tus contribuciones queden bajo la
 
 ---
 
-Gracias por contribuir a World of ClaudeCraft. No vemos la hora de ver lo que
+Gracias por contribuir a World of Warden. No vemos la hora de ver lo que
 construirás con nosotros.

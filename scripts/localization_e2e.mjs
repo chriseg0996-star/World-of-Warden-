@@ -93,8 +93,8 @@ function languageTag(locale) {
 
 function siteUrlForLocale(locale) {
   return locale === 'en'
-    ? 'https://worldofclaudecraft.com/'
-    : `https://worldofclaudecraft.com/?lang=${locale}`;
+    ? 'https://worldofwarden.com/'
+    : `https://worldofwarden.com/?lang=${locale}`;
 }
 
 function localUrlForLocale(locale) {

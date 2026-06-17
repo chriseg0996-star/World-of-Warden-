@@ -1,6 +1,6 @@
 # Security Policy
 
-We take the security of World of ClaudeCraft seriously, and we appreciate the work
+We take the security of World of Warden seriously, and we appreciate the work
 of everyone who helps keep players and self-hosters safe.
 
 ## Reporting a vulnerability
@@ -12,12 +12,12 @@ players and people running their own servers at risk.
 Instead, report privately using one of these channels:
 
 - **GitHub private advisory (preferred).** Go to the
-  [Security tab](https://github.com/levy-street/world-of-claudecraft/security/advisories/new)
+  [Security tab](https://github.com/chriseg0996-star/world-of-warden-/security/advisories/new)
   and open a draft advisory. This keeps the report private between you and the
   maintainers until a fix is ready.
 - **Discord.** If you can't use GitHub advisories, send a private message to a
   member of the **Levy St**, **Admin**, or **Devs** group on the
-  [community Discord](https://discord.gg/GjhnUsBtw) and ask for a secure way to
+  [community Discord](https://github.com/chriseg0996-star/world-of-warden-) and ask for a secure way to
   share the details.
 
 Please include as much as you can:
@@ -41,7 +41,7 @@ without permission.
 
 ## Supported versions
 
-World of ClaudeCraft is under active development and is currently pre-1.0. Security
+World of Warden is under active development and is currently pre-1.0. Security
 fixes land on the `main` branch and ship in the next release, so the most recent
 release and the current `main` are the supported targets. If you run a self-hosted
 server, please keep it up to date.
