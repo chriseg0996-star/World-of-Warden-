@@ -108,6 +108,8 @@ export interface ItemDef {
   weapon?: WeaponInfo;
   stats?: Partial<Stats>;
   use?: ItemUse;
+  /** Item set this piece belongs to (see `SETS`). Equipping enough pieces grants bonuses. */
+  setId?: string;
   sellValue: number; // copper (vendor buys at this)
   buyValue?: number; // copper (vendor sells at this)
   questId?: string;
@@ -123,6 +125,23 @@ export interface ItemDef {
   potionMana?: number;
   quality?: 'poor' | 'common' | 'uncommon' | 'rare' | 'epic'; // gray/white/green/blue/purple name colors
   requiredClass?: PlayerClass[];
+}
+
+/** One threshold tier of an item set's bonuses. */
+export interface SetBonus {
+  /** Pieces of the set that must be equipped for this tier to activate. */
+  pieces: number;
+  /** Flat stats added while the tier is active (stacks with each met tier). */
+  stats: Partial<Stats>;
+}
+
+/** An item set: equipping `pieces` members from it grants the matching bonus tiers. */
+export interface SetDef {
+  id: string;
+  /** Canonical English display name (localized at the UI boundary). */
+  name: string;
+  /** Bonus tiers, ascending by `pieces`. */
+  bonuses: SetBonus[];
 }
 
 export interface InvSlot {

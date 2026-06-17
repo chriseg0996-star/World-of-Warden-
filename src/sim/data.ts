@@ -9,6 +9,7 @@ import type {
   PlayerClass, QuestDef, QuestState, ZoneDef, ZonePropsDef,
 } from './types';
 import { BASE_ITEMS } from './content/items';
+export { SETS } from './content/sets';
 import {
   GRAVEYARD_POS, LAKE, TOWN_RADIUS, ZONE1_CAMPS, ZONE1_MOBS, ZONE1_NPCS, ZONE1_OBJECTS,
   ZONE1_PROPS, ZONE1_QUESTS, ZONE1_QUEST_ORDER, ZONE1_ROADS, ZONE1_ZONE,

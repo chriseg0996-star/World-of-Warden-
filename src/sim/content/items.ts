@@ -269,9 +269,9 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   // --- Phase 3a: starter gear for the expanded equipment slots (head/neck/shoulder/
   // back/wrist/hands/waist/ring). Modest common-quality stats so the new slots are
   // fillable from the Eastbrook smith; richer per-zone pieces come with later content. ---
-  worn_leather_cap: { id: 'worn_leather_cap', name: 'Worn Leather Cap', kind: 'armor', slot: 'head', quality: 'common', stats: { armor: 10 }, sellValue: 4, buyValue: 40 },
-  rough_spaulders: { id: 'rough_spaulders', name: 'Rough Spaulders', kind: 'armor', slot: 'shoulder', quality: 'common', stats: { armor: 9 }, sellValue: 4, buyValue: 36 },
-  patched_cloak: { id: 'patched_cloak', name: 'Patched Cloak', kind: 'armor', slot: 'back', quality: 'common', stats: { armor: 5 }, sellValue: 4, buyValue: 30 },
+  worn_leather_cap: { id: 'worn_leather_cap', name: 'Worn Leather Cap', kind: 'armor', slot: 'head', quality: 'common', stats: { armor: 10 }, setId: 'recruit_vigil', sellValue: 4, buyValue: 40 },
+  rough_spaulders: { id: 'rough_spaulders', name: 'Rough Spaulders', kind: 'armor', slot: 'shoulder', quality: 'common', stats: { armor: 9 }, setId: 'recruit_vigil', sellValue: 4, buyValue: 36 },
+  patched_cloak: { id: 'patched_cloak', name: 'Patched Cloak', kind: 'armor', slot: 'back', quality: 'common', stats: { armor: 5 }, setId: 'recruit_vigil', sellValue: 4, buyValue: 30 },
   frayed_choker: { id: 'frayed_choker', name: 'Frayed Choker', kind: 'armor', slot: 'neck', quality: 'common', stats: { sta: 1 }, sellValue: 6, buyValue: 50 },
   leather_bracers: { id: 'leather_bracers', name: 'Leather Bracers', kind: 'armor', slot: 'wrist', quality: 'common', stats: { armor: 6 }, sellValue: 4, buyValue: 28 },
   work_gloves: { id: 'work_gloves', name: 'Work Gloves', kind: 'armor', slot: 'hands', quality: 'common', stats: { armor: 7, str: 1 }, sellValue: 5, buyValue: 44 },

@@ -1,4 +1,4 @@
-import { CLASSES, ITEMS, MOBS, NpcDef } from './data';
+import { CLASSES, ITEMS, MOBS, NpcDef, SETS } from './data';
 import type { Entity, EquipSlot, MobTemplate, PlayerClass, Stats, Vec3 } from './types';
 import { EQUIP_SLOTS } from './types';
 import type { TalentModifiers } from './content/talents';
@@ -67,17 +67,34 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
     spi: def.baseStats.spi + def.statsPerLevel.spi * (lvl - 1),
     armor: def.baseStats.armor + def.statsPerLevel.armor * (lvl - 1),
   };
+  const setCounts = new Map<string, number>();
   for (const slot of EQUIP_SLOTS) {
     const itemId = equipment[slot];
     if (!itemId) continue;
     const item = ITEMS[itemId];
-    if (!item?.stats) continue;
+    if (!item) continue;
+    if (item.setId) setCounts.set(item.setId, (setCounts.get(item.setId) ?? 0) + 1);
+    if (!item.stats) continue;
     s.str += item.stats.str ?? 0;
     s.agi += item.stats.agi ?? 0;
     s.sta += item.stats.sta ?? 0;
     s.int += item.stats.int ?? 0;
     s.spi += item.stats.spi ?? 0;
     s.armor += item.stats.armor ?? 0;
+  }
+  // Set bonuses: each tier whose piece threshold is met adds its flat stats.
+  for (const [setId, count] of setCounts) {
+    const set = SETS[setId];
+    if (!set) continue;
+    for (const bonus of set.bonuses) {
+      if (count < bonus.pieces) continue;
+      s.str += bonus.stats.str ?? 0;
+      s.agi += bonus.stats.agi ?? 0;
+      s.sta += bonus.stats.sta ?? 0;
+      s.int += bonus.stats.int ?? 0;
+      s.spi += bonus.stats.spi ?? 0;
+      s.armor += bonus.stats.armor ?? 0;
+    }
   }
   // Buff auras
   let bonusAp = 0;

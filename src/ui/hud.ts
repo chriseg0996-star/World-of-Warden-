@@ -5,7 +5,7 @@ import { CharacterPreview } from '../render/characters';
 import { skinCount } from '../render/characters/manifest';
 import { emoteIconUrl } from './emote_icons';
 import {
-  ABILITIES, CLASSES, DUNGEON_LIST, DUNGEON_X_THRESHOLD, ITEMS, MOBS, NPCS, PROPS, QUESTS,
+  ABILITIES, CLASSES, DUNGEON_LIST, DUNGEON_X_THRESHOLD, ITEMS, MOBS, NPCS, PROPS, QUESTS, SETS,
   WORLD_MAX_X, WORLD_MAX_Z, WORLD_MIN_X, WORLD_MIN_Z, ZONES, dungeonAt, questRewardItem, zoneAt,
   zoneWelcomeText,
 } from '../sim/data';
@@ -126,6 +126,10 @@ const ITEM_SLOT_LABEL_KEYS: Record<EquipSlot, TranslationKey> = {
   ring2: 'itemUi.slots.ring',
   trinket: 'itemUi.slots.trinket',
   mainhand: 'itemUi.slots.mainhand',
+};
+// Localized display names for item sets (sim carries canonical English; UI localizes here).
+const SET_NAME_KEYS: Record<string, TranslationKey> = {
+  recruit_vigil: 'itemUi.set.recruitVigil',
 };
 const ITEM_QUALITY_LABEL_KEYS: Record<ItemQuality, TranslationKey> = {
   poor: 'itemUi.quality.poor',
@@ -1023,6 +1027,25 @@ export class Hud {
     if (item.potionHp) html += `<div class="tt-desc">${esc(t('itemUi.tooltip.useHealingPotion', { amount: itemNumber(item.potionHp) }))}</div>`;
     if (item.potionMana) html += `<div class="tt-desc">${esc(t('itemUi.tooltip.useManaPotion', { amount: itemNumber(item.potionMana) }))}</div>`;
     if (item.kind === 'quest') html += `<div class="tt-desc">${esc(t('itemUi.tooltip.questItem'))}</div>`;
+    if (item.setId && SETS[item.setId]) {
+      const set = SETS[item.setId];
+      const nameKey = SET_NAME_KEYS[set.id];
+      const setName = nameKey ? t(nameKey) : set.name;
+      // Count how many of this set's pieces the player currently has equipped.
+      const pieceIds = Object.keys(ITEMS).filter((id) => ITEMS[id].setId === set.id);
+      const have = EQUIP_SLOTS.filter((slot) => {
+        const id = this.sim.equipment[slot];
+        return id !== undefined && ITEMS[id]?.setId === set.id;
+      }).length;
+      html += `<div class="tt-set">${esc(t('itemUi.set.header', { name: setName, have: itemNumber(have), total: itemNumber(pieceIds.length) }))}</div>`;
+      for (const bonus of set.bonuses) {
+        const active = have >= bonus.pieces;
+        const parts = Object.entries(bonus.stats)
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => t('itemUi.tooltip.stat', { value: itemNumber(v as number), stat: itemStatName(k) }));
+        html += `<div class="${active ? 'tt-green' : 'tt-sub'}">${esc(t('itemUi.set.tier', { pieces: itemNumber(bonus.pieces), bonus: parts.join(', ') }))}</div>`;
+      }
+    }
     if (item.requiredClass) {
       html += `<div class="tt-sub">${esc(t('itemUi.tooltip.classes', { classes: item.requiredClass.map(classDisplayName).join(', ') }))}</div>`;
     }
