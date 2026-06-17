@@ -4,13 +4,19 @@ import EquipmentSlot from './EquipmentSlot'
 import LoadoutPanel from './LoadoutPanel'
 
 
-import headLayer from '../assets/character/head_layer.png'
-import chestLayer from '../assets/character/chest_layer.png'
-import handsLayer from '../assets/character/hands_layer.png'
-import legsLayer from '../assets/character/legs_layer.png'
-import feetLayer from '../assets/character/feet_layer.png'
-import weaponLayer from '../assets/character/weapon_layer.png'
-import offhandLayer from '../assets/character/offhand_layer.png'
+// NOTE: imported with ?inline (base64 data URIs) on purpose. Vite normally emits
+// `new URL('<asset>', import.meta.url)` for asset imports, but react-dnd-html5-backend
+// declares a module-scoped `const URL = '__NATIVE_URL__'` that Rollup scope-hoisting
+// merges into the same scope, shadowing the global URL constructor — so `new URL(...)`
+// throws "URL is not a constructor" and the production/Electron build renders blank.
+// Inlining avoids emitting the URL constructor entirely.
+import headLayer from '../assets/character/head_layer.png?inline'
+import chestLayer from '../assets/character/chest_layer.png?inline'
+import handsLayer from '../assets/character/hands_layer.png?inline'
+import legsLayer from '../assets/character/legs_layer.png?inline'
+import feetLayer from '../assets/character/feet_layer.png?inline'
+import weaponLayer from '../assets/character/weapon_layer.png?inline'
+import offhandLayer from '../assets/character/offhand_layer.png?inline'
 
 export default function CharacterPanel() {
   const { equippedSlots, clearAllSlots, getTotalTokens } = useBuildStore()
