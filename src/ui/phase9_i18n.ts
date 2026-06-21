@@ -35,6 +35,7 @@ const QUEST_IDS = [
   'q_necromancers', 'q_revenants', 'q_revenant_vanguard', 'q_wyrm_sigils',
   'q_breaking_the_seal', 'q_voice_below', 'q_sanctum_gate', 'q_korgath', 'q_velkhar',
   'q_gravewyrm',
+  'q_word_with_lin', 'q_scout_pinewood',
 ] as const;
 
 const ZONE_IDS = ['eastbrook_vale', 'mirefen_marsh', 'thornpeak_heights'] as const;
@@ -84,7 +85,10 @@ type Phase9Translations = {
 
 type ObjectiveSpec =
   | { kind: 'kill'; mobId: MobId; mode?: 'slain' | 'rest' | 'silenced' }
-  | { kind: 'collect'; itemId: ObjectiveItemId };
+  | { kind: 'collect'; itemId: ObjectiveItemId }
+  // For objective types whose label is not generated from a mob/item (e.g. 'talk',
+  // 'explore'), provide the Spanish label literally. English comes from the content.
+  | { kind: 'text'; es: string };
 
 type LocaleText = {
   corpseName: string;
@@ -170,6 +174,8 @@ const OBJECTIVE_SPECS: readonly (readonly ObjectiveSpec[])[] = [
   [{ kind: 'kill', mobId: 'korgath_the_bound' }],
   [{ kind: 'kill', mobId: 'grand_necromancer_velkhar' }],
   [{ kind: 'kill', mobId: 'korzul_the_gravewyrm' }],
+  [{ kind: 'text', es: 'Habla con la boticaria Lin' }],
+  [{ kind: 'text', es: 'Explora el camino de pinos del norte' }],
 ];
 
 function normalizeSourceText(text: string): string {
@@ -220,6 +226,7 @@ function makeObjectiveItems(values: readonly string[]): ObjectiveItemTranslation
 }
 
 function objectiveLabel(spec: ObjectiveSpec, mobs: MobTranslations, items: ObjectiveItemTranslations, text: LocaleText): string {
+  if (spec.kind === 'text') return spec.es;
   if (spec.kind === 'collect') return items[spec.itemId];
   const mobName = mobs[spec.mobId].name;
   if (spec.mode === 'rest') return text.rest(mobName);
@@ -444,6 +451,8 @@ const esQuestNarratives = {
   q_korgath: [`Maren halló cadenas gruesas como mástiles, {playerName}, y algo con forma de ogro tirando de ellas. Lleva cuatro compañeros y derriba a Korgath.`, `Korgath está roto al fin. Hasta sus cadenas merecían un final más amable.`],
   q_velkhar: [`Velkhar, primer Gravecaller, tejió cada hilo y vierte almas robadas en el Wyrm. Acaba con él, {playerName}.`, `Velkhar ha muerto y el rito perdió la cabeza, pero el Wyrm ya no duerme.`],
   q_gravewyrm: [`Ya no queda rito que detener, {playerName}, solo el Wyrm medio despierto. Entra con tus compañeros y termina lo empezado en la capilla.`, `Ha terminado. Los muertos de tres tierras descansan, y cada campana canta tu nombre, {playerName}.`],
+  q_word_with_lin: [`La boticaria Lin necesita unas manos firmes, {playerName}. La hallarás en su mesa de trabajo al este de la plaza; ve y escucha lo que quiere.`, `¿Te envía el mariscal? Bien. Tengo trabajo que hacer, pero antes, gracias por venir hasta aquí.`],
+  q_scout_pinewood: [`Antes de enviar la patrulla al norte quiero ojos en el camino, {playerName}. Sigue el camino de pinos hacia los cotos de lobos y observa qué se mueve; luego vuelve a informar.`, `Así que el camino aún se puede transitar. Buen trabajo: la patrulla saldrá más segura gracias a ti.`],
 } satisfies QuestNarrativeTranslations;
 
 
@@ -501,6 +510,7 @@ const esData: LocaleData = {
     'La montaña despierta', 'Núcleos de la tormenta', 'El señor de fragmentos', 'Cánticos en el viento', 'Órdenes de abajo',
     'El anillo de filacterias', 'Los campos de aparecidos', 'Huesos de la vanguardia', 'Sigilos del Wyrm', 'Romper el sello',
     'La voz de abajo', 'La puerta del Santuario', 'El guardián encadenado', 'El gran nigromante', 'Korzul el Gravewyrm',
+    'Unas palabras con Lin', 'Explorar el camino de pinos',
   ],
   objectiveItems: [
     'Colmillo del viejo Greyjaw', 'Piel de jabalí erizada', 'Glándula de seda de Webwood', 'Caja de suministros robada',

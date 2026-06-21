@@ -119,3 +119,52 @@ describe("'explore' quest objective", () => {
     expect(meta.questLog.get('t_explore4')!.counts[0]).toBe(0);
   });
 });
+
+// Phase 4b: the first shipped quests that use the new objective types, in
+// Eastbrook Vale. Driven through the real world (real NPCs, real positions).
+describe('Phase 4b Eastbrook Vale content', () => {
+  function world() {
+    const sim = new Sim({ seed: 7, playerClass: 'warrior', noPlayer: true });
+    const pid = sim.addPlayer('warrior', 'Aleph');
+    const meta = sim.players.get(pid)!;
+    const player = (sim as any).entities.get(meta.entityId);
+    sim.tick();
+    const ents = [...(sim as any).entities.values()];
+    const npc = (id: string) => ents.find((e: any) => e.kind === 'npc' && e.templateId === id);
+    return { sim, pid, meta, player, marshal: npc('marshal_redbrook'), lin: npc('apothecary_lin') };
+  }
+
+  it('ships q_word_with_lin (talk) and q_scout_pinewood (explore) wired to NPCs', () => {
+    expect(QUESTS.q_word_with_lin.objectives[0].type).toBe('talk');
+    expect(QUESTS.q_word_with_lin.objectives[0].targetNpcId).toBe('apothecary_lin');
+    expect(QUESTS.q_word_with_lin.giverNpcId).toBe('marshal_redbrook');
+    expect(QUESTS.q_word_with_lin.turnInNpcId).toBe('apothecary_lin');
+    expect(QUESTS.q_scout_pinewood.objectives[0].type).toBe('explore');
+    expect(QUESTS.q_scout_pinewood.objectives[0].point).toEqual({ x: -6, z: 40 });
+  });
+
+  it('completes the explore quest by reaching the scout point', () => {
+    const { sim, pid, meta, player, marshal } = world();
+    player.pos.x = marshal.pos.x; player.pos.z = marshal.pos.z;
+    sim.acceptQuest('q_scout_pinewood', pid);
+    expect(meta.questLog.get('q_scout_pinewood')?.state).toBe('active');
+
+    const point = QUESTS.q_scout_pinewood.objectives[0].point!;
+    player.pos.x = point.x; player.pos.z = point.z;
+    sim.tick();
+    expect(meta.questLog.get('q_scout_pinewood')?.state).toBe('ready');
+  });
+
+  it('completes and turns in the talk quest by speaking to Apothecary Lin', () => {
+    const { sim, pid, meta, player, marshal, lin } = world();
+    player.pos.x = marshal.pos.x; player.pos.z = marshal.pos.z;
+    sim.acceptQuest('q_word_with_lin', pid);
+    expect(meta.questLog.get('q_word_with_lin')?.state).toBe('active');
+
+    // Talking to Lin (the turn-in NPC) both credits the talk objective and turns it in.
+    player.pos.x = lin.pos.x; player.pos.z = lin.pos.z;
+    sim.talkToNpc(lin.id, pid);
+    expect(meta.questLog.has('q_word_with_lin')).toBe(false);
+    expect(meta.questsDone.has('q_word_with_lin')).toBe(true);
+  });
+});

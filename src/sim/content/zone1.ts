@@ -242,7 +242,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
   marshal_redbrook: {
     id: 'marshal_redbrook', name: 'Marshal Redbrook', title: 'Town Marshal',
     pos: { x: 4, z: 6 }, facing: Math.PI, color: 0xb7950b,
-    questIds: ['q_wolves', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_mogger_tracks', 'q_mogger'],
+    questIds: ['q_wolves', 'q_greyjaw', 'q_bandits', 'q_ringleader', 'q_mogger_tracks', 'q_mogger', 'q_word_with_lin', 'q_scout_pinewood'],
     greeting: 'Keep your blade close, $C. The Vale is not what it was.',
   },
   trader_wilkes: {
@@ -255,7 +255,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
   apothecary_lin: {
     id: 'apothecary_lin', name: 'Apothecary Lin', title: 'Herbalist',
     pos: { x: 11, z: -3 }, facing: -Math.PI / 2, color: 0x7d3c98,
-    questIds: ['q_spiders'],
+    questIds: ['q_word_with_lin', 'q_spiders'],
     greeting: 'Careful where you step in the eastern woods, friend.',
   },
   brother_aldric: {
@@ -492,10 +492,26 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     minLevel: 6,
     suggestedPlayers: 3,
   },
+  q_word_with_lin: {
+    id: 'q_word_with_lin', name: 'A Word with Lin',
+    giverNpcId: 'marshal_redbrook', turnInNpcId: 'apothecary_lin',
+    text: "Apothecary Lin sent word she needs a steady hand, $N. You'll find her at her workbench east of the square — go and hear what she wants.",
+    completionText: 'The Marshal sent you? Good. I have work that needs doing — but first, my thanks for coming all this way.',
+    objectives: [{ type: 'talk', targetNpcId: 'apothecary_lin', count: 1, label: 'Speak with Apothecary Lin' }],
+    xpReward: 200, copperReward: 50, itemRewards: {},
+  },
+  q_scout_pinewood: {
+    id: 'q_scout_pinewood', name: 'Scout the Pinewood Road',
+    giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
+    text: "Before I send the patrol north, I want eyes on the road, $N. Follow the pinewood road up toward the wolf runs, see what stirs, then report back to me.",
+    completionText: 'So the road can still be walked. Good work — the patrol will set out the safer for it.',
+    objectives: [{ type: 'explore', point: { x: -6, z: 40 }, radius: 16, count: 1, label: 'Scout the north pinewood road' }],
+    xpReward: 200, copperReward: 50, itemRewards: {},
+  },
 };
 
 export const ZONE1_QUEST_ORDER = [
-  'q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_murlocs',
+  'q_wolves', 'q_word_with_lin', 'q_scout_pinewood', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_murlocs',
   'q_supplies', 'q_bandits', 'q_mine', 'q_bones', 'q_ringleader',
   'q_whispers', 'q_names_of_the_dead', 'q_silence_the_call',
   'q_rite', 'q_sexton', 'q_hollow', 'q_gravecallers_trail',
