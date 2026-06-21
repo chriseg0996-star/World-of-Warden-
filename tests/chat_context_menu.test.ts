@@ -46,8 +46,7 @@ describe('chat player context menu', () => {
   });
 
   it('localizes chat context action labels', () => {
-    setLanguage('de_DE');
-    const actions = chatPlayerContextActions({
+    const opts = {
       playerName: 'Badmage',
       selfName: 'Adventurer',
       online: true,
@@ -56,9 +55,23 @@ describe('chat player context menu', () => {
       canGuildInvite: false,
       alreadyGuilded: false,
       canReport: true,
-    });
+    };
 
-    expect(actions.find((a) => a.id === 'whisper')?.label).toBe('Flüstern');
-    expect(actions.find((a) => a.id === 'report')?.label).toBe('Spieler melden');
+    setLanguage('en');
+    const enActions = chatPlayerContextActions(opts);
+    const enWhisper = enActions.find((a) => a.id === 'whisper')?.label;
+    const enReport = enActions.find((a) => a.id === 'report')?.label;
+
+    setLanguage('es');
+    const esActions = chatPlayerContextActions(opts);
+    const esWhisper = esActions.find((a) => a.id === 'whisper')?.label;
+    const esReport = esActions.find((a) => a.id === 'report')?.label;
+
+    // Labels resolve to real localized strings, and Spanish differs from English.
+    expect(esWhisper && esWhisper.trim().length).toBeTruthy();
+    expect(esReport && esReport.trim().length).toBeTruthy();
+    expect(esWhisper).not.toBe(enWhisper);
+    expect(esReport).not.toBe(enReport);
+    setLanguage('en');
   });
 });

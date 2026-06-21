@@ -68,18 +68,19 @@ entry; `onEvent` paths feed log/FCT/audio/banners (~L1651). Jump by banner:
 Toggle/open methods (`toggleBags`, `openVendor`, `openContextMenu`, …) are the
 public surface `main.ts`/input call.
 
-## i18n.ts (~11900) — IMPORTANT
-- **Every locale object is declared `: typeof en`** (`es`, `fr_FR`, `de_DE`, …).
+## i18n.ts — IMPORTANT
+- **Wardenfall ships two locales: `en` and `es`.** (The upstream 14-locale set was
+  trimmed — see `docs/superpowers/specs/2026-06-21-locales-en-es-design.md`.)
+- **Every locale object is declared `: typeof en`** (just `es` now).
   `tsc` fails if any locale is missing/renames a key. **YOU MUST add a new string
-  to `en` first, then to every locale object**, or the build breaks.
+  to `en` first, then to `es`**, or the build breaks.
 - `t(key)` is typed `Leaves<typeof en>` (dotted path, e.g. `t('game.xp.suffix')`)
   and falls back to the raw key if missing. `getLanguage`/`setLanguage` persist to
   `localStorage('locale')`; `?lang=` query overrides.
 - The HUD is fully localized (~560 `t()` calls in hud.ts, ~16 in meters.ts);
   post-cap/XP/leaderboard text lives in `gameStrings` and routes through `t()`.
   Prefer `t()` for new user-facing strings.
-- `translations` maps all 14 exported locales (en, es, es_ES, fr_FR, fr_CA, en_CA,
-  it_IT, de_DE, zh_CN, zh_TW, ko_KR, ja_JP, pt_BR, ru_RU); `supportedLanguages =
+- `translations` maps the exported locales (`en`, `es`); `supportedLanguages =
   Object.keys(translations)`. Add to that map to make a new locale selectable.
 
 ## icons.ts (~1510) — procedural, no image files

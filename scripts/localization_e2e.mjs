@@ -14,21 +14,9 @@ const WAIT_TIMEOUT = 45000;
 const SUPPORTED_LOCALES = [
   'en',
   'es',
-  'es_ES',
-  'fr_FR',
-  'fr_CA',
-  'en_CA',
-  'it_IT',
-  'de_DE',
-  'zh_CN',
-  'zh_TW',
-  'ko_KR',
-  'ja_JP',
-  'pt_BR',
-  'ru_RU',
 ];
 
-const DEEP_LOCALES = ['en', 'de_DE', 'fr_FR', 'ru_RU', 'ja_JP', 'zh_CN', 'zh_TW', 'ko_KR'];
+const DEEP_LOCALES = ['en', 'es'];
 
 const VIEWPORTS = [
   { name: 'desktop', width: 1366, height: 900, isMobile: false, hasTouch: false },
