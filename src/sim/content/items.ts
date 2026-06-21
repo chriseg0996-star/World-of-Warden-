@@ -277,4 +277,8 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   work_gloves: { id: 'work_gloves', name: 'Work Gloves', kind: 'armor', slot: 'hands', quality: 'common', stats: { armor: 7, str: 1 }, sellValue: 5, buyValue: 44 },
   rope_belt: { id: 'rope_belt', name: 'Rope Belt', kind: 'armor', slot: 'waist', quality: 'common', stats: { armor: 6 }, sellValue: 4, buyValue: 30 },
   copper_band: { id: 'copper_band', name: 'Copper Band', kind: 'armor', slot: 'ring1', quality: 'common', stats: { agi: 1 }, sellValue: 8, buyValue: 60 },
+  // Trinkets: equip in the trinket slot. The hourglass is an active on-use (click
+  // the trinket paperdoll slot to fire); the coin is a passive chance-on-hit proc.
+  recruits_hourglass: { id: 'recruits_hourglass', name: "Recruit's Hourglass", kind: 'armor', slot: 'trinket', quality: 'uncommon', use: { type: 'trinketUse', aura: 'buff_ap', value: 30, duration: 12, cooldown: 60 }, sellValue: 25, buyValue: 200 },
+  coin_of_fortune: { id: 'coin_of_fortune', name: 'Coin of Fortune', kind: 'armor', slot: 'trinket', quality: 'uncommon', proc: { chance: 0.1, aura: 'buff_armor', value: 20, duration: 8 }, sellValue: 25, buyValue: 200 },
 };

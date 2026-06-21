@@ -94,3 +94,64 @@ describe('itemization: set bonuses', () => {
     expect(e.stats.sta).toBe(baseSta + 3);
   });
 });
+
+describe('itemization: trinkets', () => {
+  it('on-use trinket grants its buff and respects its cooldown', () => {
+    const sim = makeSim();
+    const pid = sim.addPlayer('warrior', 'Aleph');
+    sim.tick();
+    const e = sim.entities.get(pid)!;
+    const meta = sim.players.get(pid)!;
+    (sim as any).addItemSilent('recruits_hourglass', 1, meta);
+    sim.equipItem('recruits_hourglass', pid);
+    expect(meta.equipment.trinket).toBe('recruits_hourglass');
+
+    const apBefore = e.attackPower;
+    sim.useItem('recruits_hourglass', pid); // +30 AP for 12s
+    expect(e.auras.some((a) => a.id === 'trinket:recruits_hourglass')).toBe(true);
+    expect(e.attackPower).toBe(apBefore + 30);
+
+    // second activation is blocked by the cooldown (no second aura/stack)
+    sim.useItem('recruits_hourglass', pid);
+    const err = sim.tick().find((ev) => ev.type === 'error');
+    expect(err && err.type === 'error' ? err.text : '').toMatch(/not ready/i);
+    expect(e.auras.filter((a) => a.id === 'trinket:recruits_hourglass').length).toBe(1);
+  });
+
+  it('on-use trinket cannot be activated from the bags (must be equipped)', () => {
+    const sim = makeSim();
+    const pid = sim.addPlayer('warrior', 'Aleph');
+    sim.tick();
+    const e = sim.entities.get(pid)!;
+    const meta = sim.players.get(pid)!;
+    (sim as any).addItemSilent('recruits_hourglass', 1, meta);
+    sim.useItem('recruits_hourglass', pid); // not equipped -> equips instead of activating
+    expect(meta.equipment.trinket).toBe('recruits_hourglass');
+    expect(e.auras.some((a) => a.id === 'trinket:recruits_hourglass')).toBe(false);
+  });
+
+  it('proc trinket fires on melee hits deterministically (same seed ⇒ same procs)', () => {
+    const run = () => {
+      const sim = new Sim({ seed: 7, playerClass: 'warrior', noPlayer: true });
+      const pid = sim.addPlayer('warrior', 'Aleph');
+      sim.tick();
+      const e = sim.entities.get(pid)!;
+      const meta = sim.players.get(pid)!;
+      (sim as any).addItemSilent('coin_of_fortune', 1, meta);
+      sim.equipItem('coin_of_fortune', pid);
+      // drive a long series of connecting auto-attacks against a dummy
+      let procs = 0;
+      for (let i = 0; i < 400; i++) {
+        (sim as any).rollGearProcs(e);
+        if (e.auras.some((a) => a.id === 'proc:coin_of_fortune')) procs++;
+        e.auras = e.auras.filter((a: any) => a.id !== 'proc:coin_of_fortune');
+      }
+      return procs;
+    };
+    const a = run();
+    const b = run();
+    expect(a).toBe(b);          // deterministic
+    expect(a).toBeGreaterThan(0); // ~10% of 400 should fire
+    expect(a).toBeLessThan(120);
+  });
+});

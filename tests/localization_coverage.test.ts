@@ -305,6 +305,8 @@ describe("i18n Localization Key Coverage", () => {
     have: 2,
     pieces: 2,
     bonus: "+3 Stamina",
+    cooldown: 60,
+    chance: 10,
     index: 2,
     item: "Rough Bracers",
     key: "K",

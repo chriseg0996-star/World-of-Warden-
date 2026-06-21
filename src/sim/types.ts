@@ -98,7 +98,18 @@ export const EQUIP_SLOTS: readonly EquipSlot[] = [
 ];
 
 export type ItemUse =
-  | { type: 'fishing' };
+  | { type: 'fishing' }
+  // Equipped trinket on-use: applies a self-buff aura for `duration` sec on a
+  // per-item `cooldown` (sec). `aura` is a stat-buff AuraKind (e.g. 'buff_ap').
+  | { type: 'trinketUse'; aura: AuraKind; value: number; duration: number; cooldown: number };
+
+/** Passive chance-on-melee-hit effect: applies a self-buff aura. Rolled via `Rng`. */
+export interface ItemProc {
+  chance: number; // 0..1 per connecting auto-attack
+  aura: AuraKind;
+  value: number;
+  duration: number; // seconds
+}
 
 export interface ItemDef {
   id: string;
@@ -108,6 +119,8 @@ export interface ItemDef {
   weapon?: WeaponInfo;
   stats?: Partial<Stats>;
   use?: ItemUse;
+  /** Passive proc (e.g. a trinket): chance on melee hit to apply a self-buff. */
+  proc?: ItemProc;
   /** Item set this piece belongs to (see `SETS`). Equipping enough pieces grants bonuses. */
   setId?: string;
   sellValue: number; // copper (vendor buys at this)

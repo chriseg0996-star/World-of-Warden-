@@ -3130,8 +3130,27 @@ export class Sim {
       }
       p.queuedOnSwing = null;
     }
-    this.meleeSwing(p, t, bonus, abilityName, { threatFlat, threatMult });
+    const connected = this.meleeSwing(p, t, bonus, abilityName, { threatFlat, threatMult });
+    if (connected) this.rollGearProcs(p);
     p.swingTimer = p.weapon.speed * this.swingIntervalMult(p);
+  }
+
+  // Chance-on-hit gear procs (e.g. trinkets), rolled per connecting auto-attack
+  // through `this.rng` so the same seed reproduces the same procs.
+  private rollGearProcs(p: Entity): void {
+    const meta = this.players.get(p.id);
+    if (!meta) return;
+    for (const slot of EQUIP_SLOTS) {
+      const itemId = meta.equipment[slot];
+      const proc = itemId ? ITEMS[itemId]?.proc : undefined;
+      if (!proc) continue;
+      if (!this.rng.chance(proc.chance)) continue;
+      this.applyAura(p, {
+        id: `proc:${itemId}`, name: ITEMS[itemId!].name, kind: proc.aura,
+        remaining: proc.duration, duration: proc.duration, value: proc.value,
+        sourceId: p.id, school: 'physical',
+      });
+    }
   }
 
   private rangedSwing(
@@ -4653,6 +4672,20 @@ export class Sim {
     const { meta, e: p } = r;
     const def = ITEMS[itemId];
     if (!def) return;
+    // Equipped trinket on-use: activate the effect on its own cooldown. (The item
+    // is in the trinket slot, not the bags, so this runs before the bag check.)
+    if (def.use?.type === 'trinketUse' && meta.equipment.trinket === itemId) {
+      if (p.dead) return;
+      const cdKey = `trinket:${itemId}`;
+      if (p.cooldowns.has(cdKey)) { this.error(meta.entityId, 'That trinket is not ready yet.'); return; }
+      const u = def.use;
+      this.applyAura(p, {
+        id: cdKey, name: def.name, kind: u.aura, remaining: u.duration, duration: u.duration,
+        value: u.value, sourceId: p.id, school: 'physical',
+      });
+      p.cooldowns.set(cdKey, u.cooldown);
+      return;
+    }
     if (this.countItem(itemId, meta.entityId) <= 0) { this.error(meta.entityId, "You don't have that item."); return; }
     if (def.use?.type === 'fishing') {
       this.startFishing(p, meta);

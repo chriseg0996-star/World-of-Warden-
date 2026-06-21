@@ -26,6 +26,7 @@ const baseEnTable = {
   "error.cannotEquip": "You cannot equip that.",
   "error.faceWater": "You need to face fishable water.",
   "error.potionNotReady": "That potion is not ready yet.",
+  "error.trinketNotReady": "That trinket is not ready yet.",
   "error.fullHealth": "You are already at full health.",
   "error.nothingRestore": "Nothing to restore.",
   "error.merchantUnavailable": "That merchant is not available.",
@@ -134,6 +135,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "You cannot equip that.",
     "error.faceWater": "You need to face fishable water.",
     "error.potionNotReady": "That potion is not ready yet.",
+    "error.trinketNotReady": "That trinket is not ready yet.",
     "error.fullHealth": "You are already at full health.",
     "error.nothingRestore": "Nothing to restore.",
     "error.merchantUnavailable": "That merchant is not available.",
@@ -196,6 +198,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "No puedes equipar eso.",
     "error.faceWater": "Debes mirar hacia agua donde se pueda pescar.",
     "error.potionNotReady": "Esa poción aún no está lista.",
+    "error.trinketNotReady": "Ese abalorio aún no está listo.",
     "error.fullHealth": "Ya tienes la salud al máximo.",
     "error.nothingRestore": "No hay nada que restaurar.",
     "error.merchantUnavailable": "Ese vendedor no está disponible.",
@@ -258,6 +261,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "No puedes equipar eso.",
     "error.faceWater": "Debes mirar hacia aguas con peces.",
     "error.potionNotReady": "Esa poción aún no está lista.",
+    "error.trinketNotReady": "Ese abalorio aún no está listo.",
     "error.fullHealth": "Ya tienes la salud al máximo.",
     "error.nothingRestore": "No hay nada que restaurar.",
     "error.merchantUnavailable": "Ese mercader no está disponible.",
@@ -320,6 +324,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "Vous ne pouvez pas équiper cela.",
     "error.faceWater": "Vous devez faire face à de l'eau poissonneuse.",
     "error.potionNotReady": "Cette potion n'est pas encore prête.",
+    "error.trinketNotReady": "Ce bijou n'est pas encore prêt.",
     "error.fullHealth": "Vous êtes déjà à pleine santé.",
     "error.nothingRestore": "Rien à restaurer.",
     "error.merchantUnavailable": "Ce marchand n'est pas disponible.",
@@ -382,6 +387,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "Vous ne pouvez pas équiper cela.",
     "error.faceWater": "Vous devez faire face à une eau poissonneuse.",
     "error.potionNotReady": "Cette potion n'est pas encore prête.",
+    "error.trinketNotReady": "Ce bijou n'est pas encore prêt.",
     "error.fullHealth": "Vous êtes déjà en pleine santé.",
     "error.nothingRestore": "Rien à restaurer.",
     "error.merchantUnavailable": "Ce marchand n'est pas disponible.",
@@ -444,6 +450,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "You cannot equip that.",
     "error.faceWater": "You need to face fishable water.",
     "error.potionNotReady": "That potion is not ready yet.",
+    "error.trinketNotReady": "That trinket is not ready yet.",
     "error.fullHealth": "You are already at full health.",
     "error.nothingRestore": "Nothing to restore.",
     "error.merchantUnavailable": "That merchant is not available.",
@@ -506,6 +513,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "Non puoi equipaggiare quello.",
     "error.faceWater": "Devi essere rivolto verso acque pescose.",
     "error.potionNotReady": "Quella pozione non è ancora pronta.",
+    "error.trinketNotReady": "Quel ninnolo non è ancora pronto.",
     "error.fullHealth": "Sei già al massimo della salute.",
     "error.nothingRestore": "Niente da ripristinare.",
     "error.merchantUnavailable": "Quel mercante non è disponibile.",
@@ -568,6 +576,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "Das könnt Ihr nicht ausrüsten.",
     "error.faceWater": "Ihr müsst zu fischbarem Wasser blicken.",
     "error.potionNotReady": "Dieser Trank ist noch nicht bereit.",
+    "error.trinketNotReady": "Dieses Schmuckstück ist noch nicht bereit.",
     "error.fullHealth": "Ihr habt bereits volle Gesundheit.",
     "error.nothingRestore": "Nichts wiederherzustellen.",
     "error.merchantUnavailable": "Dieser Händler ist nicht verfügbar.",
@@ -630,6 +639,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "你无法装备它。",
     "error.faceWater": "你需要面向可垂钓的水域。",
     "error.potionNotReady": "那瓶药水尚未冷却完毕。",
+    "error.trinketNotReady": "那个饰品尚未冷却完毕。",
     "error.fullHealth": "你的生命值已满。",
     "error.nothingRestore": "没有可恢复的东西。",
     "error.merchantUnavailable": "该商人无法提供服务。",
@@ -692,6 +702,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "你無法裝備那件物品。",
     "error.faceWater": "你必須面向可釣魚的水域。",
     "error.potionNotReady": "那瓶藥水尚未準備好。",
+    "error.trinketNotReady": "那個飾品尚未準備好。",
     "error.fullHealth": "你的生命值已滿。",
     "error.nothingRestore": "沒有可恢復的東西。",
     "error.merchantUnavailable": "那名商人無法使用。",
@@ -754,6 +765,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "그것을 착용할 수 없습니다.",
     "error.faceWater": "낚시할 수 있는 물을 바라봐야 합니다.",
     "error.potionNotReady": "그 물약은 아직 사용할 수 없습니다.",
+    "error.trinketNotReady": "그 장신구는 아직 사용할 수 없습니다.",
     "error.fullHealth": "이미 생명력이 가득 찼습니다.",
     "error.nothingRestore": "회복할 것이 없습니다.",
     "error.merchantUnavailable": "그 상인은 지금 이용할 수 없습니다.",
@@ -816,6 +828,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "それは装備できません。",
     "error.faceWater": "釣りができる水面に向く必要があります。",
     "error.potionNotReady": "そのポーションはまだ使用できません。",
+    "error.trinketNotReady": "そのアクセサリーはまだ使用できません。",
     "error.fullHealth": "すでに体力は全快です。",
     "error.nothingRestore": "回復するものがありません。",
     "error.merchantUnavailable": "その商人は利用できません。",
@@ -878,6 +891,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "Você não pode equipar isso.",
     "error.faceWater": "Você precisa estar de frente para água com peixes.",
     "error.potionNotReady": "Essa poção ainda não está pronta.",
+    "error.trinketNotReady": "Essa bugiganga ainda não está pronta.",
     "error.fullHealth": "Você já está com a vida cheia.",
     "error.nothingRestore": "Nada a restaurar.",
     "error.merchantUnavailable": "Esse comerciante não está disponível.",
@@ -940,6 +954,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "error.cannotEquip": "Вы не можете это экипировать.",
     "error.faceWater": "Повернитесь лицом к воде, пригодной для рыбалки.",
     "error.potionNotReady": "Это зелье ещё не готово к использованию.",
+    "error.trinketNotReady": "Этот аксессуар ещё не готов к использованию.",
     "error.fullHealth": "У вас и так полное здоровье.",
     "error.nothingRestore": "Восстанавливать нечего.",
     "error.merchantUnavailable": "Этот торговец недоступен.",
@@ -1461,6 +1476,12 @@ const AURA_NAME_KEY: Record<string, SimMessageKey> = {
 export function localizeSimAuraName(name: string): string | null {
   const key = AURA_NAME_KEY[name];
   return key ? tSim(key) : null;
+}
+
+// Trinket on-use/proc buffs surface by the item's name; localize via the item table.
+export function localizeSimItemName(name: string): string | null {
+  const id = itemNameToId.get(name);
+  return id ? tEntity({ kind: 'item', id, field: 'name' }) : null;
 }
 
 // EXACT (no-placeholder) sim messages: English -> key (auto-built; throws on collision).

@@ -32,7 +32,7 @@ import { maskProfanity } from './profanity';
 import { formatMoney as formatLocalizedMoney, formatNumber, moneyParts, t, type TranslationKey } from './i18n';
 import { tEntity } from './entity_i18n';
 import { localizeServerText, localizeZone } from './server_i18n';
-import { localizeSimText, localizeSimAuraName } from './sim_i18n';
+import { localizeSimText, localizeSimAuraName, localizeSimItemName } from './sim_i18n';
 import { tTalent, localizeTalentTitle } from './talent_i18n';
 import {
   talentsFor, computeTalentModifiers, validateAllocation, dormantNodes, pointsSpent,
@@ -1026,6 +1026,19 @@ export class Hud {
     if (item.use?.type === 'fishing') html += `<div class="tt-desc">${esc(t('itemUi.tooltip.useFishing'))}</div>`;
     if (item.potionHp) html += `<div class="tt-desc">${esc(t('itemUi.tooltip.useHealingPotion', { amount: itemNumber(item.potionHp) }))}</div>`;
     if (item.potionMana) html += `<div class="tt-desc">${esc(t('itemUi.tooltip.useManaPotion', { amount: itemNumber(item.potionMana) }))}</div>`;
+    if (item.use?.type === 'trinketUse') {
+      const u = item.use;
+      html += `<div class="tt-green">${esc(t('itemUi.tooltip.useTrinket', {
+        value: itemNumber(u.value), stat: auraStatLabel(u.aura),
+        seconds: itemNumber(u.duration), cooldown: itemNumber(u.cooldown),
+      }))}</div>`;
+    }
+    if (item.proc) {
+      html += `<div class="tt-green">${esc(t('itemUi.tooltip.proc', {
+        chance: itemNumber(Math.round(item.proc.chance * 100)), value: itemNumber(item.proc.value),
+        stat: auraStatLabel(item.proc.aura), seconds: itemNumber(item.proc.duration),
+      }))}</div>`;
+    }
     if (item.kind === 'quest') html += `<div class="tt-desc">${esc(t('itemUi.tooltip.questItem'))}</div>`;
     if (item.setId && SETS[item.setId]) {
       const set = SETS[item.setId];
@@ -3745,7 +3758,21 @@ export class Hud {
       const qColor = !item ? '#666' : QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
       row.innerHTML = `${item ? this.itemIcon(item) : `<img class="item-icon" style="border-color:#444" src="${iconDataUrl('item', 'slot_empty')}" alt="" draggable="false">`}
         <div><div class="slot-name">${esc(slot.name)}</div><div class="slot-item" style="color:${qColor}">${item ? esc(itemDisplayName(item)) : esc(t('itemUi.equipment.empty'))}</div></div>`;
-      if (item) this.attachTooltip(row, () => this.itemTooltip(item));
+      if (item) {
+        this.attachTooltip(row, () => this.itemTooltip(item));
+        // On-use trinkets activate when their paperdoll slot is clicked/activated.
+        if (item.use?.type === 'trinketUse' && itemId) {
+          row.setAttribute('role', 'button');
+          row.tabIndex = 0;
+          row.style.cursor = 'pointer';
+          row.setAttribute('aria-label', t('itemUi.equipment.activate', { name: itemDisplayName(item) }));
+          const activate = () => { this.sim.useItem(itemId); };
+          row.addEventListener('click', activate);
+          row.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+          });
+        }
+      }
       col.appendChild(row);
     }
     this.renderCharPreview();
@@ -5961,7 +5988,8 @@ function abilityDisplayNameFromSource(name: string): string {
 function auraDisplayNameFromSource(name: string): string {
   const viaTitle = localizeTalentTitle(name);
   if (viaTitle !== name) return viaTitle;
-  return localizeSimAuraName(name) ?? name;
+  // trinket on-use/proc buffs carry the item's name
+  return localizeSimAuraName(name) ?? localizeSimItemName(name) ?? name;
 }
 
 function combatAbilityName(name: string | null): string {
@@ -5987,6 +6015,18 @@ function itemKindLabel(kind: ItemDef['kind']): string {
 function itemStatName(stat: string): string {
   const key = ITEM_STAT_LABEL_KEYS[stat as keyof Stats];
   return key ? t(key) : cap(stat);
+}
+
+// Localized stat label for a trinket buff/proc AuraKind (used in item tooltips).
+const AURA_STAT_LABEL_KEYS: Record<string, TranslationKey> = {
+  buff_ap: 'itemUi.stats.attackPower',
+  buff_armor: 'itemUi.stats.armor',
+  buff_int: 'itemUi.stats.int',
+  buff_sta: 'itemUi.stats.sta',
+  buff_dodge: 'itemUi.stats.dodge',
+};
+function auraStatLabel(kind: string): string {
+  return t(AURA_STAT_LABEL_KEYS[kind] ?? 'itemUi.stats.attackPower');
 }
 
 function itemNumber(value: number, fractionDigits = 0): string {
