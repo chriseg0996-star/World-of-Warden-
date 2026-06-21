@@ -1937,7 +1937,7 @@ function updateSeoMetadata(lang: SupportedLanguage): void {
       applicationCategory: t('seo.applicationCategory'),
       operatingSystem: t('seo.operatingSystem'),
       url: canonicalHref,
-      image: 'https://worldofwarden.com/woc_logo_square.webp',
+      image: 'https://worldofwarden.com/worldofwarden-square.png',
       description: t('seo.description'),
       inLanguage: languageTag(lang),
     }, null, 2);
