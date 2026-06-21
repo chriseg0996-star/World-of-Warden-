@@ -14,11 +14,11 @@
 
 </div>
 
-# World of Warden — MMO в классическом стиле
+# Wardenfall — MMO в классическом стиле
 
 [Присоединяйтесь к сообществу в Discord](https://github.com/chriseg0996-star/world-of-warden-)
 
-![Заставка World of Warden](../../docs/screenshots/title-screen.jpg)
+![Заставка Wardenfall](../../docs/screenshots/title-screen.jpg)
 
 Микро-MMO в духе классических MMO эпохи, которую вы можете хостить и в которую можете играть:
 
@@ -42,7 +42,7 @@
 
 ![World of Claude](../../worldofclaude.png)
 
-![Сообщество World of Warden](../../woc_community.png)
+![Сообщество Wardenfall](../../woc_community.png)
 
 ---
 

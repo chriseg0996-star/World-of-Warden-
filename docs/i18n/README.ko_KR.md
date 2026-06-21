@@ -14,11 +14,11 @@
 
 </div>
 
-# World of Warden — 클래식 스타일 MMO
+# Wardenfall — 클래식 스타일 MMO
 
 [커뮤니티 Discord 참여하기](https://github.com/chriseg0996-star/world-of-warden-)
 
-![World of Warden 타이틀 화면](../../docs/screenshots/title-screen.jpg)
+![Wardenfall 타이틀 화면](../../docs/screenshots/title-screen.jpg)
 
 직접 호스팅하고 플레이할 수 있는, 클래식 시대 MMO 풍의 마이크로 MMO입니다:
 
@@ -39,7 +39,7 @@
 
 ![World of Claude](../../worldofclaude.png)
 
-![World of Warden 커뮤니티](../../woc_community.png)
+![Wardenfall 커뮤니티](../../woc_community.png)
 
 ---
 

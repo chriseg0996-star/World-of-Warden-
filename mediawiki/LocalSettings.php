@@ -3,7 +3,7 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 	exit;
 }
 
-$wgSitename = 'World of Warden Wiki';
+$wgSitename = 'Wardenfall Wiki';
 $wgMetaNamespace = 'World_of_Warden';
 $wgScriptPath = '/wiki';
 $wgServer = getenv( 'MEDIAWIKI_SERVER' ) ?: 'http://localhost:8080';

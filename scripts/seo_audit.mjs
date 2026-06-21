@@ -25,7 +25,7 @@ const expectedAlternates = [
 ];
 
 function audit() {
-  console.log('--- World of Warden: Local SEO & A11y Audit ---');
+  console.log('--- Wardenfall: Local SEO & A11y Audit ---');
   if (!fs.existsSync(indexPath)) {
     console.error(`Error: index.html not found at ${indexPath}`);
     process.exit(1);

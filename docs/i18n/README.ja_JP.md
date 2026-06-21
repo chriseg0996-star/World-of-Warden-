@@ -14,11 +14,11 @@
 
 </div>
 
-# World of Warden — クラシックスタイルのMMO
+# Wardenfall — クラシックスタイルのMMO
 
 [コミュニティ Discord に参加する](https://github.com/chriseg0996-star/world-of-warden-)
 
-![World of Warden タイトル画面](../../docs/screenshots/title-screen.jpg)
+![Wardenfall タイトル画面](../../docs/screenshots/title-screen.jpg)
 
 ホストしてプレイできる、クラシック時代のMMOの雰囲気を持つマイクロMMOです。
 
@@ -39,7 +39,7 @@
 
 ![World of Claude](../../worldofclaude.png)
 
-![World of Warden コミュニティ](../../woc_community.png)
+![Wardenfall コミュニティ](../../woc_community.png)
 
 ---
 

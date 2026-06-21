@@ -4,9 +4,9 @@
 
 </div>
 
-# Contribuir a World of Warden
+# Contribuir a Wardenfall
 
-Antes que nada, gracias por estar aquí. World of Warden lo construye una
+Antes que nada, gracias por estar aquí. Wardenfall lo construye una
 comunidad de personas que aman los MMO clásicos, y cada aporte, grande o pequeño,
 lo hace mejor. Corregir un error de tipeo, traducir el juego, reportar un bug,
 construir una mazmorra completamente nueva: todo cuenta, y aquí eres bienvenido.
@@ -143,7 +143,7 @@ y constructivos en la revisión, y te pedimos lo mismo.
 
 ## Localización
 
-World of Warden se publica en muchos idiomas, y lo mantenemos así a medida que
+Wardenfall se publica en muchos idiomas, y lo mantenemos así a medida que
 el juego crece. Cada cadena visible para los jugadores se traduce a cada idioma
 admitido.
 
@@ -208,5 +208,5 @@ Al contribuir, aceptas que tus contribuciones queden bajo la
 
 ---
 
-Gracias por contribuir a World of Warden. No vemos la hora de ver lo que
+Gracias por contribuir a Wardenfall. No vemos la hora de ver lo que
 construirás con nosotros.

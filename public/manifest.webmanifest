@@ -1,7 +1,7 @@
 {
-  "name": "World of Warden",
-  "short_name": "Warden",
-  "description": "World of Warden mobile realm",
+  "name": "Wardenfall",
+  "short_name": "Wardenfall",
+  "description": "Wardenfall mobile realm",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",

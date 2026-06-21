@@ -1,4 +1,4 @@
-# World of Warden — v0.7 Release Notes
+# Wardenfall — v0.7 Release Notes
 
 **Release:** v0.7
 **Date:** 2026-06-16
@@ -205,7 +205,7 @@ Hardened as part of the release integrity pass (#372) and related work:
 
 ## 📚 Documentation & Branding
 
-- **Canonical brand casing** — standardized on **"World of Warden"** across UI,
+- **Canonical brand casing** — standardized on **"Wardenfall"** across UI,
   docs, and SEO copy; removed remaining external brand references from dev comments
   and docs.
 - **UI/UX, mobile & accessibility standards** documented (`docs/`).

@@ -4,9 +4,9 @@
 
 </div>
 
-# Mitwirken an World of Warden
+# Mitwirken an Wardenfall
 
-Zuallererst: Danke, dass du hier bist. World of Warden wird von einer
+Zuallererst: Danke, dass du hier bist. Wardenfall wird von einer
 Gemeinschaft von Menschen gebaut, die klassische MMOs lieben, und jeder Beitrag,
 ob groß oder klein, macht das Spiel besser. Einen Tippfehler beheben, das Spiel
 übersetzen, einen Fehler melden, einen ganz neuen Dungeon bauen: Alles zählt, und
@@ -152,7 +152,7 @@ bitten dich um dasselbe.
 
 ## Lokalisierung
 
-World of Warden erscheint in vielen Sprachen, und wir halten das so, während
+Wardenfall erscheint in vielen Sprachen, und wir halten das so, während
 das Spiel wächst. Jede spielersichtbare Zeichenkette wird in jede unterstützte
 Sprache übersetzt.
 
@@ -221,5 +221,5 @@ auch das Projekt abdeckt.
 
 ---
 
-Danke, dass du an World of Warden mitwirkst. Wir können es kaum erwarten, zu
+Danke, dass du an Wardenfall mitwirkst. Wir können es kaum erwarten, zu
 sehen, was du gemeinsam mit uns baust.

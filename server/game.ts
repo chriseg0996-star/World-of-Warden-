@@ -521,7 +521,7 @@ export class GameServer {
       // at login; sending is still gated server-side regardless.
       chatMutedUntil: session.chatMutedUntil ?? null,
     });
-    this.broadcastSystem(`${name} has entered World of Warden.`);
+    this.broadcastSystem(`${name} has entered Wardenfall.`);
     void this.initSocial(session);
     return session;
   }

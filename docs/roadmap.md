@@ -1,8 +1,8 @@
-# World of Warden — Massive Multi-Year Upgrade Roadmap
+# Wardenfall — Massive Multi-Year Upgrade Roadmap
 
 ## Context
 
-World of Warden is a freshly-rebranded fork of the open-source `world-of-claudecraft`
+Wardenfall is a freshly-rebranded fork of the open-source `world-of-claudecraft`
 MMO: a deterministic, WoW-Classic-fidelity micro-MMO whose single `src/sim/` core runs
 identically in three hosts (offline browser, authoritative server, headless RL env).
 Current verified state on `main`: `tsc` clean, **1237 tests / 122 files green**, `npm run build`

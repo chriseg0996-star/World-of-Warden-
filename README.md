@@ -14,11 +14,11 @@
 
 </div>
 
-# World of Warden — a classic-style MMO
+# Wardenfall — a classic-style MMO
 
 [Join the community Discord](https://github.com/chriseg0996-star/world-of-warden-)
 
-![World of Warden title screen](docs/screenshots/title-screen.jpg)
+![Wardenfall title screen](docs/screenshots/title-screen.jpg)
 
 A classic-era-MMO-flavored micro-MMO you can host and play:
 
@@ -43,7 +43,7 @@ runs for everyone online.
 
 ![World of Claude](worldofclaude.png)
 
-![World of Warden community](woc_community.png)
+![Wardenfall community](woc_community.png)
 
 ---
 

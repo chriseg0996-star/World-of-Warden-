@@ -107,12 +107,12 @@ add('Main Page', \`
 <div class="woc-hero">
 <div>
 <p class="woc-kicker">Community player encyclopedia</p>
-<h1>World of Warden Wiki</h1>
-World of Warden is a browser-playable, WoW-Classic-flavored micro-MMO with online persistence, offline play, deterministic simulation logic, and a launch-week community that quickly turned jokes, dungeon clears, level races, bug reports, and feature requests into game history.
+<h1>Wardenfall Wiki</h1>
+Wardenfall is a browser-playable, WoW-Classic-flavored micro-MMO with online persistence, offline play, deterministic simulation logic, and a launch-week community that quickly turned jokes, dungeon clears, level races, bug reports, and feature requests into game history.
 
 '''Start here:''' [[Quick Start]] · [[All Pages]] · [[Zones]] · [[Classes]] · [[Gameplay Systems]] · [[Community Lore]] · [[Development Timeline]]
 </div>
-<div class="woc-card"><div class="woc-crest">World of Warden</div></div>
+<div class="woc-card"><div class="woc-crest">Wardenfall</div></div>
 </div>
 </div>
 \` + section('Featured portals', bullets([
@@ -152,7 +152,7 @@ add('Community Lore', section('Launch-week myths', bullets([
   'Player-facing leaderboards for level, class, arena Elo, boss kills, and guilds.',
   'Discord Rich Presence, public guild discovery, target markers, mobile improvements, mana pacing, and anti-bot handling.',
   'Arena rewards, arena accept/decline prompts, and countdown buff preservation.',
-])) + section('Outside reception', 'Recent Reddit threads framed World of Warden as a viral open-source, Fable 5-built MMORPG with thousands of early players and hundreds of GitHub stars. The same discussions mixed excitement, skepticism about generated code quality, nostalgia for Fable, questions about the TypeScript/Three.js stack, and stories of players unexpectedly sticking around to grind.'), ['Community', 'Discord', 'Reddit', 'X']);
+])) + section('Outside reception', 'Recent Reddit threads framed Wardenfall as a viral open-source, Fable 5-built MMORPG with thousands of early players and hundreds of GitHub stars. The same discussions mixed excitement, skepticism about generated code quality, nostalgia for Fable, questions about the TypeScript/Three.js stack, and stories of players unexpectedly sticking around to grind.'), ['Community', 'Discord', 'Reddit', 'X']);
 
 add('Development Timeline', section('Release themes', table([
   ['v0.3 baseline', 'Persistent multiplayer, account flow, classes, quests, dungeons, social systems, and classic MMO presentation.'],
@@ -169,7 +169,7 @@ add('Development Timeline', section('Release themes', table([
 add('Sources Used', section('Local sources', bullets([
   'Repository README, design docs, screenshots, source code, tests, sim content, class definitions, dungeon data, and server routes.',
   'GitHub CLI exports of 45 issues and 141 pull requests.',
-  'Discord export of 3,205 messages from the World of Warden community general channel.',
+  'Discord export of 3,205 messages from the Wardenfall community general channel.',
 ])) + section('External sources', bullets([
   '[https://github.com/chriseg0996-star/world-of-warden- GitHub repository]',
   '[https://www.reddit.com/r/artificial/comments/1u4h7k1/world_of_claudecraft_the_first_opensource_mmorpg/ r/artificial launch thread]',
@@ -277,7 +277,7 @@ const body = pages.map((page, index) => \`
       <id>\${index + 1}</id>
       <timestamp>\${now}</timestamp>
       <contributor><username>WikiAdmin</username><id>1</id></contributor>
-      <comment>Seed World of Warden wiki content</comment>
+      <comment>Seed Wardenfall wiki content</comment>
       <model>wikitext</model>
       <format>text/x-wiki</format>
       <text xml:space="preserve" bytes="\${Buffer.byteLength(page.text)}">\${escXml(page.text)}</text>
@@ -287,7 +287,7 @@ const body = pages.map((page, index) => \`
 const xml = \`<?xml version="1.0" encoding="UTF-8"?>
 <mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/" version="0.11" xml:lang="en">
   <siteinfo>
-    <sitename>World of Warden Wiki</sitename>
+    <sitename>Wardenfall Wiki</sitename>
     <dbname>mediawiki</dbname>
     <base>http://localhost:8080/wiki/index.php/Main_Page</base>
     <generator>MediaWiki seed</generator>

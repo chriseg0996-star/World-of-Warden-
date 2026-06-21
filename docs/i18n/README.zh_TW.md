@@ -14,11 +14,11 @@
 
 </div>
 
-# World of Warden —— 經典風格 MMO
+# Wardenfall —— 經典風格 MMO
 
 [加入社群 Discord](https://github.com/chriseg0996-star/world-of-warden-)
 
-![World of Warden 標題畫面](../../docs/screenshots/title-screen.jpg)
+![Wardenfall 標題畫面](../../docs/screenshots/title-screen.jpg)
 
 一款帶有經典時代 MMO 風味、可自行架設與遊玩的微型 MMO：
 
@@ -39,7 +39,7 @@
 
 ![World of Claude](../../worldofclaude.png)
 
-![World of Warden 社群](../../woc_community.png)
+![Wardenfall 社群](../../woc_community.png)
 
 ---
 

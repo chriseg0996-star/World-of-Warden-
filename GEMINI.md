@@ -1,4 +1,4 @@
-# Gemini Developer Guide - World of Warden
+# Gemini Developer Guide - Wardenfall
 
 This guide provides project-specific context and instructions optimized for **Gemini 3.5 Flash (High)**. Use this file as a persistent reference to align development style, workflows, and commands.
 

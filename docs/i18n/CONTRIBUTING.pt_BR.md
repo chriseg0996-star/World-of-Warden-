@@ -4,9 +4,9 @@
 
 </div>
 
-# Contribuindo com o World of Warden
+# Contribuindo com o Wardenfall
 
-Antes de tudo, obrigado por estar aqui. O World of Warden é construído por
+Antes de tudo, obrigado por estar aqui. O Wardenfall é construído por
 uma comunidade de pessoas que amam MMOs clássicos, e cada contribuição, grande ou
 pequena, deixa o jogo melhor. Corrigir um erro de digitação, traduzir o jogo,
 relatar um bug, criar uma masmorra inteira: tudo conta, e você é muito bem-vindo
@@ -146,7 +146,7 @@ revisão, e pedimos o mesmo de você.
 
 ## Localização
 
-O World of Warden está disponível em vários idiomas, e nós mantemos as coisas
+O Wardenfall está disponível em vários idiomas, e nós mantemos as coisas
 assim conforme o jogo cresce. Cada string visível ao jogador é traduzida para
 todos os locales suportados.
 
@@ -209,5 +209,5 @@ Ao contribuir, você concorda que suas contribuições serão licenciadas sob a
 
 ---
 
-Obrigado por contribuir com o World of Warden. Mal podemos esperar para ver o
+Obrigado por contribuir com o Wardenfall. Mal podemos esperar para ver o
 que você vai construir com a gente.
