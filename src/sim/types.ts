@@ -434,9 +434,12 @@ export function emptyZoneProps(): ZonePropsDef {
 }
 
 export interface QuestObjective {
-  type: 'kill' | 'collect';
+  type: 'kill' | 'collect' | 'talk' | 'explore';
   targetMobId?: string; // for kill
   itemId?: string; // for collect
+  targetNpcId?: string; // for talk: the NPC template id to speak with
+  point?: { x: number; z: number }; // for explore: center of the discovery area
+  radius?: number; // for explore: discovery radius in yards (defaults to EXPLORE_RADIUS)
   count: number;
   label: string;
 }

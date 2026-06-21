@@ -32,6 +32,7 @@ import {
 } from './types';
 
 const LEASH_DISTANCE = 45;
+const EXPLORE_RADIUS = 12; // yards: proximity at which an 'explore' quest objective is discovered
 const DUNGEON_LEASH_DISTANCE = 70;
 // Classic "trivial con": a wild mob this many levels below the player goes
 // passive and will not auto-aggro from proximity (it still fights back if
@@ -1218,6 +1219,7 @@ export class Sim {
       if (!p) continue;
       if (!p.dead) {
         this.updatePlayerMovement(p, meta);
+        this.updateExploreObjectives(p, meta);
         this.updateDoorTriggers(p);
         this.updateCasting(p, meta);
         this.updatePlayerAutoAttack(p, meta);
@@ -4935,6 +4937,7 @@ export class Sim {
     const { meta } = r;
     const npc = this.entities.get(npcId);
     if (!npc || npc.kind !== 'npc') return;
+    this.onNpcTalkedToForQuests(npc.templateId, meta);
     for (const qid of npc.questIds) {
       if (QUESTS[qid].turnInNpcId === npc.templateId && meta.questLog.get(qid)?.state === 'ready') {
         this.turnInQuest(qid, meta.entityId);
@@ -4987,6 +4990,7 @@ export class Sim {
     this.emit({ type: 'questAccepted', questId, pid: meta.entityId });
     this.emit({ type: 'log', text: `Quest accepted: ${quest.name}`, color: '#ff0', pid: meta.entityId });
     this.onInventoryChangedForQuests(meta);
+    this.updateExploreObjectives(p, meta);
   }
 
   abandonQuest(questId: string, pid?: number): void {
@@ -5029,6 +5033,50 @@ export class Sim {
     this.grantXp(quest.xpReward, meta);
     this.emit({ type: 'questDone', questId, pid: meta.entityId });
     this.emit({ type: 'log', text: `Quest completed: ${quest.name}`, color: '#ff0', pid: meta.entityId });
+  }
+
+  private onNpcTalkedToForQuests(npcTemplateId: string, meta: PlayerMeta): void {
+    for (const qp of meta.questLog.values()) {
+      if (qp.state !== 'active') continue;
+      const quest = QUESTS[qp.questId];
+      let changed = false;
+      quest.objectives.forEach((obj, i) => {
+        if (obj.type === 'talk' && obj.targetNpcId === npcTemplateId && qp.counts[i] < obj.count) {
+          qp.counts[i]++;
+          changed = true;
+          meta.counters.questProgress++;
+          this.emit({ type: 'questProgress', questId: qp.questId, text: `${obj.label}: ${qp.counts[i]}/${obj.count}`, pid: meta.entityId });
+        }
+      });
+      if (changed) this.checkQuestReady(qp, meta);
+    }
+  }
+
+  // Credits 'explore' objectives when the player stands within an objective's
+  // discovery radius. Called per tick after movement (and on quest accept, so a
+  // player already standing in the area gets immediate credit). Deterministic:
+  // pure position check, no randomness.
+  private updateExploreObjectives(p: Entity, meta: PlayerMeta): void {
+    if (meta.questLog.size === 0) return;
+    for (const qp of meta.questLog.values()) {
+      if (qp.state !== 'active') continue;
+      const quest = QUESTS[qp.questId];
+      let changed = false;
+      quest.objectives.forEach((obj, i) => {
+        if (obj.type === 'explore' && obj.point && qp.counts[i] < obj.count) {
+          const dx = p.pos.x - obj.point.x;
+          const dz = p.pos.z - obj.point.z;
+          const radius = obj.radius ?? EXPLORE_RADIUS;
+          if (dx * dx + dz * dz <= radius * radius) {
+            qp.counts[i] = obj.count;
+            changed = true;
+            meta.counters.questProgress++;
+            this.emit({ type: 'questProgress', questId: qp.questId, text: `${obj.label}: ${qp.counts[i]}/${obj.count}`, pid: meta.entityId });
+          }
+        }
+      });
+      if (changed) this.checkQuestReady(qp, meta);
+    }
   }
 
   private onMobKilledForQuests(mob: Entity, meta: PlayerMeta): void {
