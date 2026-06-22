@@ -201,7 +201,13 @@ export const VISUALS: Record<string, VisualDef> = {
     url: `${PLAYERS}/knight.glb`, height: HUMANOID_H,
     clips: kaykit(['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal']),
     show: ['Knight_Helmet', 'Knight_Cape'], // v2 knight dropped the built-in Badge_Shield mesh
-    attach: [{ url: `${WEAPONS}/sword_1handed.glb`, bone: 'handslot.r' }],
+    // Sword-and-board silhouette: 1H sword in the right hand, kite (heater)
+    // shield in the left. The knight body already carries the steel plate,
+    // pauldrons, red tabard and open-visor helm that define the Warrior.
+    attach: [
+      { url: `${WEAPONS}/sword_1handed.glb`, bone: 'handslot.r' },
+      { url: `${WEAPONS}/shield_square.glb`, bone: 'handslot.l' },
+    ],
   },
   player_paladin: {
     url: `${PLAYERS}/paladin.glb`, height: HUMANOID_H,
