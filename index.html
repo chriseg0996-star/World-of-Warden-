@@ -4130,6 +4130,13 @@
       padding: 0 !important;
       overflow: hidden;
       position: relative;
+      /* Cancel the global 0.67 site zoom for this view so it can fill the
+         screen as a primary feature (vw/vh otherwise cap out at ~67%). */
+      zoom: calc(1 / var(--site-scale, 0.67));
+      width: 84vw !important;
+      max-width: none !important;
+      height: 74vh !important;
+      min-height: 0 !important;
     }
     #offline-select .auth-title {
       position: absolute;

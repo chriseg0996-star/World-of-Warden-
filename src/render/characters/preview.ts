@@ -64,7 +64,7 @@ export class CharacterPreview {
       ? this.container.clientWidth / this.container.clientHeight
       : 1;
     this.camera = new THREE.PerspectiveCamera(36, aspect, 0.1, 200);
-    this.camera.position.set(0.6, 1.9, 8.5);
+    this.camera.position.set(0.55, 1.8, 6.3);
     this.camera.lookAt(new THREE.Vector3(0, 1.0, 0));
 
     // 4. Initialize Character Group
