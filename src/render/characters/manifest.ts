@@ -224,9 +224,10 @@ export const VISUALS: Record<string, VisualDef> = {
   player_hunter: {
     url: `${PLAYERS}/ranger.glb`, height: HUMANOID_H,
     clips: kaykit(['2H_Ranged_Shoot']),
-    // dedicated ranger model — the quiver is a built-in mesh, so it's no longer
-    // a separate chest attachment
-    attach: [{ url: `${WEAPONS}/crossbow_1handed.glb`, bone: 'handslot.r' }],
+    // Dedicated ranger model: hood, leather, and a built-in back quiver. The big
+    // two-handed crossbow is the largest ranged weapon we ship (no bow asset yet)
+    // and gives the archer/hunter its primary silhouette.
+    attach: [{ url: `${WEAPONS}/crossbow_2handed.glb`, bone: 'handslot.r' }],
   },
   player_rogue: {
     url: `${PLAYERS}/rogue.glb`, height: HUMANOID_H,

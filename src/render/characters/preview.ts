@@ -426,8 +426,71 @@ export class CharacterPreview {
     }
     if (cls === 'mage') {
       this.classFx = this.buildMageFx();
-      this.scene.add(this.classFx);
+    } else if (cls === 'hunter') {
+      this.classFx = this.buildHunterFx();
     }
+    if (this.classFx) this.scene.add(this.classFx);
+  }
+
+  /** A simple low-poly leaf silhouette (white, tinted per sprite). */
+  private makeLeafTexture(): THREE.Texture {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d')!;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(32, 6);
+    ctx.quadraticCurveTo(58, 30, 32, 58);
+    ctx.quadraticCurveTo(6, 30, 32, 6);
+    ctx.fill();
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /** Hunter ambience: very subtle drifting leaves + tiny forest specks. No glow. */
+  private buildHunterFx(): THREE.Group {
+    const g = new THREE.Group();
+    const leafTex = this.makeLeafTexture();
+    const LEAF_COLORS = [0x5e7b3a, 0x6f8f3f, 0x4a5a2a, 0x7a6a39, 0x8a5a2e];
+    const leaves = new THREE.Group();
+    leaves.name = 'hunterLeaves';
+    for (let i = 0; i < 16; i++) {
+      const baseX = (Math.random() - 0.5) * 4.6;
+      const z = (Math.random() - 0.5) * 3 + 0.3;
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: leafTex, color: LEAF_COLORS[i % LEAF_COLORS.length],
+        transparent: true, depthWrite: false, opacity: 0.9,
+      }));
+      s.position.set(baseX, this.groundY + Math.random() * 4.2, z);
+      s.scale.setScalar(0.15 + Math.random() * 0.1);
+      s.userData = {
+        baseX, phase: Math.random() * Math.PI * 2,
+        fall: 0.35 + Math.random() * 0.3, swing: 0.3 + Math.random() * 0.45,
+        spin: (Math.random() - 0.5) * 1.4,
+      };
+      leaves.add(s);
+    }
+    g.add(leaves);
+
+    // Tiny earthy forest specks drifting in the clearing (dim, non-glowing).
+    const N = 34;
+    const pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 5;
+      pos[i * 3 + 1] = this.groundY + 0.2 + Math.random() * 3;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 3 + 0.3;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const motes = new THREE.Points(geo, new THREE.PointsMaterial({
+      map: this.makeRadialTexture(['rgba(205,212,170,0.7)', 'rgba(150,160,110,0.3)', 'rgba(120,130,90,0)']),
+      color: 0xb6bf8e, size: 0.05, sizeAttenuation: true,
+      transparent: true, depthWrite: false, opacity: 0.5,
+    }));
+    motes.name = 'forestMotes';
+    g.add(motes);
+    return g;
   }
 
   /** Arcane motes orbiting the caster + a very light magical aura. Centred on
@@ -756,6 +819,19 @@ export class CharacterPreview {
         const m = aura.material as THREE.MeshBasicMaterial;
         m.opacity = 0.42 + Math.sin(t * 1.6) * 0.12;
       }
+      // Hunter: drifting, tumbling leaves + a gentle forest-speck drift.
+      const leaves = this.classFx.getObjectByName('hunterLeaves');
+      if (leaves) {
+        for (const s of leaves.children) {
+          const u = s.userData as { baseX: number; phase: number; fall: number; swing: number; spin: number };
+          s.position.y -= dt * u.fall;
+          s.position.x = u.baseX + Math.sin(t * u.swing + u.phase) * 0.45;
+          (s as THREE.Sprite).material.rotation += dt * u.spin;
+          if (s.position.y < this.groundY - 0.2) s.position.y = this.groundY + 4.2;
+        }
+      }
+      const forest = this.classFx.getObjectByName('forestMotes');
+      if (forest) forest.rotation.y += dt * 0.08;
     }
 
     // Auto-rotation: half-speed turntable that eases to a brief dwell whenever
