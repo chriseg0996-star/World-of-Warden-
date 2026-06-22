@@ -2191,22 +2191,17 @@ function wireStartScreens(): void {
 
   // offline class chips
   document.querySelectorAll('#offline-select .mini-class').forEach((card) => {
+    // Classic MMORPG behaviour: hover only highlights the card (pure CSS).
+    // The character model, stats, equipment and abilities change ONLY on an
+    // explicit click or keyboard activation, and stay until another is chosen.
     const handleClassSelect = () => {
-      if (hoverTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(hoverTimeouts['offline-class-details']);
-        hoverTimeouts['offline-class-details'] = null;
-      }
-      if (revertTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(revertTimeouts['offline-class-details']);
-        revertTimeouts['offline-class-details'] = null;
-      }
       document.querySelectorAll('#offline-select .mini-class').forEach((c) => {
         c.classList.remove('sel');
         c.setAttribute('aria-pressed', 'false');
       });
       card.classList.add('sel');
       card.setAttribute('aria-pressed', 'true');
-      
+
       const cls = (card as HTMLElement).dataset.class as PlayerClass;
       renderClassDetails('offline-class-details', cls);
       btnStartOffline.removeAttribute('disabled');
@@ -2214,74 +2209,6 @@ function wireStartScreens(): void {
     };
     card.addEventListener('click', handleClassSelect);
     card.addEventListener('keydown', (e) => handleKeyboardActivation(e as KeyboardEvent, handleClassSelect));
-    
-    // A11y focus updates details
-    card.addEventListener('focus', () => {
-      if (revertTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(revertTimeouts['offline-class-details']);
-        revertTimeouts['offline-class-details'] = null;
-      }
-      if (hoverTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(hoverTimeouts['offline-class-details']);
-        hoverTimeouts['offline-class-details'] = null;
-      }
-      const cls = (card as HTMLElement).dataset.class as PlayerClass;
-      renderClassDetails('offline-class-details', cls);
-    });
-
-    // Hover updates details with 50ms debounce
-    card.addEventListener('mouseenter', () => {
-      if (revertTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(revertTimeouts['offline-class-details']);
-        revertTimeouts['offline-class-details'] = null;
-      }
-      if (hoverTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(hoverTimeouts['offline-class-details']);
-      }
-      const cls = (card as HTMLElement).dataset.class as PlayerClass;
-      hoverTimeouts['offline-class-details'] = window.setTimeout(() => {
-        renderClassDetails('offline-class-details', cls);
-        hoverTimeouts['offline-class-details'] = null;
-      }, 50);
-    });
-
-    // Mouseleave reverts to currently selected class details with a 100ms debounce
-    card.addEventListener('mouseleave', () => {
-      if (hoverTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(hoverTimeouts['offline-class-details']);
-        hoverTimeouts['offline-class-details'] = null;
-      }
-      if (revertTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(revertTimeouts['offline-class-details']);
-      }
-      revertTimeouts['offline-class-details'] = window.setTimeout(() => {
-        const selCard = document.querySelector('#offline-select .mini-class.sel') as HTMLElement | null;
-        if (selCard) {
-          const cls = selCard.dataset.class as PlayerClass;
-          renderClassDetails('offline-class-details', cls);
-        }
-        revertTimeouts['offline-class-details'] = null;
-      }, 100);
-    });
-
-    // Blur reverts to currently selected class details with a 100ms debounce (matches mouseleave)
-    card.addEventListener('blur', () => {
-      if (hoverTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(hoverTimeouts['offline-class-details']);
-        hoverTimeouts['offline-class-details'] = null;
-      }
-      if (revertTimeouts['offline-class-details'] !== null) {
-        window.clearTimeout(revertTimeouts['offline-class-details']);
-      }
-      revertTimeouts['offline-class-details'] = window.setTimeout(() => {
-        const selCard = document.querySelector('#offline-select .mini-class.sel') as HTMLElement | null;
-        if (selCard) {
-          const cls = selCard.dataset.class as PlayerClass;
-          renderClassDetails('offline-class-details', cls);
-        }
-        revertTimeouts['offline-class-details'] = null;
-      }, 100);
-    });
   });
 
   const offlineBackBtn = $('#btn-offline-back');
