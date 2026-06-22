@@ -260,12 +260,17 @@ export const VISUALS: Record<string, VisualDef> = {
   player_priest: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,
     clips: kaykit(['2H_Melee_Attack_Chop']),
-    // Serene holy healer: bright white-cream robes (no cape/hat → visible face,
-    // no book so the staff silhouette stays clean and distinct from the Mage),
-    // and a simple staff with a gentle warm-gold light at the tip.
+    // Serene holy healer / cleric. show:[] hides BOTH Mage_Hat (no wizard hat)
+    // and Mage_Cape (the Mage keeps its cape → different silhouette). A strong
+    // near-white cream tint makes the robe unmistakably white vs the blue Mage,
+    // a plain simple staff (no arcane tip glow), and a small scripture book in
+    // the off-hand mark the divine caster.
     show: [],
-    attach: [{ url: `${WEAPONS}/staff.glb`, bone: 'handslot.r', tipGlow: 0xffe6a8 }],
-    tint: 0xf4eedd, tintStrength: 0.55,
+    attach: [
+      { url: `${WEAPONS}/staff.glb`, bone: 'handslot.r' },
+      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open', scale: 0.85 },
+    ],
+    tint: 0xf6f1e2, tintStrength: 0.8,
   },
   player_shaman: {
     url: `${PLAYERS}/barbarian.glb`, height: HUMANOID_H,
