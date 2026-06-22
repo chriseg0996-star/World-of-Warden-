@@ -4572,6 +4572,30 @@
 
   /* the vertical separators don't belong in the stacked mobile drawer */
   body.mobile-touch .nav-item + .nav-item::before { display: none; }
+
+  /* ============================================================
+     Footer fix — the castle backdrop was position:absolute inside a
+     scrolling container, so it stopped at the first viewport height
+     and the footer fell onto black. Pin the backdrop to the viewport
+     so it covers everything, and make the footer frosted glass over
+     the scene (compact, centred) instead of an abrupt dark bar.
+     ============================================================ */
+  #start-screen-backdrop { position: fixed; inset: 0; }
+
+  .homepage-footer {
+    gap: 6px;
+    padding: 13px 24px 15px;
+    background: linear-gradient(180deg, rgba(9, 10, 16, 0.52) 0%, rgba(6, 7, 12, 0.86) 100%);
+    -webkit-backdrop-filter: blur(7px) saturate(1.1);
+    backdrop-filter: blur(7px) saturate(1.1);
+    border-top: 2px solid transparent;
+    border-image: linear-gradient(to right, rgba(78,61,29,0.08), var(--gold-dim), rgba(78,61,29,0.08)) 1;
+    box-shadow: 0 -8px 26px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255, 209, 0, 0.07);
+  }
+  .footer-social-row { margin-bottom: 1px; }
+  .footer-lang-row { margin-top: 1px; }
+  .footer-text-row { margin-top: 3px; }
+  #game-version { margin-top: 0; opacity: 0.85; }
 </style>
 </head>
 <body>
