@@ -428,8 +428,48 @@ export class CharacterPreview {
       this.classFx = this.buildMageFx();
     } else if (cls === 'hunter') {
       this.classFx = this.buildHunterFx();
+    } else if (cls === 'rogue') {
+      this.classFx = this.buildRogueFx();
     }
     if (this.classFx) this.scene.add(this.classFx);
+  }
+
+  /** Rogue ambience: subtle drifting shadow specks + occasional dark smoke
+   *  wisps. All normal-blended and dark — no glow, no bright effects. */
+  private buildRogueFx(): THREE.Group {
+    const g = new THREE.Group();
+    const N = 30;
+    const pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 3.6;
+      pos[i * 3 + 1] = this.groundY + 0.2 + Math.random() * 2.6;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 2.6 + 0.3;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const shadows = new THREE.Points(geo, new THREE.PointsMaterial({
+      map: this.makeRadialTexture(['rgba(45,45,54,0.85)', 'rgba(26,26,32,0.4)', 'rgba(14,14,18,0)']),
+      color: 0x24242e, size: 0.12, sizeAttenuation: true,
+      transparent: true, depthWrite: false, opacity: 0.5, // normal blend (default)
+    }));
+    shadows.name = 'rogueShadows';
+    g.add(shadows);
+
+    // Dark smoke wisps that rise from the ground and fade in/out.
+    const wisps = new THREE.Group();
+    wisps.name = 'rogueWisps';
+    const wispTex = this.makeRadialTexture(['rgba(36,36,44,0)', 'rgba(20,20,26,0.5)', 'rgba(10,10,14,0)']);
+    for (let i = 0; i < 5; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: wispTex, color: 0x181820, transparent: true, depthWrite: false, opacity: 0,
+      }));
+      s.position.set((Math.random() - 0.5) * 2.2, this.groundY + 0.3 + Math.random() * 0.5, (Math.random() - 0.5) * 1.6 + 0.4);
+      s.scale.setScalar(0.8 + Math.random() * 0.5);
+      s.userData = { phase: Math.random() * Math.PI * 2, speed: 0.22 + Math.random() * 0.18 };
+      wisps.add(s);
+    }
+    g.add(wisps);
+    return g;
   }
 
   /** A simple low-poly leaf silhouette (white, tinted per sprite). */
@@ -832,6 +872,27 @@ export class CharacterPreview {
       }
       const forest = this.classFx.getObjectByName('forestMotes');
       if (forest) forest.rotation.y += dt * 0.08;
+
+      // Rogue: shadow specks drift up; smoke wisps rise and pulse opacity.
+      const shadows = this.classFx.getObjectByName('rogueShadows') as THREE.Points | null;
+      if (shadows) {
+        const arr = (shadows.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
+        for (let i = 0; i < arr.length; i += 3) {
+          arr[i + 1] += dt * 0.14;
+          if (arr[i + 1] > this.groundY + 2.8) arr[i + 1] = this.groundY + 0.2;
+          arr[i] += Math.sin(t * 0.4 + i) * dt * 0.025;
+        }
+        (shadows.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      }
+      const wisps = this.classFx.getObjectByName('rogueWisps');
+      if (wisps) {
+        for (const s of wisps.children) {
+          const u = s.userData as { phase: number; speed: number };
+          s.position.y += dt * u.speed;
+          (s as THREE.Sprite).material.opacity = Math.max(0, Math.sin(t * 0.5 + u.phase)) * 0.4;
+          if (s.position.y > this.groundY + 2.3) s.position.y = this.groundY + 0.3;
+        }
+      }
     }
 
     // Auto-rotation: half-speed turntable that eases to a brief dwell whenever

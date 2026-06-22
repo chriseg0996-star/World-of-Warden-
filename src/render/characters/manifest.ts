@@ -239,11 +239,15 @@ export const VISUALS: Record<string, VisualDef> = {
   player_rogue: {
     url: `${PLAYERS}/rogue.glb`, height: HUMANOID_H,
     clips: kaykit(['Dualwield_Melee_Attack_Chop']),
+    // Hooded rogue model (hood baked into Rogue_Head) with a flowing cape. Dual
+    // daggers, scaled up a touch so they read clearly during the turntable, and
+    // a dark shadow tint that pushes the leather toward a black/grey assassin.
     show: ['Rogue_Cape'],
     attach: [
-      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.r' },
-      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.l' },
+      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.r', scale: 1.18 },
+      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.l', scale: 1.18 },
     ],
+    tint: 0x2c2e34, tintStrength: 0.4,
   },
   player_priest: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,
