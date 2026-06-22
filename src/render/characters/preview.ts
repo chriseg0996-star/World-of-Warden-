@@ -464,7 +464,7 @@ export class CharacterPreview {
       const rr = 0.95 + (i % 2) * 0.25;
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
         map: runeTex, color: 0xbcc6ff, transparent: true,
-        depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85,
+        depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.72,
       }));
       sprite.position.set(Math.cos(ang) * rr, this.groundY + 0.9 + (i % 3) * 0.6, Math.sin(ang) * rr);
       sprite.scale.setScalar(0.34);

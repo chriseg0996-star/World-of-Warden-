@@ -262,7 +262,7 @@ export const VISUALS: Record<string, VisualDef> = {
     // the priest (cream) and warlock (purple) who share this model.
     attach: [
       { url: `${WEAPONS}/staff.glb`, bone: 'handslot.r', scale: 1.3, tipGlow: 0x9fb6ff },
-      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open', scale: 1.3 },
+      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open', scale: 1.0 },
     ],
     tint: 0x4734c6, tintStrength: 0.55,
   },

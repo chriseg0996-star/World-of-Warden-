@@ -162,9 +162,10 @@ function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef):
     const b = new THREE.Box3().setFromObject(payload);
     const size = new THREE.Vector3(); b.getSize(size);
     const c = new THREE.Vector3(); b.getCenter(c);
-    if (size.y >= size.x && size.y >= size.z) tipLocal = new THREE.Vector3(c.x, b.max.y, c.z);
-    else if (size.x >= size.z) tipLocal = new THREE.Vector3(b.max.x, c.y, c.z);
-    else tipLocal = new THREE.Vector3(c.x, c.y, b.max.z);
+    const push = 0.06; // nudge the glow a touch past the geometric tip
+    if (size.y >= size.x && size.y >= size.z) tipLocal = new THREE.Vector3(c.x, b.max.y + size.y * push, c.z);
+    else if (size.x >= size.z) tipLocal = new THREE.Vector3(b.max.x + size.x * push, c.y, c.z);
+    else tipLocal = new THREE.Vector3(c.x, c.y, b.max.z + size.z * push);
   }
   if (att.position || att.rotationY !== undefined) {
     if (att.position) payload.position.set(...att.position);
@@ -183,7 +184,7 @@ function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef):
       depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9,
     }));
     glow.position.copy(tipLocal);
-    glow.scale.setScalar(0.55);
+    glow.scale.setScalar(0.41); // 25% smaller than before
     payload.add(glow);
   }
 }
