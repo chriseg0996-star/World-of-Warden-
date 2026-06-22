@@ -39,6 +39,8 @@ export class CharacterPreview {
   private readonly groundY = -0.45;
   private campfireLight: THREE.PointLight | null = null;
   private bannerMat: THREE.MeshStandardMaterial | null = null;
+  private dust: THREE.Points | null = null;
+  private dustBaseY: Float32Array | null = null;
   private currentVisual: CharacterVisual | null = null;
   private currentSkin = 0;
   private clock = new THREE.Clock();
@@ -71,7 +73,8 @@ export class CharacterPreview {
     // overhead melting into a warm sunset horizon) plus tight navy-tinted fog so
     // the village treeline reads as a soft, hazy backdrop rather than a flat sky.
     this.scene.background = this.makeSkyTexture();
-    this.scene.fog = new THREE.Fog(0x33384f, 11, 30);
+    // Lighter fog so the village (houses, campfire, treeline) reads more clearly.
+    this.scene.fog = new THREE.Fog(0x33384f, 15, 40);
 
     // 3. Initialize Camera — framed so the hero is large and prominent on the
     //    carved pedestal with the village clearing around them.
@@ -88,17 +91,30 @@ export class CharacterPreview {
 
     // 5. Dusk lighting: dim cool ambient, a low warm sunset key, a dedicated
     //    front fill that keeps the hero crisp and bright, and a cool back rim.
-    const hemiLight = new THREE.HemisphereLight(0x5b6aa0, 0x3a2e22, 0.55);
+    const hemiLight = new THREE.HemisphereLight(0x5b6aa0, 0x3a2e22, 0.62);
     this.scene.add(hemiLight);
-    const sun = new THREE.DirectionalLight(0xffb066, 1.2);
+    const sun = new THREE.DirectionalLight(0xffb066, 1.3);
     sun.position.set(6, 3.5, 4);
     this.scene.add(sun);
-    const heroKey = new THREE.DirectionalLight(0xfff0d8, 1.55);
+    const heroKey = new THREE.DirectionalLight(0xfff0d8, 1.95);
     heroKey.position.set(1.5, 4, 6);
     this.scene.add(heroKey);
     const rim = new THREE.DirectionalLight(0x6a7cb0, 0.5);
     rim.position.set(-4, 4, -4);
     this.scene.add(rim);
+
+    // 5a. Hero-local lights (short range so they lift the character without
+    //     washing out the village): a warm front fill, a cool rim behind, and a
+    //     warm up-glow rising from the pedestal.
+    const warmFront = new THREE.PointLight(0xffd7ab, 3.1, 7, 2);
+    warmFront.position.set(0.4, 1.7, 2.6);
+    this.scene.add(warmFront);
+    const heroRim = new THREE.PointLight(0xcfe0ff, 2.3, 6, 2);
+    heroRim.position.set(-0.5, 2.6, -2.0);
+    this.scene.add(heroRim);
+    const pedGlow = new THREE.PointLight(0xffb866, 1.3, 4.2, 2);
+    pedGlow.position.set(0, this.groundY + 0.55, 0);
+    this.scene.add(pedGlow);
 
     // 5b. Build the cozy Eastbrook Vale diorama (ground, pedestal, campfire,
     //     village props) behind the live character.
@@ -154,7 +170,7 @@ export class CharacterPreview {
       new THREE.CylinderGeometry(1.63, 1.66, 0.16, 48, 1, true),
       new THREE.MeshStandardMaterial({
         color: 0x645e54, roughness: 0.85,
-        emissive: 0xffb45a, emissiveMap: this.makeRuneTexture(), emissiveIntensity: 0.85,
+        emissive: 0xffb45a, emissiveMap: this.makeRuneTexture(), emissiveIntensity: 1.2,
       }),
     );
     runeBand.position.y = gY + 0.16;
@@ -214,15 +230,15 @@ export class CharacterPreview {
     mkHouse(10, -7.5, 1.25);
 
     // Warm campfire light (bonfire prop loads in below).
-    this.campfireLight = new THREE.PointLight(0xff8a36, 2.6, 11, 2);
+    this.campfireLight = new THREE.PointLight(0xff8a36, 3.0, 12, 2);
     this.campfireLight.position.set(-2.1, gY + 0.5, 1.7);
     this.envGroup.add(this.campfireLight);
 
     // Cozy lantern glows by the inn and the blacksmith forge.
-    const innLantern = new THREE.PointLight(0xffcf87, 1.1, 8, 2);
+    const innLantern = new THREE.PointLight(0xffcf87, 1.4, 9, 2);
     innLantern.position.set(4.6, gY + 1.6, -2.2);
     this.envGroup.add(innLantern);
-    const forgeGlow = new THREE.PointLight(0xff9a4a, 1.0, 7, 2);
+    const forgeGlow = new THREE.PointLight(0xff9a4a, 1.3, 8, 2);
     forgeGlow.position.set(-4.4, gY + 1.1, -1.9);
     this.envGroup.add(forgeGlow);
 
@@ -243,6 +259,105 @@ export class CharacterPreview {
     this.addProp('/models/foliage/bush.glb', { x: 2.0, z: 2.1, h: 0.55 });
     this.addProp('/models/foliage/bush_flowers.glb', { x: -1.4, z: 2.3, h: 0.55 });
     this.addProp('/models/foliage/rock_2.glb', { x: 2.7, z: 1.9, h: 0.5 });
+
+    // Atmosphere / depth pass: contact shadow, ground mist, dust motes, shafts.
+    this.addAtmosphere();
+  }
+
+  /**
+   * Depth & atmosphere: a soft contact shadow grounding the hero on the
+   * pedestal, low ground mist around the base, drifting dust motes, and a
+   * couple of gentle warm light shafts from the sunset side.
+   */
+  private addAtmosphere(): void {
+    const gY = this.groundY;
+
+    // Soft contact shadow connecting the character to the pedestal top.
+    const shadowTex = this.makeRadialTexture(['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.32)', 'rgba(0,0,0,0)']);
+    const contact = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.0, 1.5),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.85 }),
+    );
+    contact.rotation.x = -Math.PI / 2;
+    contact.position.set(0, 0.02, 0.05);
+    this.envGroup.add(contact);
+
+    // Low ground mist around the pedestal base (two soft, near-flat discs).
+    const mistTex = this.makeRadialTexture(['rgba(150,170,205,0.0)', 'rgba(140,162,200,0.16)', 'rgba(120,140,180,0)']);
+    const mistMat = new THREE.MeshBasicMaterial({ map: mistTex, transparent: true, depthWrite: false, opacity: 0.5, blending: THREE.AdditiveBlending });
+    for (let i = 0; i < 2; i++) {
+      const mist = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), mistMat);
+      mist.rotation.x = -Math.PI / 2;
+      mist.position.set(0, gY + 0.12 + i * 0.12, 0.4);
+      this.envGroup.add(mist);
+    }
+
+    // Drifting dust motes caught in the light.
+    const COUNT = 130;
+    const pos = new Float32Array(COUNT * 3);
+    this.dustBaseY = new Float32Array(COUNT);
+    for (let i = 0; i < COUNT; i++) {
+      const x = (Math.random() - 0.5) * 7.5;
+      const y = gY + 0.3 + Math.random() * 4.2;
+      const z = (Math.random() - 0.5) * 6 + 0.5;
+      pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
+      this.dustBaseY[i] = y;
+    }
+    const dustGeo = new THREE.BufferGeometry();
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const dustMat = new THREE.PointsMaterial({
+      map: this.makeRadialTexture(['rgba(255,244,222,0.9)', 'rgba(255,240,210,0.4)', 'rgba(255,240,210,0)']),
+      color: 0xffe9c4, size: 0.06, sizeAttenuation: true,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.7,
+    });
+    this.dust = new THREE.Points(dustGeo, dustMat);
+    this.scene.add(this.dust);
+
+    // Gentle warm light shafts angled in from the sunset side.
+    const shaftTex = this.makeShaftTexture();
+    const shaftMat = new THREE.MeshBasicMaterial({ map: shaftTex, transparent: true, depthWrite: false, opacity: 0.16, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    for (let i = 0; i < 3; i++) {
+      const shaft = new THREE.Mesh(new THREE.PlaneGeometry(1.4 + i * 0.5, 9), shaftMat);
+      shaft.position.set(2.6 + i * 1.4, gY + 4.2, -2.5 - i * 0.6);
+      shaft.rotation.z = 0.32 + i * 0.05;
+      shaft.rotation.y = -0.5;
+      this.scene.add(shaft);
+    }
+  }
+
+  /** Radial gradient sprite/decal texture from a list of colour stops. */
+  private makeRadialTexture(stops: string[]): THREE.Texture {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d')!;
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    stops.forEach((s, i) => g.addColorStop(i / (stops.length - 1), s));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /** Vertical warm gradient used for the soft light shafts. */
+  private makeShaftTexture(): THREE.Texture {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 256;
+    const ctx = c.getContext('2d')!;
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0.0, 'rgba(255,225,170,0.55)');
+    g.addColorStop(0.5, 'rgba(255,220,160,0.18)');
+    g.addColorStop(1.0, 'rgba(255,215,150,0)');
+    const h = ctx.createLinearGradient(0, 0, 64, 0);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 256);
+    // taper the sides
+    ctx.globalCompositeOperation = 'destination-in';
+    h.addColorStop(0, 'rgba(0,0,0,0)'); h.addColorStop(0.5, 'rgba(0,0,0,1)'); h.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = h; ctx.fillRect(0, 0, 64, 256);
+    ctx.globalCompositeOperation = 'source-over';
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   }
 
   /** Vertical dusk gradient used as the sky background. */
@@ -433,7 +548,22 @@ export class CharacterPreview {
     // Campfire flicker.
     if (this.campfireLight) {
       const t = this.clock.elapsedTime;
-      this.campfireLight.intensity = 2.6 + Math.sin(t * 11) * 0.35 + Math.sin(t * 19) * 0.18;
+      this.campfireLight.intensity = 3.0 + Math.sin(t * 11) * 0.4 + Math.sin(t * 19) * 0.2;
+    }
+
+    // Drifting dust motes: slow upward rise with a gentle sideways sway; wrap
+    // back to the base height so the cloud loops seamlessly.
+    if (this.dust && this.dustBaseY) {
+      const t = this.clock.elapsedTime;
+      const arr = (this.dust.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
+      for (let i = 0; i < this.dustBaseY.length; i++) {
+        const span = 4.2;
+        let y = arr[i * 3 + 1] + dt * 0.12;
+        if (y > this.dustBaseY[i] + span) y -= span;
+        arr[i * 3 + 1] = y;
+        arr[i * 3] += Math.sin(t * 0.5 + i) * dt * 0.04;
+      }
+      (this.dust.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
     }
 
     // Auto-rotation if prefers-reduced-motion is false and not dragging
