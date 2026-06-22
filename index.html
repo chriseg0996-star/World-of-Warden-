@@ -61,7 +61,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<link rel="preload" as="image" href="/loading-screen.jpg" />
+<link rel="preload" as="image" href="/wardenfall-bg.webp" />
+<link rel="preload" as="image" href="/wardenfall-logo.png" />
 <link rel="preload" as="image" href="./ui/cursors/hand-default.png" />
 <link rel="preload" as="image" href="./ui/cursors/attack-sword.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1817,22 +1818,28 @@
     inset: 0;
     z-index: 150;
     display: none;
-    /* castle key-art (logo + scene baked in); scrim fades the lower third so the
-       baked status/bar are masked and the real, functional bar sits cleanly there */
+    /* clean castle key-art (no baked UI) + a soft scrim for legibility. The logo,
+       status and bar below are all real DOM, so there is no duplicate baked bar. */
     background:
-      linear-gradient(180deg, rgba(6,8,14,0) 48%, rgba(6,8,14,0.55) 62%, rgba(6,8,14,0.86) 76%, rgba(5,6,11,0.95) 100%),
-      #0a0d14 url('/loading-screen.jpg') center / cover no-repeat;
+      linear-gradient(180deg, rgba(6,8,14,0.45) 0%, rgba(6,8,14,0.12) 32%, rgba(6,8,14,0.22) 66%, rgba(5,6,11,0.88) 100%),
+      #0a0d14 url('/wardenfall-bg.webp') center / cover no-repeat;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
-    padding: 0 0 21vh;
+    justify-content: center;
+    padding: 0;
     opacity: 1;
     transition: opacity .35s ease;
   }
   #loading-screen.visible { display: flex; }
   #loading-screen.fade { opacity: 0; }
-  /* the WARDENFALL logo is baked into the art — hide the duplicate DOM logo */
-  #loading-screen .ls-logo { display: none; }
+  /* real DOM logo (the art no longer has a baked one) */
+  #loading-screen .ls-logo {
+    display: block;
+    width: clamp(280px, 34vw, 470px);
+    height: auto;
+    margin-bottom: clamp(26px, 5.5vh, 60px);
+    filter: drop-shadow(0 8px 26px rgba(0, 0, 0, 0.7));
+  }
   .ls-progress { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
   /* status text sits ABOVE the bar, matching the art */
   #ls-status {
