@@ -4641,6 +4641,18 @@
   #performance-tip { margin-top: clamp(6px, 1.3vh, 20px); padding-block: clamp(5px, 0.9vh, 11px); font-size: clamp(12px, 1.5vh, 14px); }
   .homepage-footer { padding-block: clamp(8px, 1.2vh, 15px); }
   .footer-lang-row { top: clamp(8px, 1.2vh, 15px); }
+
+  /* ============================================================
+     Global website scale. Render the whole landing/website
+     (homepage, auth, character-select, offline-select — all inside
+     #start-screen) at ~67%, exactly like browser zoom 67%: same
+     layout, spacing ratios, typography hierarchy and proportions,
+     just smaller so more fits on a 1080p screen. Scoped to
+     #start-screen so the in-game canvas/HUD keep full size + touch
+     targets. Tune the single knob below.
+     ============================================================ */
+  :root { --site-scale: 0.67; }
+  #start-screen { zoom: var(--site-scale); }
 </style>
 </head>
 <body>
