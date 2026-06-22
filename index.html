@@ -1817,34 +1817,47 @@
     inset: 0;
     z-index: 150;
     display: none;
-    background: #0a0d14 url('/loading-screen.jpg') center / cover no-repeat;
+    /* castle key-art (logo + scene baked in); scrim fades the lower third so the
+       baked status/bar are masked and the real, functional bar sits cleanly there */
+    background:
+      linear-gradient(180deg, rgba(6,8,14,0) 48%, rgba(6,8,14,0.55) 62%, rgba(6,8,14,0.86) 76%, rgba(5,6,11,0.95) 100%),
+      #0a0d14 url('/loading-screen.jpg') center / cover no-repeat;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 6vh 0 7vh;
+    justify-content: flex-end;
+    padding: 0 0 21vh;
     opacity: 1;
     transition: opacity .35s ease;
   }
   #loading-screen.visible { display: flex; }
   #loading-screen.fade { opacity: 0; }
-  #loading-screen .ls-logo {
-    width: min(380px, 64vw);
-    height: auto;
-    filter: drop-shadow(0 0 24px #000c) drop-shadow(2px 2px 5px #000);
+  /* the WARDENFALL logo is baked into the art — hide the duplicate DOM logo */
+  #loading-screen .ls-logo { display: none; }
+  .ls-progress { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+  /* status text sits ABOVE the bar, matching the art */
+  #ls-status {
+    order: -1;
+    color: var(--wf-gold-bright, #ffe48a);
+    font-family: var(--font-heading);
+    font-size: clamp(13px, 1.6vh, 16px); font-weight: 600;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(255, 209, 0, 0.45), 0 1px 2px #000;
   }
-  .ls-progress { display: flex; flex-direction: column; align-items: center; gap: 9px; }
   .ls-bar {
-    width: min(420px, 70vw);
-    height: 14px;
-    border: 2px solid var(--color-border-default);
-    outline: 1px solid #000;
-    border-radius: 8px;
-    background: #0009;
+    width: min(540px, 74vw);
+    height: 16px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 9px;
+    background: linear-gradient(180deg, rgba(10,10,15,0.9), rgba(4,4,8,0.92));
     overflow: hidden;
-    box-shadow: 0 2px 14px #000c, inset 0 1px 4px #000a;
+    box-shadow: 0 0 0 1px #000, 0 3px 16px #000c, inset 0 1px 3px #000a, 0 0 22px rgba(255, 209, 0, 0.14);
   }
-  #ls-fill { height: 100%; width: 0%; background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dim)); transition: width .2s ease; }
-  #ls-status { color: var(--color-text-light); font-family: var(--font-heading); font-size: 13px; text-shadow: 1px 1px 2px #000; }
+  #ls-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(180deg, #ffe27a 0%, #f0c34d 46%, #cf9f2e 100%);
+    box-shadow: 0 0 14px rgba(255, 209, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: width .2s ease;
+  }
 
   /* ---------- online auth / character select ---------- */
   .mode-row { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
