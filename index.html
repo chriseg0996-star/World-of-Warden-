@@ -4298,26 +4298,25 @@
      via source order; all functional ids/markup are untouched.
      Set --home-bg-image to layer a real photo over the atmosphere.
      ============================================================ */
-  :root { --home-bg-image: none; --wf-gold-bright: #ffe48a; }
-
-  /* --- Cinematic atmospheric background (was flat #000) --- */
-  #start-screen {
-    background:
-      var(--home-bg-image),
-      /* warm dusk glow, upper-centre — the "sun behind the keep" */
-      radial-gradient(95% 72% at 50% 12%, rgba(198, 142, 54, 0.52) 0%, rgba(122, 86, 36, 0.24) 26%, rgba(44, 32, 18, 0.06) 48%, rgba(8, 9, 16, 0) 64%),
-      /* soft amber core */
-      radial-gradient(62% 46% at 50% 26%, rgba(255, 188, 84, 0.12) 0%, rgba(255, 188, 84, 0) 60%),
-      /* cool low fill */
-      radial-gradient(150% 120% at 50% 124%, rgba(26, 33, 62, 0.66) 0%, rgba(6, 7, 13, 0) 56%),
-      /* vignette */
-      radial-gradient(130% 112% at 50% 42%, rgba(0,0,0,0) 38%, rgba(0,0,0,0.66) 100%),
-      /* base */
-      linear-gradient(180deg, #0b0d18 0%, #07080f 55%, #050609 100%);
-    background-size: cover, auto, auto, auto, auto, auto;
-    background-position: center top;
+  :root { --home-bg-image: url('/wardenfall-hero.webp'); --wf-gold-bright: #ffe48a; }
+  /* The key-art lives on the full-screen #start-screen-backdrop layer (it sits
+     above the page base, below the UI at z-index 1). Replace its opaque fill and
+     retire the portal/nebula rings + the SVG scenery — the art supplies them. */
+  .hero-scenery, .portal-ring, .portal-ring-reverse, .nebula-overlay { display: none !important; }
+  #start-screen-backdrop {
+    z-index: 0;
+    background-color: transparent !important;
+    background-image:
+      radial-gradient(142% 122% at 50% 40%, rgba(0,0,0,0) 42%, rgba(0,0,0,0.55) 100%),
+      linear-gradient(180deg, rgba(8,9,16,0.16) 0%, rgba(8,9,16,0.24) 45%, rgba(7,8,13,0.52) 82%, rgba(6,7,11,0.82) 100%),
+      var(--home-bg-image);
+    background-size: auto, auto, cover;
+    background-position: center, center, center top;
     background-repeat: no-repeat;
   }
+
+  /* --- Cinematic atmospheric background (was flat #000) --- */
+  #start-screen { background: linear-gradient(180deg, #0a0c16 0%, #07080f 60%, #050609 100%); }
   /* deepen the floor + faint heraldic glow ring behind the logo */
   #start-screen::before {
     content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
