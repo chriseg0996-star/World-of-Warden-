@@ -430,8 +430,54 @@ export class CharacterPreview {
       this.classFx = this.buildHunterFx();
     } else if (cls === 'rogue') {
       this.classFx = this.buildRogueFx();
+    } else if (cls === 'paladin') {
+      this.classFx = this.buildPaladinFx();
     }
     if (this.classFx) this.scene.add(this.classFx);
+  }
+
+  /** Paladin ambience: a few small golden motes + occasional light sparks.
+   *  Subtle and additive — no halos, wings, or large spell effects. */
+  private buildPaladinFx(): THREE.Group {
+    const g = new THREE.Group();
+    // Slow-rising golden motes.
+    const N = 24;
+    const pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.4 + Math.random() * 0.7;
+      pos[i * 3] = Math.cos(a) * r;
+      pos[i * 3 + 1] = this.groundY + 0.4 + Math.random() * 2.1;
+      pos[i * 3 + 2] = Math.sin(a) * r;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const motes = new THREE.Points(geo, new THREE.PointsMaterial({
+      map: this.makeRadialTexture(['rgba(255,240,200,0.95)', 'rgba(240,200,120,0.4)', 'rgba(220,180,90,0)']),
+      color: 0xffd27a, size: 0.07, sizeAttenuation: true,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.7,
+    }));
+    motes.name = 'paladinMotes';
+    g.add(motes);
+
+    // Occasional light sparks — bright but tiny, flaring on their own timers.
+    const sparks = new THREE.Group();
+    sparks.name = 'paladinSparks';
+    const sparkTex = this.makeRadialTexture(['rgba(255,250,235,0.95)', 'rgba(255,225,160,0.5)', 'rgba(255,215,140,0)']);
+    for (let i = 0; i < 7; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.5 + Math.random() * 0.7;
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: sparkTex, color: 0xfff0cf, transparent: true,
+        depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0,
+      }));
+      s.position.set(Math.cos(a) * r, this.groundY + 0.6 + Math.random() * 1.8, Math.sin(a) * r);
+      s.scale.setScalar(0.12 + Math.random() * 0.06);
+      s.userData = { phase: Math.random() * Math.PI * 2, rate: 0.5 + Math.random() * 0.6 };
+      sparks.add(s);
+    }
+    g.add(sparks);
+    return g;
   }
 
   /** Rogue ambience: subtle drifting shadow specks + occasional dark smoke
@@ -918,6 +964,25 @@ export class CharacterPreview {
           (s as THREE.Sprite).material.opacity = (0.5 + 0.5 * Math.sin(t * 0.7 + u.phase)) * 0.32;
           s.position.x = u.baseX + Math.sin(t * 0.3 + u.phase) * 0.12;
           s.position.z = u.baseZ + Math.cos(t * 0.25 + u.phase) * 0.1;
+        }
+      }
+
+      // Paladin: golden motes drift up; sparks flare briefly on their own timers.
+      const palMotes = this.classFx.getObjectByName('paladinMotes') as THREE.Points | null;
+      if (palMotes) {
+        const arr = (palMotes.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
+        for (let i = 0; i < arr.length; i += 3) {
+          arr[i + 1] += dt * 0.12;
+          if (arr[i + 1] > this.groundY + 2.7) arr[i + 1] = this.groundY + 0.4;
+        }
+        (palMotes.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      }
+      const palSparks = this.classFx.getObjectByName('paladinSparks');
+      if (palSparks) {
+        for (const s of palSparks.children) {
+          const u = s.userData as { phase: number; rate: number };
+          const k = Math.max(0, Math.sin(t * u.rate + u.phase));
+          (s as THREE.Sprite).material.opacity = Math.pow(k, 8) * 0.9;
         }
       }
     }

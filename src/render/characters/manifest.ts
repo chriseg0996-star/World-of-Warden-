@@ -219,10 +219,15 @@ export const VISUALS: Record<string, VisualDef> = {
   player_paladin: {
     url: `${PLAYERS}/paladin.glb`, height: HUMANOID_H,
     clips: kaykit(['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal']),
-    // dedicated paladin model (helmeted variant) — ships its own Cape + Helmet
-    // meshes and texture, so no show-list/tint. Shield + paladin hammer arrive
-    // in the weapons pass; the gripped axe holds the slot until then.
-    attach: [{ url: `${WEAPONS}/axe_1handed.glb`, bone: 'handslot.r' }],
+    // Dedicated paladin model (helmeted variant) — ships its own Cape + Helmet
+    // meshes and texture, so no show-list/tint. Sword-and-board holy knight: the
+    // largest shield (heater) in the off-hand, scaled up so it reads during the
+    // turntable, and a heavy one-hander. Drop public/models/weapons/mace_1handed
+    // .glb in and it's picked up automatically; until then a 1H axe stands in.
+    attach: [
+      { url: `${WEAPONS}/axe_1handed.glb`, preferred: `${WEAPONS}/mace_1handed.glb`, bone: 'handslot.r', scale: 1.15 },
+      { url: `${WEAPONS}/shield_square.glb`, bone: 'handslot.l', scale: 1.18 },
+    ],
   },
   player_hunter: {
     url: `${PLAYERS}/ranger.glb`, height: HUMANOID_H,
