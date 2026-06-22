@@ -4,6 +4,19 @@ import { PlayerClass } from '../../sim/types';
 import { loadGltf } from '../assets/loader';
 import { assetUrl } from '../assets/media';
 
+/** Classic class colours — used to tint the banner behind the hero. */
+const CLASS_COLORS: Record<string, number> = {
+  warrior: 0xc79c6e,
+  paladin: 0xf58cba,
+  hunter: 0xabd473,
+  rogue: 0xfff569,
+  priest: 0xf0f0f0,
+  shaman: 0x2f6fd6,
+  mage: 0x69ccf0,
+  warlock: 0x9482c9,
+  druid: 0xff7d0a,
+};
+
 const PREVIEW_ANIM_STATE = {
   speed: 0,
   moving: false,
@@ -25,6 +38,7 @@ export class CharacterPreview {
   private envGroup!: THREE.Group;
   private readonly groundY = -0.45;
   private campfireLight: THREE.PointLight | null = null;
+  private bannerMat: THREE.MeshStandardMaterial | null = null;
   private currentVisual: CharacterVisual | null = null;
   private currentSkin = 0;
   private clock = new THREE.Clock();
@@ -53,19 +67,20 @@ export class CharacterPreview {
     // 2. Initialize Scene
     this.scene = new THREE.Scene();
 
-    // Dusky Eastbrook Vale at golden hour: deep navy sky and tight, navy-tinted
-    // fog so the village reads as a soft, hazy backdrop rather than a flat sky.
-    this.scene.background = new THREE.Color(0x2b3450);
-    this.scene.fog = new THREE.Fog(0x2b3450, 10, 26);
+    // Dusky Eastbrook Vale at golden hour: a vertical gradient sky (deep navy
+    // overhead melting into a warm sunset horizon) plus tight navy-tinted fog so
+    // the village treeline reads as a soft, hazy backdrop rather than a flat sky.
+    this.scene.background = this.makeSkyTexture();
+    this.scene.fog = new THREE.Fog(0x33384f, 11, 30);
 
-    // 3. Initialize Camera — pulled back/up so the hero reads small and fully
-    //    visible on the pedestal with the village clearing around them.
+    // 3. Initialize Camera — framed so the hero is large and prominent on the
+    //    carved pedestal with the village clearing around them.
     const aspect = this.container.clientHeight > 0
       ? this.container.clientWidth / this.container.clientHeight
       : 1;
     this.camera = new THREE.PerspectiveCamera(36, aspect, 0.1, 200);
-    this.camera.position.set(0.5, 1.85, 6.1);
-    this.camera.lookAt(new THREE.Vector3(0, 1.15, 0));
+    this.camera.position.set(0.45, 1.78, 5.1);
+    this.camera.lookAt(new THREE.Vector3(0, 1.2, 0));
 
     // 4. Initialize Character Group
     this.characterGroup = new THREE.Group();
@@ -78,7 +93,7 @@ export class CharacterPreview {
     const sun = new THREE.DirectionalLight(0xffb066, 1.2);
     sun.position.set(6, 3.5, 4);
     this.scene.add(sun);
-    const heroKey = new THREE.DirectionalLight(0xfff0d8, 1.15);
+    const heroKey = new THREE.DirectionalLight(0xfff0d8, 1.55);
     heroKey.position.set(1.5, 4, 6);
     this.scene.add(heroKey);
     const rim = new THREE.DirectionalLight(0x6a7cb0, 0.5);
@@ -123,16 +138,80 @@ export class CharacterPreview {
     path.position.set(0, gY + 0.01, 0.3);
     this.envGroup.add(path);
 
-    // Stone pedestal (two stacked drums); its top surface sits at y = 0 so the
-    // character (placed at the origin) stands on it.
+    // Carved stone pedestal: a wide stepped footing, a stacked drum, a runed
+    // mid-band that glows faintly at dusk, and a bevelled cap. The top surface
+    // sits at y = 0 so the character (placed at the origin) stands on it.
     const stoneTop = new THREE.MeshStandardMaterial({ color: 0x8a8478, roughness: 0.9 });
     const stoneBase = new THREE.MeshStandardMaterial({ color: 0x6e685d, roughness: 0.95 });
+    const footing = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 2.06, 0.13, 44), stoneBase);
+    footing.position.y = gY + 0.065;
+    this.envGroup.add(footing);
     const baseDrum = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.78, 0.22, 36), stoneBase);
     baseDrum.position.y = gY + 0.11;
     this.envGroup.add(baseDrum);
+    // Runed band wrapping the drum — emissive glyphs catch the firelight.
+    const runeBand = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.63, 1.66, 0.16, 48, 1, true),
+      new THREE.MeshStandardMaterial({
+        color: 0x645e54, roughness: 0.85,
+        emissive: 0xffb45a, emissiveMap: this.makeRuneTexture(), emissiveIntensity: 0.85,
+      }),
+    );
+    runeBand.position.y = gY + 0.16;
+    this.envGroup.add(runeBand);
     const topDrum = new THREE.Mesh(new THREE.CylinderGeometry(1.32, 1.46, 0.26, 36), stoneTop);
     topDrum.position.y = gY + 0.22 + 0.13;
     this.envGroup.add(topDrum);
+    const capBevel = new THREE.Mesh(new THREE.CylinderGeometry(1.34, 1.38, 0.06, 36), stoneTop);
+    capBevel.position.y = gY + 0.48;
+    this.envGroup.add(capBevel);
+
+    // Class banner: a tall cloth slung between two posts behind the hero. Its
+    // colour is set per class in setClass().
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 0.85 });
+    const postGeo = new THREE.CylinderGeometry(0.05, 0.06, 3.5, 12);
+    const postL = new THREE.Mesh(postGeo, postMat); postL.position.set(-0.95, gY + 1.75, -1.75);
+    const postR = new THREE.Mesh(postGeo, postMat); postR.position.set(0.95, gY + 1.75, -1.75);
+    const crossbar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.15, 12), postMat);
+    crossbar.rotation.z = Math.PI / 2;
+    crossbar.position.set(0, gY + 3.2, -1.75);
+    this.bannerMat = new THREE.MeshStandardMaterial({
+      color: CLASS_COLORS.warrior, roughness: 0.72, metalness: 0.0, side: THREE.DoubleSide,
+    });
+    const cloth = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 2.5), this.bannerMat);
+    cloth.position.set(0, gY + 1.9, -1.71);
+    const emblem = new THREE.Mesh(
+      new THREE.TorusGeometry(0.4, 0.055, 12, 32),
+      new THREE.MeshStandardMaterial({ color: 0xe8c878, metalness: 0.45, roughness: 0.5, emissive: 0x342710 }),
+    );
+    emblem.position.set(0, gY + 2.05, -1.65);
+    this.envGroup.add(postL, postR, crossbar, cloth, emblem);
+
+    // Distant village backdrop: a fogged treeline ring + a couple of cottages so
+    // the horizon reads as Eastbrook Vale rather than empty sky.
+    const treeMat = new THREE.MeshStandardMaterial({ color: 0x222a39, roughness: 1 });
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * Math.PI * 2;
+      const z = Math.cos(a) * (14 + (i % 3) * 1.7) - 2.5;
+      if (z > 5.5) continue; // keep the front clearing open toward the camera
+      const x = Math.sin(a) * (14 + (i % 3) * 1.7);
+      const h = 3.2 + (i % 4) * 0.95;
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.85 + (i % 3) * 0.2, h, 7), treeMat);
+      cone.position.set(x, gY + h / 2, z);
+      this.envGroup.add(cone);
+    }
+    const houseMat = new THREE.MeshStandardMaterial({ color: 0x2b2933, roughness: 1 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x3a2330, roughness: 1 });
+    const mkHouse = (hx: number, hz: number, s: number): void => {
+      const body = new THREE.Mesh(new THREE.BoxGeometry(2.4 * s, 1.6 * s, 2 * s), houseMat);
+      body.position.set(hx, gY + 0.8 * s, hz);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.9 * s, 1.2 * s, 4), roofMat);
+      roof.position.set(hx, gY + 1.6 * s + 0.6 * s, hz);
+      roof.rotation.y = Math.PI / 4;
+      this.envGroup.add(body, roof);
+    };
+    mkHouse(-9.5, -6.5, 1.1);
+    mkHouse(10, -7.5, 1.25);
 
     // Warm campfire light (bonfire prop loads in below).
     this.campfireLight = new THREE.PointLight(0xff8a36, 2.6, 11, 2);
@@ -164,6 +243,53 @@ export class CharacterPreview {
     this.addProp('/models/foliage/bush.glb', { x: 2.0, z: 2.1, h: 0.55 });
     this.addProp('/models/foliage/bush_flowers.glb', { x: -1.4, z: 2.3, h: 0.55 });
     this.addProp('/models/foliage/rock_2.glb', { x: 2.7, z: 1.9, h: 0.5 });
+  }
+
+  /** Vertical dusk gradient used as the sky background. */
+  private makeSkyTexture(): THREE.Texture {
+    const c = document.createElement('canvas');
+    c.width = 8; c.height = 256;
+    const ctx = c.getContext('2d')!;
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0.0, '#1a2138');
+    g.addColorStop(0.5, '#2b3450');
+    g.addColorStop(0.74, '#574a63');
+    g.addColorStop(0.86, '#9c6f52');
+    g.addColorStop(0.95, '#caa46a');
+    g.addColorStop(1.0, '#7c5a3e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 8, 256);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /** Black field with glowing rune glyphs — used as the pedestal band emissiveMap. */
+  private makeRuneTexture(): THREE.Texture {
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 64;
+    const ctx = c.getContext('2d')!;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 1024, 64);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    const glyphs = 24;
+    for (let i = 0; i < glyphs; i++) {
+      const cx = (i + 0.5) * (1024 / glyphs);
+      const dir = (i % 2) ? 1 : -1;
+      ctx.beginPath();
+      ctx.moveTo(cx, 14); ctx.lineTo(cx, 50);
+      ctx.moveTo(cx, 22); ctx.lineTo(cx + 8 * dir, 16);
+      ctx.moveTo(cx, 42); ctx.lineTo(cx - 8 * dir, 48);
+      if (i % 3 === 0) { ctx.moveTo(cx - 7, 32); ctx.lineTo(cx + 7, 32); }
+      ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.repeat.set(3, 1);
+    return tex;
   }
 
   /** Load a GLB, scale it to a target height by bounding box, and seat it on the ground at (x,z). */
@@ -201,6 +327,9 @@ export class CharacterPreview {
       const visualKey = `player_${cls}`;
       this.currentVisual = new CharacterVisual(visualKey, 0xffffff, this.currentSkin);
       this.characterGroup.add(this.currentVisual.root);
+
+      // Tint the banner behind the hero to the class colour.
+      if (this.bannerMat) this.bannerMat.color.setHex(CLASS_COLORS[cls] ?? CLASS_COLORS.warrior);
 
       // Reset rotation of group so new character faces forward but holds any user offset if preferred.
       // Resetting Y rotation is cleanest for transitions.
