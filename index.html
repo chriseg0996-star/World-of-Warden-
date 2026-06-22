@@ -4593,9 +4593,18 @@
     box-shadow: 0 -8px 26px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255, 209, 0, 0.07);
   }
   .footer-social-row { margin-bottom: 1px; }
-  .footer-lang-row { margin-top: 1px; }
   .footer-text-row { margin-top: 3px; }
   #game-version { margin-top: 0; opacity: 0.85; }
+
+  /* Language selector: pinned to the right of the social-link row instead of
+     stacked on its own line — keeps the footer to one slim line + copyright. */
+  .homepage-footer { position: relative; }
+  .footer-lang-row { position: absolute; top: 15px; right: 24px; margin: 0; z-index: 1; }
+  /* On narrow / touch layouts there isn't room beside the links — restore flow. */
+  @media (max-width: 820px) {
+    .footer-lang-row { position: static; margin-top: 4px; }
+  }
+  body.mobile-touch .footer-lang-row { position: static; margin-top: 4px; }
 </style>
 </head>
 <body>
