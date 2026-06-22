@@ -53,32 +53,37 @@ export class CharacterPreview {
     // 2. Initialize Scene
     this.scene = new THREE.Scene();
 
-    // Cozy daytime sky + distance fog so background props melt into the horizon.
-    this.scene.background = new THREE.Color(0x8fb8e0);
-    this.scene.fog = new THREE.Fog(0x9ec3e6, 9, 30);
+    // Dusky Eastbrook Vale at golden hour: deep navy sky and tight, navy-tinted
+    // fog so the village reads as a soft, hazy backdrop rather than a flat sky.
+    this.scene.background = new THREE.Color(0x2b3450);
+    this.scene.fog = new THREE.Fog(0x2b3450, 10, 26);
 
-    // 3. Initialize Camera — pulled back/up to frame the full hero on the
-    //    pedestal with the village clearing around them.
+    // 3. Initialize Camera — pulled back/up so the hero reads small and fully
+    //    visible on the pedestal with the village clearing around them.
     const aspect = this.container.clientHeight > 0
       ? this.container.clientWidth / this.container.clientHeight
       : 1;
-    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 200);
-    this.camera.position.set(0.5, 2.0, 6.8);
-    this.camera.lookAt(new THREE.Vector3(0, 0.9, 0));
+    this.camera = new THREE.PerspectiveCamera(36, aspect, 0.1, 200);
+    this.camera.position.set(0.6, 1.9, 8.5);
+    this.camera.lookAt(new THREE.Vector3(0, 1.0, 0));
 
     // 4. Initialize Character Group
     this.characterGroup = new THREE.Group();
     this.scene.add(this.characterGroup);
 
-    // 5. Daytime lighting (sky/ground hemi + warm sun + cool fill).
-    const hemiLight = new THREE.HemisphereLight(0xd2e8ff, 0x5a6b3a, 1.05);
+    // 5. Dusk lighting: dim cool ambient, a low warm sunset key, a dedicated
+    //    front fill that keeps the hero crisp and bright, and a cool back rim.
+    const hemiLight = new THREE.HemisphereLight(0x5b6aa0, 0x3a2e22, 0.55);
     this.scene.add(hemiLight);
-    const sun = new THREE.DirectionalLight(0xfff1d4, 1.7);
-    sun.position.set(4, 7, 5);
+    const sun = new THREE.DirectionalLight(0xffb066, 1.2);
+    sun.position.set(6, 3.5, 4);
     this.scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xbcd2f0, 0.5);
-    fill.position.set(-4, 3, -3);
-    this.scene.add(fill);
+    const heroKey = new THREE.DirectionalLight(0xfff0d8, 1.15);
+    heroKey.position.set(1.5, 4, 6);
+    this.scene.add(heroKey);
+    const rim = new THREE.DirectionalLight(0x6a7cb0, 0.5);
+    rim.position.set(-4, 4, -4);
+    this.scene.add(rim);
 
     // 5b. Build the cozy Eastbrook Vale diorama (ground, pedestal, campfire,
     //     village props) behind the live character.
@@ -100,10 +105,10 @@ export class CharacterPreview {
     this.scene.add(this.envGroup);
     const gY = this.groundY;
 
-    // Grass clearing.
+    // Grass clearing (dusk-muted green).
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(45, 48),
-      new THREE.MeshStandardMaterial({ color: 0x5f7d3e, roughness: 1, metalness: 0 }),
+      new THREE.MeshStandardMaterial({ color: 0x3c4a2c, roughness: 1, metalness: 0 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = gY;
@@ -112,7 +117,7 @@ export class CharacterPreview {
     // Dirt patch under the pedestal.
     const path = new THREE.Mesh(
       new THREE.CircleGeometry(3.1, 40),
-      new THREE.MeshStandardMaterial({ color: 0x7a6242, roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: 0x4f3f2b, roughness: 1 }),
     );
     path.rotation.x = -Math.PI / 2;
     path.position.set(0, gY + 0.01, 0.3);
@@ -120,8 +125,8 @@ export class CharacterPreview {
 
     // Stone pedestal (two stacked drums); its top surface sits at y = 0 so the
     // character (placed at the origin) stands on it.
-    const stoneTop = new THREE.MeshStandardMaterial({ color: 0x9a9387, roughness: 0.9 });
-    const stoneBase = new THREE.MeshStandardMaterial({ color: 0x7d766a, roughness: 0.95 });
+    const stoneTop = new THREE.MeshStandardMaterial({ color: 0x8a8478, roughness: 0.9 });
+    const stoneBase = new THREE.MeshStandardMaterial({ color: 0x6e685d, roughness: 0.95 });
     const baseDrum = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.78, 0.22, 36), stoneBase);
     baseDrum.position.y = gY + 0.11;
     this.envGroup.add(baseDrum);
@@ -130,9 +135,17 @@ export class CharacterPreview {
     this.envGroup.add(topDrum);
 
     // Warm campfire light (bonfire prop loads in below).
-    this.campfireLight = new THREE.PointLight(0xff8a36, 2.1, 10, 2);
+    this.campfireLight = new THREE.PointLight(0xff8a36, 2.6, 11, 2);
     this.campfireLight.position.set(-2.1, gY + 0.5, 1.7);
     this.envGroup.add(this.campfireLight);
+
+    // Cozy lantern glows by the inn and the blacksmith forge.
+    const innLantern = new THREE.PointLight(0xffcf87, 1.1, 8, 2);
+    innLantern.position.set(4.6, gY + 1.6, -2.2);
+    this.envGroup.add(innLantern);
+    const forgeGlow = new THREE.PointLight(0xff9a4a, 1.0, 7, 2);
+    forgeGlow.position.set(-4.4, gY + 1.1, -1.9);
+    this.envGroup.add(forgeGlow);
 
     // Village props (auto-scaled by bounding box, seated on the ground, turned
     // toward the centre). Any that fail to load simply leave the clearing emptier.
@@ -291,7 +304,7 @@ export class CharacterPreview {
     // Campfire flicker.
     if (this.campfireLight) {
       const t = this.clock.elapsedTime;
-      this.campfireLight.intensity = 2.1 + Math.sin(t * 11) * 0.3 + Math.sin(t * 19) * 0.15;
+      this.campfireLight.intensity = 2.6 + Math.sin(t * 11) * 0.35 + Math.sin(t * 19) * 0.18;
     }
 
     // Auto-rotation if prefers-reduced-motion is false and not dragging

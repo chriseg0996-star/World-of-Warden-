@@ -2284,6 +2284,17 @@ function wireStartScreens(): void {
     });
   });
 
+  // Cosmetic race selector: races are not modeled in the sim, so this only
+  // drives the visual highlight (no effect on the character or Enter World).
+  document.querySelectorAll('#offline-select .cc-race').forEach((raceBtn) => {
+    raceBtn.addEventListener('click', () => {
+      document.querySelectorAll('#offline-select .cc-race').forEach((r) => {
+        r.setAttribute('aria-pressed', 'false');
+      });
+      raceBtn.setAttribute('aria-pressed', 'true');
+    });
+  });
+
   const offlineBackBtn = $('#btn-offline-back');
   const handleOfflineBack = () => {
     show('#mode-select');

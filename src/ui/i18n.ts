@@ -10771,7 +10771,14 @@ export const en = {
     enterWorld: "Enter World",
     offlineCharacter: "Offline Character",
     chooseClass: "Choose Your Class",
+    chooseRace: "Choose Your Race",
     create: "Create",
+  },
+  races: {
+    human: "Human",
+    elf: "Elf",
+    dwarf: "Dwarf",
+    orc: "Orc",
   },
   classes: {
     warrior: "Warrior",
@@ -10926,7 +10933,14 @@ export const es: typeof en = {
     enterWorld: "Entrar al Mundo",
     offlineCharacter: "Personaje en Solitario",
     chooseClass: "Elige Tu Clase",
+    chooseRace: "Elige Tu Raza",
     create: "Crear",
+  },
+  races: {
+    human: "Humano",
+    elf: "Elfo",
+    dwarf: "Enano",
+    orc: "Orco",
   },
   classes: {
     warrior: "Guerrero",
