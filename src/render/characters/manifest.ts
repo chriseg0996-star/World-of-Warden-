@@ -253,7 +253,14 @@ export const VISUALS: Record<string, VisualDef> = {
     // no Mage_Hat on players: the brim hides the whole body from the default
     // chase-camera pitch (NPC mages keep theirs — they're seen from the side)
     show: ['Mage_Cape'],
-    attach: [{ url: `${WEAPONS}/staff.glb`, bone: 'handslot.r' }],
+    // Scholar-caster silhouette: a tall staff in the right hand and an open
+    // spellbook in the left. Deep arcane-blue robe tint sets the Mage apart from
+    // the priest (cream) and warlock (purple) who share this model.
+    attach: [
+      { url: `${WEAPONS}/staff.glb`, bone: 'handslot.r' },
+      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open' },
+    ],
+    tint: 0x3a52c8, tintStrength: 0.42,
   },
   player_warlock: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,

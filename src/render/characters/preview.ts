@@ -44,6 +44,7 @@ export class CharacterPreview {
   private embers: THREE.Points | null = null;
   private emberPhase: Float32Array | null = null;
   private emberBaseColor: Float32Array | null = null;
+  private classFx: THREE.Group | null = null;
   private currentVisual: CharacterVisual | null = null;
   private currentSkin = 0;
   private clock = new THREE.Clock();
@@ -410,6 +411,62 @@ export class CharacterPreview {
     return tex;
   }
 
+  /** Swap the per-class signature effect (only the Mage has one for now). */
+  private setClassFx(cls: PlayerClass): void {
+    if (this.classFx) {
+      this.scene.remove(this.classFx);
+      this.classFx.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (mesh.geometry) mesh.geometry.dispose();
+        const mat = (mesh as unknown as { material?: THREE.Material | THREE.Material[] }).material;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else if (mat) mat.dispose();
+      });
+      this.classFx = null;
+    }
+    if (cls === 'mage') {
+      this.classFx = this.buildMageFx();
+      this.scene.add(this.classFx);
+    }
+  }
+
+  /** Arcane motes orbiting the caster + a very light magical aura. Centred on
+   *  the origin so it stays put while the hero turntable rotates. */
+  private buildMageFx(): THREE.Group {
+    const g = new THREE.Group();
+    // Floating arcane motes (cool blue/violet), orbiting the caster.
+    const N = 46;
+    const pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.35 + Math.random() * 0.65;
+      pos[i * 3] = Math.cos(a) * r;
+      pos[i * 3 + 1] = this.groundY + 0.4 + Math.random() * 2.1;
+      pos[i * 3 + 2] = Math.sin(a) * r;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const motes = new THREE.Points(geo, new THREE.PointsMaterial({
+      map: this.makeRadialTexture(['rgba(205,212,255,0.95)', 'rgba(135,125,240,0.4)', 'rgba(120,110,235,0)']),
+      color: 0xaab6ff, size: 0.085, sizeAttenuation: true,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85,
+    }));
+    motes.name = 'mageMotes';
+    g.add(motes);
+    // Very light magical aura halo behind the caster.
+    const aura = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2, 3.7),
+      new THREE.MeshBasicMaterial({
+        map: this.makeRadialTexture(['rgba(120,130,255,0)', 'rgba(95,85,215,0.22)', 'rgba(70,60,180,0)']),
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.5,
+      }),
+    );
+    aura.position.set(0, this.groundY + 1.5, -0.4);
+    aura.name = 'mageAura';
+    g.add(aura);
+    return g;
+  }
+
   /** Vertical dusk gradient used as the sky background. */
   private makeSkyTexture(): THREE.Texture {
     const c = document.createElement('canvas');
@@ -495,6 +552,9 @@ export class CharacterPreview {
 
       // Tint the banner behind the hero to the class colour.
       if (this.bannerMat) this.bannerMat.color.setHex(CLASS_COLORS[cls] ?? CLASS_COLORS.warrior);
+
+      // Per-class signature effects (Mage = arcane motes + aura + staff glow).
+      this.setClassFx(cls);
 
       // Reset rotation of group so new character faces forward but holds any user offset if preferred.
       // Resetting Y rotation is cleanest for transitions.
@@ -635,6 +695,18 @@ export class CharacterPreview {
       }
       pAttr.needsUpdate = true;
       cAttr.needsUpdate = true;
+    }
+
+    // Mage arcane FX: slowly orbit the motes and gently pulse the aura.
+    if (this.classFx) {
+      const t = this.clock.elapsedTime;
+      const motes = this.classFx.getObjectByName('mageMotes');
+      if (motes) motes.rotation.y += dt * 0.55;
+      const aura = this.classFx.getObjectByName('mageAura') as THREE.Mesh | null;
+      if (aura) {
+        const m = aura.material as THREE.MeshBasicMaterial;
+        m.opacity = 0.42 + Math.sin(t * 1.6) * 0.12;
+      }
     }
 
     // Auto-rotation: half-speed turntable that eases to a brief dwell whenever
