@@ -4619,9 +4619,9 @@
   /* Logo takes the height left over after the fixed UI (~487px of header,
      panels, cards, tip, footer), so the whole hero fits the viewport. Aspect
      is ~1.5:1, hence 150vh - 730px. Big on tall screens, shrinks on short. */
-  .main-logo, #title-logo { width: min(86vw, clamp(240px, calc(150vh - 750px), 540px)) !important; }
-  .stats-panel-premium { margin-bottom: 0; padding-block: clamp(7px, 1.3vh, 16px); }
-  #hero-view .mode-card { padding: clamp(10px, 1.6vh, 22px) 30px; }
+  .main-logo, #title-logo { width: min(40vw, clamp(240px, calc(150vh - 750px), 460px)) !important; }
+  .stats-panel-premium { margin-bottom: 0; padding-block: clamp(7px, 1.3vh, 14px); max-width: 700px; }
+  #hero-view .mode-card { padding: clamp(10px, 1.6vh, 20px) 28px; }
   #hero-view .mode-card h2 { font-size: clamp(19px, 2.5vh, 26px); margin-bottom: clamp(2px, 0.6vh, 6px); }
   .mode-emblem { width: clamp(50px, 8.4vh, 86px); height: clamp(50px, 8.4vh, 86px); }
   .mode-emblem svg { width: clamp(27px, 4.4vh, 46px); height: clamp(27px, 4.4vh, 46px); }
