@@ -4607,27 +4607,27 @@
   body.mobile-touch .footer-lang-row { position: static; margin-top: 4px; }
 
   /* ============================================================
-     Fit the landing in one viewport — no scrolling just to reveal
-     the footer/version line. Compact the hero (logo, gaps, tip) and
-     scale it down further on shorter screens.
+     Fit the whole landing in one viewport at ANY height/zoom.
+     Everything that drives vertical size is expressed relative to
+     viewport height (vh) via clamp(), so the hero auto-scales to fit
+     short screens (the "it all fits" look) and grows on tall ones —
+     no scrolling just to reveal the footer/version line.
      ============================================================ */
-  #hero-view { gap: 16px; }
-  .main-logo, #title-logo { width: min(520px, 82vw) !important; }
-  @media (min-width: 900px) { #title-logo { width: 520px !important; } }
-  .stats-panel-premium { margin-bottom: 0; padding-block: 14px; }
-  #hero-view .mode-card { padding: 20px 30px; }
-  #performance-tip { margin-top: 14px; padding-block: 10px; }
-  @media (max-height: 940px) {
-    #hero-view { gap: 12px; }
-    #title-logo { width: 460px !important; }
-    #hero-view .mode-card { padding: 16px 28px; }
-    #performance-tip { margin-top: 10px; }
-  }
-  @media (max-height: 820px) {
-    #title-logo { width: 400px !important; }
-    #hero-view { gap: 9px; }
-    #hero-view .mode-card { padding: 14px 26px; }
-  }
+  .homepage-header { padding-block: clamp(6px, 1vh, 12px); }
+  #homepage-views-container { min-height: 0; }
+  #hero-view { gap: clamp(6px, 1.3vh, 18px); }
+  /* Logo takes the height left over after the fixed UI (~487px of header,
+     panels, cards, tip, footer), so the whole hero fits the viewport. Aspect
+     is ~1.5:1, hence 150vh - 730px. Big on tall screens, shrinks on short. */
+  .main-logo, #title-logo { width: min(86vw, clamp(240px, calc(150vh - 750px), 540px)) !important; }
+  .stats-panel-premium { margin-bottom: 0; padding-block: clamp(7px, 1.3vh, 16px); }
+  #hero-view .mode-card { padding: clamp(10px, 1.6vh, 22px) 30px; }
+  #hero-view .mode-card h2 { font-size: clamp(19px, 2.5vh, 26px); margin-bottom: clamp(2px, 0.6vh, 6px); }
+  .mode-emblem { width: clamp(50px, 8.4vh, 86px); height: clamp(50px, 8.4vh, 86px); }
+  .mode-emblem svg { width: clamp(27px, 4.4vh, 46px); height: clamp(27px, 4.4vh, 46px); }
+  #performance-tip { margin-top: clamp(6px, 1.3vh, 20px); padding-block: clamp(5px, 0.9vh, 11px); font-size: clamp(12px, 1.5vh, 14px); }
+  .homepage-footer { padding-block: clamp(8px, 1.2vh, 15px); }
+  .footer-lang-row { top: clamp(8px, 1.2vh, 15px); }
 </style>
 </head>
 <body>
