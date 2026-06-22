@@ -155,7 +155,9 @@ function glowSpriteTexture(): THREE.Texture {
 }
 
 function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef): void {
-  const payload = flattenWeaponScene(cloneSkinned(resolvedGltf(att.url).scene));
+  // Prefer the optional asset (e.g. a bow) when it actually loaded; else use url.
+  const url = (att.preferred && gltfByUrl.has(assetUrl(att.preferred))) ? att.preferred : att.url;
+  const payload = flattenWeaponScene(cloneSkinned(resolvedGltf(url).scene));
   // Local bbox (before any grip transform) → far end of the longest axis = tip.
   let tipLocal: THREE.Vector3 | null = null;
   if (att.tipGlow !== undefined) {
@@ -174,7 +176,7 @@ function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef):
     const ref = findAccessoryNode(root, att.gripRef);
     if (ref) copyAccessoryTransform(payload, ref);
   } else if (isHandslotBone(att.bone)) {
-    applyHandGrip(payload, root, att.bone, att.url);
+    applyHandGrip(payload, root, att.bone, url);
   }
   if (att.scale !== undefined) payload.scale.multiplyScalar(att.scale);
   bone.add(payload);
@@ -205,8 +207,15 @@ const preloadUrls = GFX.standardMaterials
     .filter((url) => !url.startsWith('models/weapons/'))
     .map(assetUrl))];
 
+// `preferred` attach assets (e.g. a not-yet-added bow) are optional: their
+// preload may 404, which must not break the boot gate — we just fall back.
+const OPTIONAL_GLB = new Set<string>();
+for (const def of Object.values(VISUALS)) {
+  for (const a of def.attach ?? []) if (a.preferred) OPTIONAL_GLB.add(assetUrl(a.preferred));
+}
 for (const url of preloadUrls) {
-  registerPreload(loadGltf(url).then((g) => { gltfByUrl.set(url, g); }));
+  const p = loadGltf(url).then((g) => { gltfByUrl.set(url, g); });
+  registerPreload(OPTIONAL_GLB.has(url) ? p.catch(() => { /* optional asset absent → fallback used */ }) : p);
 }
 
 // Skin textures: player alternate body atlases, loaded sRGB + flipY=false so

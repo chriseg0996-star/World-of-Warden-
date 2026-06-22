@@ -46,6 +46,9 @@ export interface AttachDef {
   scale?: number;
   /** add a steady additive glow sprite of this hex colour at the prop's tip */
   tipGlow?: number;
+  /** optional preferred asset: used if it loads, else `url` is used. Lets an
+   *  asset (e.g. a bow) be dropped in later and picked up automatically. */
+  preferred?: string;
 }
 
 export interface VisualDef {
@@ -224,10 +227,14 @@ export const VISUALS: Record<string, VisualDef> = {
   player_hunter: {
     url: `${PLAYERS}/ranger.glb`, height: HUMANOID_H,
     clips: kaykit(['2H_Ranged_Shoot']),
-    // Dedicated ranger model: hood, leather, and a built-in back quiver. The big
-    // two-handed crossbow is the largest ranged weapon we ship (no bow asset yet)
-    // and gives the archer/hunter its primary silhouette.
-    attach: [{ url: `${WEAPONS}/crossbow_2handed.glb`, bone: 'handslot.r' }],
+    // Dedicated ranger model: hood, leather, and a built-in back quiver. Prefer a
+    // real bow (drop public/models/weapons/bow.glb in and it's picked up
+    // automatically); until then fall back to the large two-handed crossbow.
+    attach: [{
+      url: `${WEAPONS}/crossbow_2handed.glb`,
+      preferred: `${WEAPONS}/bow.glb`,
+      bone: 'handslot.r',
+    }],
   },
   player_rogue: {
     url: `${PLAYERS}/rogue.glb`, height: HUMANOID_H,
@@ -542,7 +549,10 @@ export function manifestUrls(): string[] {
   const urls = new Set<string>();
   for (const def of Object.values(VISUALS)) {
     urls.add(def.url);
-    for (const a of def.attach ?? []) urls.add(a.url);
+    for (const a of def.attach ?? []) {
+      urls.add(a.url);
+      if (a.preferred) urls.add(a.preferred);
+    }
   }
   return [...urls];
 }
