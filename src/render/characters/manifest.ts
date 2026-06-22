@@ -280,9 +280,13 @@ export const VISUALS: Record<string, VisualDef> = {
   player_shaman: {
     url: `${PLAYERS}/barbarian.glb`, height: HUMANOID_H,
     clips: kaykit(['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal']),
+    // Tribal storm caller: the barbarian's fur/leather + bear-hat headdress give
+    // the rugged tribal look (no totem asset to attach yet). A turquoise/cyan
+    // tint over the brown leather, and an elemental staff with a cyan storm glow
+    // at the tip set the storm-caster identity. (TODO: attach a totem if added.)
     show: ['Barbarian_BearHat'], // v2 barbarian renamed Hat→BearHat and dropped the round shield mesh
-    attach: [{ url: `${WEAPONS}/axe_1handed.glb`, bone: 'handslot.r' }],
-    tint: 0x6f8fc9, tintStrength: 0.4,
+    attach: [{ url: `${WEAPONS}/staff.glb`, bone: 'handslot.r', tipGlow: 0x3fd0ff }],
+    tint: 0x46b6c4, tintStrength: 0.45,
   },
   player_mage: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,

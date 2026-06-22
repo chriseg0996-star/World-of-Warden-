@@ -436,8 +436,77 @@ export class CharacterPreview {
       this.classFx = this.buildPriestFx();
     } else if (cls === 'warlock') {
       this.classFx = this.buildWarlockFx();
+    } else if (cls === 'shaman') {
+      this.classFx = this.buildShamanFx();
     }
     if (this.classFx) this.scene.add(this.classFx);
+  }
+
+  /** Shaman ambience: floating cyan sparks, horizontal wind streaks, and small
+   *  flashing lightning arcs. Storm/elements — no green/gold/purple/nature. */
+  private buildShamanFx(): THREE.Group {
+    const g = new THREE.Group();
+    const sparkTex = this.makeRadialTexture(['rgba(205,250,255,0.95)', 'rgba(95,205,240,0.4)', 'rgba(60,170,220,0)']);
+
+    // Floating blue/cyan sparks rising.
+    const N = 28;
+    const spos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.35 + Math.random() * 0.7;
+      spos[i * 3] = Math.cos(a) * r;
+      spos[i * 3 + 1] = this.groundY + 0.3 + Math.random() * 2.2;
+      spos[i * 3 + 2] = Math.sin(a) * r;
+    }
+    const sgeo = new THREE.BufferGeometry();
+    sgeo.setAttribute('position', new THREE.BufferAttribute(spos, 3));
+    const sparks = new THREE.Points(sgeo, new THREE.PointsMaterial({
+      map: sparkTex, color: 0x6fe0ff, size: 0.075, sizeAttenuation: true,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8,
+    }));
+    sparks.name = 'shamanSparks';
+    g.add(sparks);
+
+    // Wind streaks drifting horizontally.
+    const W = 18;
+    const wpos = new Float32Array(W * 3);
+    for (let i = 0; i < W; i++) {
+      wpos[i * 3] = (Math.random() - 0.5) * 4;
+      wpos[i * 3 + 1] = this.groundY + 0.5 + Math.random() * 2.2;
+      wpos[i * 3 + 2] = (Math.random() - 0.5) * 2.4 + 0.3;
+    }
+    const wgeo = new THREE.BufferGeometry();
+    wgeo.setAttribute('position', new THREE.BufferAttribute(wpos, 3));
+    const wind = new THREE.Points(wgeo, new THREE.PointsMaterial({
+      map: sparkTex, color: 0xbfeeff, size: 0.045, sizeAttenuation: true,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.4,
+    }));
+    wind.name = 'shamanWind';
+    g.add(wind);
+
+    // Small lightning arcs — jagged additive lines that flash on their timers.
+    const arcs = new THREE.Group();
+    arcs.name = 'shamanArcs';
+    for (let i = 0; i < 3; i++) {
+      const x0 = (Math.random() - 0.5) * 1.3;
+      const z0 = (Math.random() - 0.5) * 1.0 + 0.2;
+      const pts: THREE.Vector3[] = [];
+      let y = this.groundY + 0.7;
+      const top = y + 1.4;
+      while (y < top) {
+        pts.push(new THREE.Vector3(x0 + (Math.random() - 0.5) * 0.32, y, z0));
+        y += 0.18;
+      }
+      const lgeo = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(lgeo, new THREE.LineBasicMaterial({
+        color: 0xa6ecff, transparent: true, depthWrite: false,
+        blending: THREE.AdditiveBlending, opacity: 0,
+      }));
+      line.userData = { phase: Math.random() * Math.PI * 2, rate: 0.6 + Math.random() * 0.7 };
+      arcs.add(line);
+    }
+    g.add(arcs);
+    return g;
   }
 
   /** Warlock ambience: rising fel-green embers, dark shadow specks, dark smoke
@@ -1182,6 +1251,35 @@ export class CharacterPreview {
           (s as THREE.Sprite).material.opacity = 0.4 * f;
           const sc = u.base * (0.85 + 0.25 * f);
           s.scale.setScalar(sc);
+        }
+      }
+
+      // Shaman: sparks rise; wind streaks drift sideways; arcs flash sharply.
+      const shSparks = this.classFx.getObjectByName('shamanSparks') as THREE.Points | null;
+      if (shSparks) {
+        const arr = (shSparks.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
+        for (let i = 0; i < arr.length; i += 3) {
+          arr[i + 1] += dt * 0.18;
+          if (arr[i + 1] > this.groundY + 2.7) arr[i + 1] = this.groundY + 0.3;
+          arr[i] += Math.sin(t * 0.7 + i) * dt * 0.04;
+        }
+        (shSparks.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      }
+      const shWind = this.classFx.getObjectByName('shamanWind') as THREE.Points | null;
+      if (shWind) {
+        const arr = (shWind.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
+        for (let i = 0; i < arr.length; i += 3) {
+          arr[i] += dt * 0.9;
+          if (arr[i] > 2.2) arr[i] = -2.2;
+        }
+        (shWind.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      }
+      const shArcs = this.classFx.getObjectByName('shamanArcs');
+      if (shArcs) {
+        for (const line of shArcs.children) {
+          const u = line.userData as { phase: number; rate: number };
+          const k = Math.max(0, Math.sin(t * u.rate + u.phase));
+          ((line as THREE.Line).material as THREE.LineBasicMaterial).opacity = Math.pow(k, 6) * 0.9;
         }
       }
     }
