@@ -434,14 +434,14 @@ export class CharacterPreview {
    *  the origin so it stays put while the hero turntable rotates. */
   private buildMageFx(): THREE.Group {
     const g = new THREE.Group();
-    // Floating arcane motes (cool blue/violet), orbiting the caster.
-    const N = 46;
+    // Floating arcane motes (cool blue/violet), orbiting the caster. +25% count.
+    const N = 58;
     const pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
       const a = Math.random() * Math.PI * 2;
-      const r = 0.35 + Math.random() * 0.65;
+      const r = 0.35 + Math.random() * 0.7;
       pos[i * 3] = Math.cos(a) * r;
-      pos[i * 3 + 1] = this.groundY + 0.4 + Math.random() * 2.1;
+      pos[i * 3 + 1] = this.groundY + 0.4 + Math.random() * 2.2;
       pos[i * 3 + 2] = Math.sin(a) * r;
     }
     const geo = new THREE.BufferGeometry();
@@ -453,6 +453,25 @@ export class CharacterPreview {
     }));
     motes.name = 'mageMotes';
     g.add(motes);
+
+    // Small floating runes slowly circling the caster.
+    const runeTex = this.makeMageRuneTexture();
+    const runes = new THREE.Group();
+    runes.name = 'mageRunes';
+    const RUNES = 6;
+    for (let i = 0; i < RUNES; i++) {
+      const ang = (i / RUNES) * Math.PI * 2;
+      const rr = 0.95 + (i % 2) * 0.25;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: runeTex, color: 0xbcc6ff, transparent: true,
+        depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85,
+      }));
+      sprite.position.set(Math.cos(ang) * rr, this.groundY + 0.9 + (i % 3) * 0.6, Math.sin(ang) * rr);
+      sprite.scale.setScalar(0.34);
+      runes.add(sprite);
+    }
+    g.add(runes);
+
     // Very light magical aura halo behind the caster.
     const aura = new THREE.Mesh(
       new THREE.PlaneGeometry(3.2, 3.7),
@@ -464,7 +483,32 @@ export class CharacterPreview {
     aura.position.set(0, this.groundY + 1.5, -0.4);
     aura.name = 'mageAura';
     g.add(aura);
+
+    // Subtle blue-purple light washing the face and robe from the front.
+    const arcaneLight = new THREE.PointLight(0x8a7cff, 2.0, 6, 2);
+    arcaneLight.position.set(0.2, this.groundY + 2.0, 2.0);
+    g.add(arcaneLight);
     return g;
+  }
+
+  /** A single angular arcane rune glyph (white on transparent) for the FX sprites. */
+  private makeMageRuneTexture(): THREE.Texture {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d')!;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(32, 10); ctx.lineTo(32, 54);
+    ctx.moveTo(32, 20); ctx.lineTo(46, 12);
+    ctx.moveTo(32, 40); ctx.lineTo(18, 50);
+    ctx.moveTo(20, 30); ctx.lineTo(44, 30);
+    ctx.stroke();
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   }
 
   /** Vertical dusk gradient used as the sky background. */
@@ -702,6 +746,11 @@ export class CharacterPreview {
       const t = this.clock.elapsedTime;
       const motes = this.classFx.getObjectByName('mageMotes');
       if (motes) motes.rotation.y += dt * 0.55;
+      const runes = this.classFx.getObjectByName('mageRunes');
+      if (runes) {
+        runes.rotation.y -= dt * 0.3;
+        runes.position.y = Math.sin(t * 0.9) * 0.08;
+      }
       const aura = this.classFx.getObjectByName('mageAura') as THREE.Mesh | null;
       if (aura) {
         const m = aura.material as THREE.MeshBasicMaterial;

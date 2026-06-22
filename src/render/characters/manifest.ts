@@ -42,6 +42,10 @@ export interface AttachDef {
   rotationY?: number;
   /** Copy grip from a built-in accessory node on the character rig (e.g. Spellbook_open). */
   gripRef?: string;
+  /** multiply the resolved grip scale (e.g. a larger mage staff) */
+  scale?: number;
+  /** add a steady additive glow sprite of this hex colour at the prop's tip */
+  tipGlow?: number;
 }
 
 export interface VisualDef {
@@ -257,10 +261,10 @@ export const VISUALS: Record<string, VisualDef> = {
     // spellbook in the left. Deep arcane-blue robe tint sets the Mage apart from
     // the priest (cream) and warlock (purple) who share this model.
     attach: [
-      { url: `${WEAPONS}/staff.glb`, bone: 'handslot.r' },
-      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open' },
+      { url: `${WEAPONS}/staff.glb`, bone: 'handslot.r', scale: 1.3, tipGlow: 0x9fb6ff },
+      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open', scale: 1.3 },
     ],
-    tint: 0x3a52c8, tintStrength: 0.42,
+    tint: 0x4734c6, tintStrength: 0.55,
   },
   player_warlock: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,

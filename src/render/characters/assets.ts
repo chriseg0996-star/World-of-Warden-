@@ -137,8 +137,35 @@ function flattenWeaponScene(src: THREE.Object3D): THREE.Object3D {
   return holder;
 }
 
+let _glowTex: THREE.Texture | null = null;
+function glowSpriteTexture(): THREE.Texture {
+  if (_glowTex) return _glowTex;
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.4, 'rgba(255,255,255,0.55)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  _glowTex = new THREE.CanvasTexture(c);
+  _glowTex.colorSpace = THREE.SRGBColorSpace;
+  return _glowTex;
+}
+
 function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef): void {
   const payload = flattenWeaponScene(cloneSkinned(resolvedGltf(att.url).scene));
+  // Local bbox (before any grip transform) → far end of the longest axis = tip.
+  let tipLocal: THREE.Vector3 | null = null;
+  if (att.tipGlow !== undefined) {
+    const b = new THREE.Box3().setFromObject(payload);
+    const size = new THREE.Vector3(); b.getSize(size);
+    const c = new THREE.Vector3(); b.getCenter(c);
+    if (size.y >= size.x && size.y >= size.z) tipLocal = new THREE.Vector3(c.x, b.max.y, c.z);
+    else if (size.x >= size.z) tipLocal = new THREE.Vector3(b.max.x, c.y, c.z);
+    else tipLocal = new THREE.Vector3(c.x, c.y, b.max.z);
+  }
   if (att.position || att.rotationY !== undefined) {
     if (att.position) payload.position.set(...att.position);
     if (att.rotationY !== undefined) payload.rotation.y = att.rotationY;
@@ -148,7 +175,17 @@ function attachProp(root: THREE.Object3D, bone: THREE.Object3D, att: AttachDef):
   } else if (isHandslotBone(att.bone)) {
     applyHandGrip(payload, root, att.bone, att.url);
   }
+  if (att.scale !== undefined) payload.scale.multiplyScalar(att.scale);
   bone.add(payload);
+  if (tipLocal) {
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowSpriteTexture(), color: att.tipGlow, transparent: true,
+      depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9,
+    }));
+    glow.position.copy(tipLocal);
+    glow.scale.setScalar(0.55);
+    payload.add(glow);
+  }
 }
 
 // ---------------------------------------------------------------------------
