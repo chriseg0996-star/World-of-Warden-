@@ -4605,6 +4605,29 @@
     .footer-lang-row { position: static; margin-top: 4px; }
   }
   body.mobile-touch .footer-lang-row { position: static; margin-top: 4px; }
+
+  /* ============================================================
+     Fit the landing in one viewport — no scrolling just to reveal
+     the footer/version line. Compact the hero (logo, gaps, tip) and
+     scale it down further on shorter screens.
+     ============================================================ */
+  #hero-view { gap: 16px; }
+  .main-logo, #title-logo { width: min(520px, 82vw) !important; }
+  @media (min-width: 900px) { #title-logo { width: 520px !important; } }
+  .stats-panel-premium { margin-bottom: 0; padding-block: 14px; }
+  #hero-view .mode-card { padding: 20px 30px; }
+  #performance-tip { margin-top: 14px; padding-block: 10px; }
+  @media (max-height: 940px) {
+    #hero-view { gap: 12px; }
+    #title-logo { width: 460px !important; }
+    #hero-view .mode-card { padding: 16px 28px; }
+    #performance-tip { margin-top: 10px; }
+  }
+  @media (max-height: 820px) {
+    #title-logo { width: 400px !important; }
+    #hero-view { gap: 9px; }
+    #hero-view .mode-card { padding: 14px 26px; }
+  }
 </style>
 </head>
 <body>
