@@ -260,6 +260,11 @@ export const VISUALS: Record<string, VisualDef> = {
   player_priest: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,
     clips: kaykit(['2H_Melee_Attack_Chop']),
+    // TODO(art): PLACEHOLDER — Priest reuses mage.glb, so its silhouette can
+    // never be truly distinct from the Mage/Warlock. Needs a dedicated cleric
+    // GLB: add public/models/chars/players/priest.glb and point `url` at it
+    // (keep the white tint / book / holy FX). Until then this is tint + book +
+    // FX differentiation only.
     // Serene holy healer / cleric. show:[] hides BOTH Mage_Hat (no wizard hat)
     // and Mage_Cape (the Mage keeps its cape → different silhouette). A strong
     // near-white cream tint makes the robe unmistakably white vs the blue Mage,
