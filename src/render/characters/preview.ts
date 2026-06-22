@@ -434,8 +434,87 @@ export class CharacterPreview {
       this.classFx = this.buildPaladinFx();
     } else if (cls === 'priest') {
       this.classFx = this.buildPriestFx();
+    } else if (cls === 'warlock') {
+      this.classFx = this.buildWarlockFx();
     }
     if (this.classFx) this.scene.add(this.classFx);
+  }
+
+  /** Warlock ambience: rising fel-green embers, dark shadow specks, dark smoke
+   *  wisps, and flickering fel flames. Demonic — no holy/white/gold/arcane. */
+  private buildWarlockFx(): THREE.Group {
+    const g = new THREE.Group();
+    const felTex = this.makeRadialTexture(['rgba(190,255,170,0.95)', 'rgba(80,225,95,0.4)', 'rgba(40,160,55,0)']);
+
+    // Fel embers — green, additive, rising.
+    const N = 30;
+    const epos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.35 + Math.random() * 0.7;
+      epos[i * 3] = Math.cos(a) * r;
+      epos[i * 3 + 1] = this.groundY + 0.3 + Math.random() * 2.2;
+      epos[i * 3 + 2] = Math.sin(a) * r;
+    }
+    const egeo = new THREE.BufferGeometry();
+    egeo.setAttribute('position', new THREE.BufferAttribute(epos, 3));
+    const embers = new THREE.Points(egeo, new THREE.PointsMaterial({
+      map: felTex, color: 0x66ff77, size: 0.075, sizeAttenuation: true,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.78,
+    }));
+    embers.name = 'felEmbers';
+    g.add(embers);
+
+    // Dark shadow specks — normal-blended, drifting.
+    const M = 22;
+    const spos = new Float32Array(M * 3);
+    for (let i = 0; i < M; i++) {
+      spos[i * 3] = (Math.random() - 0.5) * 3.4;
+      spos[i * 3 + 1] = this.groundY + 0.2 + Math.random() * 2.5;
+      spos[i * 3 + 2] = (Math.random() - 0.5) * 2.6 + 0.3;
+    }
+    const sgeo = new THREE.BufferGeometry();
+    sgeo.setAttribute('position', new THREE.BufferAttribute(spos, 3));
+    const shadows = new THREE.Points(sgeo, new THREE.PointsMaterial({
+      map: this.makeRadialTexture(['rgba(44,32,54,0.85)', 'rgba(24,17,32,0.4)', 'rgba(12,8,18,0)']),
+      color: 0x2c2034, size: 0.12, sizeAttenuation: true,
+      transparent: true, depthWrite: false, opacity: 0.5,
+    }));
+    shadows.name = 'warlockShadows';
+    g.add(shadows);
+
+    // Dark smoke wisps rising and fading.
+    const wisps = new THREE.Group();
+    wisps.name = 'warlockWisps';
+    const wispTex = this.makeRadialTexture(['rgba(32,22,40,0)', 'rgba(18,12,24,0.5)', 'rgba(10,6,14,0)']);
+    for (let i = 0; i < 5; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: wispTex, color: 0x140f1c, transparent: true, depthWrite: false, opacity: 0,
+      }));
+      s.position.set((Math.random() - 0.5) * 2.2, this.groundY + 0.3 + Math.random() * 0.6, (Math.random() - 0.5) * 1.6 + 0.3);
+      s.scale.setScalar(0.8 + Math.random() * 0.5);
+      s.userData = { phase: Math.random() * Math.PI * 2, speed: 0.22 + Math.random() * 0.18 };
+      wisps.add(s);
+    }
+    g.add(wisps);
+
+    // Flickering fel flames around the lower body.
+    const flames = new THREE.Group();
+    flames.name = 'felFlames';
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: felTex, color: 0x55ff66, transparent: true,
+        depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.5,
+      }));
+      s.position.set(Math.cos(a) * 0.55, this.groundY + 0.45 + Math.random() * 0.3, Math.sin(a) * 0.55 + 0.15);
+      const base = 0.34 + Math.random() * 0.16;
+      s.scale.setScalar(base);
+      s.userData = { phase: Math.random() * Math.PI * 2, base };
+      flames.add(s);
+    }
+    g.add(flames);
+    return g;
   }
 
   /** Priest ambience: gentle golden-white motes, soft sparkles, faint light
@@ -1063,6 +1142,47 @@ export class CharacterPreview {
       const prAura = this.classFx.getObjectByName('priestAura') as THREE.Mesh | null;
       if (prAura) {
         (prAura.material as THREE.MeshBasicMaterial).opacity = 0.38 + Math.sin(t * 1.3) * 0.12;
+      }
+
+      // Warlock: fel embers + shadow specks rise; smoke wisps rise/fade; fel
+      // flames flicker in scale + opacity.
+      const felEmbers = this.classFx.getObjectByName('felEmbers') as THREE.Points | null;
+      if (felEmbers) {
+        const arr = (felEmbers.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
+        for (let i = 0; i < arr.length; i += 3) {
+          arr[i + 1] += dt * 0.22;
+          if (arr[i + 1] > this.groundY + 2.7) arr[i + 1] = this.groundY + 0.3;
+          arr[i] += Math.sin(t * 0.6 + i) * dt * 0.03;
+        }
+        (felEmbers.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      }
+      const wkShadows = this.classFx.getObjectByName('warlockShadows') as THREE.Points | null;
+      if (wkShadows) {
+        const arr = (wkShadows.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array;
+        for (let i = 0; i < arr.length; i += 3) {
+          arr[i + 1] += dt * 0.13;
+          if (arr[i + 1] > this.groundY + 2.8) arr[i + 1] = this.groundY + 0.2;
+        }
+        (wkShadows.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      }
+      const wkWisps = this.classFx.getObjectByName('warlockWisps');
+      if (wkWisps) {
+        for (const s of wkWisps.children) {
+          const u = s.userData as { phase: number; speed: number };
+          s.position.y += dt * u.speed;
+          (s as THREE.Sprite).material.opacity = Math.max(0, Math.sin(t * 0.5 + u.phase)) * 0.42;
+          if (s.position.y > this.groundY + 2.3) s.position.y = this.groundY + 0.3;
+        }
+      }
+      const felFlames = this.classFx.getObjectByName('felFlames');
+      if (felFlames) {
+        for (const s of felFlames.children) {
+          const u = s.userData as { phase: number; base: number };
+          const f = 0.7 + 0.3 * Math.sin(t * 7 + u.phase) + 0.15 * Math.sin(t * 13 + u.phase);
+          (s as THREE.Sprite).material.opacity = 0.4 * f;
+          const sc = u.base * (0.85 + 0.25 * f);
+          s.scale.setScalar(sc);
+        }
       }
     }
 

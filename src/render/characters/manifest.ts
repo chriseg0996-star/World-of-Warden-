@@ -301,13 +301,19 @@ export const VISUALS: Record<string, VisualDef> = {
   },
   player_warlock: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,
-    clips: kaykit(['Spellcast_Shoot']), // wand zap reads better than a staff bonk
+    clips: kaykit(['Spellcast_Shoot']),
+    // TODO(art): shares mage.glb like the Priest — a dedicated dark-robe warlock
+    // GLB would make the silhouette truly distinct; until then dark tint + fel
+    // staff + large grimoire + demonic FX carry the identity.
+    // Dark occult caster: a strong charcoal/deep-purple tint (vs the blue Mage and
+    // white Priest), a corrupted staff with a fel-green tip glow, and an oversized
+    // book of forbidden knowledge in the off-hand (bigger than the Priest's).
     show: [],
     attach: [
-      { url: `${WEAPONS}/wand.glb`, bone: 'handslot.r' },
-      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open' },
+      { url: `${WEAPONS}/staff.glb`, bone: 'handslot.r', tipGlow: 0x6cff4a },
+      { url: `${WEAPONS}/spellbook_open.glb`, bone: 'handslot.l', gripRef: 'Spellbook_open', scale: 1.4 },
     ],
-    tint: 0x8d5fd3, tintStrength: 0.45,
+    tint: 0x281832, tintStrength: 0.7,
   },
   player_druid: {
     url: `${PLAYERS}/druid.glb`, height: HUMANOID_H,
