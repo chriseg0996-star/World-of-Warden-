@@ -244,10 +244,13 @@ export const VISUALS: Record<string, VisualDef> = {
     // a dark shadow tint that pushes the leather toward a black/grey assassin.
     show: ['Rogue_Cape'],
     attach: [
-      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.r', scale: 1.18 },
-      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.l', scale: 1.18 },
+      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.r', scale: 1.32 },
+      { url: `${WEAPONS}/dagger.glb`, bone: 'handslot.l', scale: 1.32 },
     ],
-    tint: 0x2c2e34, tintStrength: 0.4,
+    // Strong dark brown-black tint dominates the model's green and desaturates it
+    // toward black / dark grey / dark leather (the texture's light–dark variation
+    // still reads through, so the hood, scarf and form stay legible).
+    tint: 0x221e1b, tintStrength: 0.62,
   },
   player_priest: {
     url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,

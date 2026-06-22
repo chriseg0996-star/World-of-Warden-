@@ -469,6 +469,24 @@ export class CharacterPreview {
       wisps.add(s);
     }
     g.add(wisps);
+
+    // Low, flat dark smoke pooling around the feet.
+    const feet = new THREE.Group();
+    feet.name = 'rogueFeetSmoke';
+    const feetTex = this.makeRadialTexture(['rgba(30,30,36,0)', 'rgba(16,16,20,0.55)', 'rgba(8,8,11,0)']);
+    for (let i = 0; i < 4; i++) {
+      const ang = (i / 4) * Math.PI * 2;
+      const bx = Math.cos(ang) * 0.5;
+      const bz = Math.sin(ang) * 0.5 + 0.2;
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: feetTex, color: 0x141418, transparent: true, depthWrite: false, opacity: 0,
+      }));
+      s.position.set(bx, this.groundY + 0.12 + Math.random() * 0.12, bz);
+      s.scale.set(1.1 + Math.random() * 0.5, 0.5 + Math.random() * 0.2, 1); // wide & flat
+      s.userData = { phase: Math.random() * Math.PI * 2, baseX: bx, baseZ: bz };
+      feet.add(s);
+    }
+    g.add(feet);
     return g;
   }
 
@@ -891,6 +909,15 @@ export class CharacterPreview {
           s.position.y += dt * u.speed;
           (s as THREE.Sprite).material.opacity = Math.max(0, Math.sin(t * 0.5 + u.phase)) * 0.4;
           if (s.position.y > this.groundY + 2.3) s.position.y = this.groundY + 0.3;
+        }
+      }
+      const feet = this.classFx.getObjectByName('rogueFeetSmoke');
+      if (feet) {
+        for (const s of feet.children) {
+          const u = s.userData as { phase: number; baseX: number; baseZ: number };
+          (s as THREE.Sprite).material.opacity = (0.5 + 0.5 * Math.sin(t * 0.7 + u.phase)) * 0.32;
+          s.position.x = u.baseX + Math.sin(t * 0.3 + u.phase) * 0.12;
+          s.position.z = u.baseZ + Math.cos(t * 0.25 + u.phase) * 0.1;
         }
       }
     }
