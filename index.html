@@ -4531,6 +4531,47 @@
     100% { transform: translate(var(--dx, 10px), -82vh) scale(0.35); opacity: 0; }
   }
   @media (prefers-reduced-motion: reduce) { .embers { display: none; } }
+
+  /* ============================================================
+     Premium navbar pass — enhances the existing .homepage-header
+     (no markup/layout changes): taller, glass + brushed-metal,
+     stronger gold glow, gold item separators, larger active PLAY.
+     ============================================================ */
+  .homepage-header {
+    padding-block: 11px;                       /* ~10% taller */
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 26%),       /* glass top highlight */
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.014) 0 2px, rgba(0,0,0,0) 2px 5px), /* brushed metal */
+      linear-gradient(180deg, rgba(26,21,12,0.74) 0%, rgba(10,10,17,0.66) 100%);          /* glass base tint */
+    -webkit-backdrop-filter: blur(9px) saturate(1.15);
+    backdrop-filter: blur(9px) saturate(1.15);
+    border-image: linear-gradient(to right, rgba(78,61,29,0.10), var(--gold), rgba(78,61,29,0.10)) 1;
+    box-shadow:
+      0 8px 26px rgba(0,0,0,0.72),
+      0 2px 16px rgba(255, 209, 0, 0.12),
+      inset 0 1px 0 rgba(255, 209, 0, 0.10);
+  }
+
+  /* gold separators between nav items (sit in the flex gap) */
+  .nav-item + .nav-item { position: relative; }
+  .nav-item + .nav-item::before {
+    content: ''; position: absolute; left: -4px; top: 50%; transform: translateY(-50%);
+    width: 1px; height: 18px; pointer-events: none; opacity: 0.5;
+    background: linear-gradient(180deg, transparent, var(--gold-dim) 50%, transparent);
+  }
+
+  /* larger, more prominent active PLAY button + stronger gold glow */
+  .nav-link.active {
+    padding: 9px 24px; font-size: 15px; letter-spacing: 0.8px;
+    color: var(--wf-gold-bright);
+    border-color: var(--wf-gold-bright);
+    background: linear-gradient(180deg, rgba(255, 209, 0, 0.26) 0%, rgba(150, 116, 40, 0.10) 55%, rgba(11, 11, 18, 0.35) 100%);
+    text-shadow: 0 0 12px rgba(255, 209, 0, 0.6), 0 1px 2px #000;
+    box-shadow: inset 0 0 10px rgba(255, 209, 0, 0.25), 0 0 18px rgba(255, 209, 0, 0.45);
+  }
+
+  /* the vertical separators don't belong in the stacked mobile drawer */
+  body.mobile-touch .nav-item + .nav-item::before { display: none; }
 </style>
 </head>
 <body>
