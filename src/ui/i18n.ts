@@ -10770,6 +10770,7 @@ export const en = {
     characterNamePlaceholder: "Character name",
     enterWorld: "Enter World",
     offlineCharacter: "Offline Character",
+    chooseClass: "Choose Your Class",
     create: "Create",
   },
   classes: {
@@ -10924,6 +10925,7 @@ export const es: typeof en = {
     characterNamePlaceholder: "Nombre del personaje",
     enterWorld: "Entrar al Mundo",
     offlineCharacter: "Personaje en Solitario",
+    chooseClass: "Elige Tu Clase",
     create: "Crear",
   },
   classes: {

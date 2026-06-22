@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { CharacterVisual } from './visual';
 import { PlayerClass } from '../../sim/types';
+import { loadGltf } from '../assets/loader';
+import { assetUrl } from '../assets/media';
 
 const PREVIEW_ANIM_STATE = {
   speed: 0,
@@ -20,6 +22,9 @@ export class CharacterPreview {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private characterGroup: THREE.Group;
+  private envGroup!: THREE.Group;
+  private readonly groundY = -0.45;
+  private campfireLight: THREE.PointLight | null = null;
   private currentVisual: CharacterVisual | null = null;
   private currentSkin = 0;
   private clock = new THREE.Clock();
@@ -48,34 +53,36 @@ export class CharacterPreview {
     // 2. Initialize Scene
     this.scene = new THREE.Scene();
 
-    // 3. Initialize Camera
+    // Cozy daytime sky + distance fog so background props melt into the horizon.
+    this.scene.background = new THREE.Color(0x8fb8e0);
+    this.scene.fog = new THREE.Fog(0x9ec3e6, 9, 30);
+
+    // 3. Initialize Camera — pulled back/up to frame the full hero on the
+    //    pedestal with the village clearing around them.
     const aspect = this.container.clientHeight > 0
       ? this.container.clientWidth / this.container.clientHeight
       : 1;
-    this.camera = new THREE.PerspectiveCamera(
-      45,
-      aspect,
-      0.1,
-      100
-    );
-    this.camera.position.set(-0.15, 1.45, 5.1);
-    this.camera.lookAt(new THREE.Vector3(-0.15, 1.3, 0));
+    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 200);
+    this.camera.position.set(0.5, 2.0, 6.8);
+    this.camera.lookAt(new THREE.Vector3(0, 0.9, 0));
 
     // 4. Initialize Character Group
     this.characterGroup = new THREE.Group();
     this.scene.add(this.characterGroup);
 
-    // 5. Add Lights
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.4);
+    // 5. Daytime lighting (sky/ground hemi + warm sun + cool fill).
+    const hemiLight = new THREE.HemisphereLight(0xd2e8ff, 0x5a6b3a, 1.05);
     this.scene.add(hemiLight);
+    const sun = new THREE.DirectionalLight(0xfff1d4, 1.7);
+    sun.position.set(4, 7, 5);
+    this.scene.add(sun);
+    const fill = new THREE.DirectionalLight(0xbcd2f0, 0.5);
+    fill.position.set(-4, 3, -3);
+    this.scene.add(fill);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.6);
-    dirLight1.position.set(3, 5, 4);
-    this.scene.add(dirLight1);
-
-    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight2.position.set(-3, 3, -4);
-    this.scene.add(dirLight2);
+    // 5b. Build the cozy Eastbrook Vale diorama (ground, pedestal, campfire,
+    //     village props) behind the live character.
+    this.buildEnvironment();
 
     // 6. Setup Drag Controls
     this.setupDragControls();
@@ -85,6 +92,86 @@ export class CharacterPreview {
 
     // 8. Start loop
     this.animate();
+  }
+
+  /** Build the cozy daytime Eastbrook Vale diorama around the character. */
+  private buildEnvironment(): void {
+    this.envGroup = new THREE.Group();
+    this.scene.add(this.envGroup);
+    const gY = this.groundY;
+
+    // Grass clearing.
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(45, 48),
+      new THREE.MeshStandardMaterial({ color: 0x5f7d3e, roughness: 1, metalness: 0 }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = gY;
+    this.envGroup.add(ground);
+
+    // Dirt patch under the pedestal.
+    const path = new THREE.Mesh(
+      new THREE.CircleGeometry(3.1, 40),
+      new THREE.MeshStandardMaterial({ color: 0x7a6242, roughness: 1 }),
+    );
+    path.rotation.x = -Math.PI / 2;
+    path.position.set(0, gY + 0.01, 0.3);
+    this.envGroup.add(path);
+
+    // Stone pedestal (two stacked drums); its top surface sits at y = 0 so the
+    // character (placed at the origin) stands on it.
+    const stoneTop = new THREE.MeshStandardMaterial({ color: 0x9a9387, roughness: 0.9 });
+    const stoneBase = new THREE.MeshStandardMaterial({ color: 0x7d766a, roughness: 0.95 });
+    const baseDrum = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.78, 0.22, 36), stoneBase);
+    baseDrum.position.y = gY + 0.11;
+    this.envGroup.add(baseDrum);
+    const topDrum = new THREE.Mesh(new THREE.CylinderGeometry(1.32, 1.46, 0.26, 36), stoneTop);
+    topDrum.position.y = gY + 0.22 + 0.13;
+    this.envGroup.add(topDrum);
+
+    // Warm campfire light (bonfire prop loads in below).
+    this.campfireLight = new THREE.PointLight(0xff8a36, 2.1, 10, 2);
+    this.campfireLight.position.set(-2.1, gY + 0.5, 1.7);
+    this.envGroup.add(this.campfireLight);
+
+    // Village props (auto-scaled by bounding box, seated on the ground, turned
+    // toward the centre). Any that fail to load simply leave the clearing emptier.
+    this.addProp('/models/props/bonfire.glb', { x: -2.1, z: 1.7, h: 0.9 });
+    this.addProp('/models/props/blacksmith.glb', { x: -4.7, z: -2.2, h: 3.1, yaw: 0.5 });
+    this.addProp('/models/props/anvil.glb', { x: -2.9, z: -0.5, h: 0.95, yaw: 0.6 });
+    this.addProp('/models/props/inn.glb', { x: 5.3, z: -2.6, h: 3.6, yaw: -0.6 });
+    this.addProp('/models/props/market_stand_1.glb', { x: 3.5, z: 0.5, h: 1.9, yaw: -1.0 });
+    this.addProp('/models/props/well.glb', { x: 2.3, z: -3.4, h: 1.6 });
+    this.addProp('/models/props/cart.glb', { x: -3.7, z: 1.3, h: 1.2, yaw: 0.4 });
+    this.addProp('/models/props/barrel.glb', { x: 1.7, z: 1.5, h: 0.7 });
+    this.addProp('/models/foliage/oak_1.glb', { x: 6.2, z: -1.0, h: 4.6 });
+    this.addProp('/models/foliage/oak_3.glb', { x: -6.4, z: 0.4, h: 4.2 });
+    this.addProp('/models/foliage/pine_2.glb', { x: 4.6, z: -5.2, h: 5.2 });
+    this.addProp('/models/foliage/pine_4.glb', { x: -5.2, z: -4.6, h: 4.8 });
+    this.addProp('/models/foliage/bush.glb', { x: 2.0, z: 2.1, h: 0.55 });
+    this.addProp('/models/foliage/bush_flowers.glb', { x: -1.4, z: 2.3, h: 0.55 });
+    this.addProp('/models/foliage/rock_2.glb', { x: 2.7, z: 1.9, h: 0.5 });
+  }
+
+  /** Load a GLB, scale it to a target height by bounding box, and seat it on the ground at (x,z). */
+  private addProp(url: string, opts: { x: number; z: number; h: number; yaw?: number }): void {
+    loadGltf(assetUrl(url)).then((gltf) => {
+      const obj = gltf.scene.clone(true);
+      let box = new THREE.Box3().setFromObject(obj);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      obj.scale.setScalar(opts.h / Math.max(0.001, size.y));
+      box = new THREE.Box3().setFromObject(obj);
+      const c = new THREE.Vector3();
+      box.getCenter(c);
+      obj.position.set(opts.x - c.x, this.groundY - box.min.y, opts.z - c.z);
+      if (opts.yaw) obj.rotation.y = opts.yaw;
+      obj.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; }
+      });
+      if (this.envGroup) this.envGroup.add(obj);
+    }).catch(() => { /* missing prop: leave the clearing emptier */ });
   }
 
   /** Set the active character model by player class. */
@@ -200,6 +287,12 @@ export class CharacterPreview {
     this.animationFrameId = requestAnimationFrame(this.animate);
 
     const dt = Math.min(this.clock.getDelta(), 0.1); // cap dt to prevent huge jumps
+
+    // Campfire flicker.
+    if (this.campfireLight) {
+      const t = this.clock.elapsedTime;
+      this.campfireLight.intensity = 2.1 + Math.sin(t * 11) * 0.3 + Math.sin(t * 19) * 0.15;
+    }
 
     // Auto-rotation if prefers-reduced-motion is false and not dragging
     const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

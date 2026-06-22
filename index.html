@@ -4055,6 +4055,154 @@
     }
   }
 
+  /* ---------- Class icon cards (name + glyph + role) ---------- */
+  .cc-class-label {
+    align-self: center;
+    color: var(--color-primary);
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    margin-bottom: var(--spacing-xs);
+  }
+  .mini-class {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 9px 5px;
+  }
+  .mc-ico {
+    width: 26px;
+    height: 26px;
+    color: var(--class-color);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+  .mc-ico svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .mc-name {
+    font-size: 11px;
+    line-height: 1.1;
+    color: inherit;
+  }
+  .mc-role {
+    font-size: 8px;
+    line-height: 1.1;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-family: var(--font-sans);
+    color: var(--color-text-muted);
+    opacity: 0.75;
+  }
+  .mini-class:hover .mc-role,
+  .mini-class:focus-visible .mc-role,
+  .mini-class.sel .mc-role {
+    color: var(--class-color);
+    opacity: 1;
+  }
+
+  /* ---------- Offline char-creation: full-bleed village diorama ---------- */
+  @media (min-width: 900px) {
+    #offline-select {
+      padding: 0 !important;
+      overflow: hidden;
+      position: relative;
+    }
+    #offline-select .auth-title {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      margin: 0;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+      pointer-events: none;
+    }
+    #offline-select .charselect-layout {
+      display: block;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      gap: 0;
+    }
+    /* The col-right wrapper dissolves so preview + details position freely */
+    #offline-select .charselect-col-right {
+      display: contents;
+    }
+    /* Live 3D village scene fills the whole panel as the backdrop */
+    #offline-select #offline-preview-container {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: var(--radius-lg);
+      background: #8fb8e0;
+    }
+    /* Floating creation panel (name + class grid + actions) on the left */
+    #offline-select .charselect-col-left {
+      position: absolute;
+      top: 58px;
+      left: 20px;
+      bottom: 20px;
+      z-index: 2;
+      width: 342px;
+      height: auto;
+      padding: 16px 16px 14px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(207, 164, 79, 0.42);
+      background: linear-gradient(180deg, rgba(18, 20, 32, 0.92), rgba(11, 13, 21, 0.95));
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(3px);
+    }
+    #offline-select .char-create {
+      flex-grow: 1;
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+      justify-content: flex-start;
+      gap: 4px;
+    }
+    #offline-select .mini-class-row {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+    #offline-select .auth-actions {
+      margin-top: auto;
+      padding-top: 10px;
+    }
+    /* Floating stats / equipment panel on the right */
+    #offline-select #offline-class-details {
+      position: absolute;
+      top: 58px;
+      right: 20px;
+      bottom: 20px;
+      z-index: 2;
+      width: 360px;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 16px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(207, 164, 79, 0.42);
+      background: linear-gradient(180deg, rgba(18, 20, 32, 0.92), rgba(11, 13, 21, 0.95));
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(3px);
+    }
+    /* Hide the empty details panel until a class is chosen */
+    #offline-select #offline-class-details:empty {
+      display: none;
+    }
+  }
+
   body.mobile-touch #charselect-panel {
     width: min(380px, calc(100vw - 48px));
     max-height: calc(100vh - 112px);
@@ -4145,9 +4293,11 @@
   body.mobile-touch #charselect-panel .mini-class,
   body.mobile-touch #offline-select .mini-class {
     min-width: 0;
-    min-height: 40px;
+    min-height: 52px;
     padding: 9px 6px;
     display: flex;
+    flex-direction: column;
+    gap: 2px;
     align-items: center;
     justify-content: center;
     text-align: center;
@@ -4996,16 +5146,17 @@
                   <input id="new-char-name" maxlength="16" data-i18n-placeholder="auth.characterNamePlaceholder" placeholder="Character Name" aria-describedby="charselect-error" autocomplete="off" />
                   <div id="charselect-error" class="auth-error" aria-live="polite"></div>
                 </div>
+                <div class="cc-class-label" data-i18n="auth.chooseClass">Choose Your Class</div>
                 <ul class="mini-class-row" role="list">
-                  <li class="mini-class" data-class="warrior" role="button" tabindex="0" data-i18n-aria="classes.warriorAria" data-i18n="classes.warrior" aria-label="Warrior class" aria-pressed="false">Warrior</li>
-                  <li class="mini-class" data-class="paladin" role="button" tabindex="0" data-i18n-aria="classes.paladinAria" data-i18n="classes.paladin" aria-label="Paladin class" aria-pressed="false">Paladin</li>
-                  <li class="mini-class" data-class="hunter" role="button" tabindex="0" data-i18n-aria="classes.hunterAria" data-i18n="classes.hunter" aria-label="Hunter class" aria-pressed="false">Hunter</li>
-                  <li class="mini-class" data-class="rogue" role="button" tabindex="0" data-i18n-aria="classes.rogueAria" data-i18n="classes.rogue" aria-label="Rogue class" aria-pressed="false">Rogue</li>
-                  <li class="mini-class" data-class="priest" role="button" tabindex="0" data-i18n-aria="classes.priestAria" data-i18n="classes.priest" aria-label="Priest class" aria-pressed="false">Priest</li>
-                  <li class="mini-class" data-class="shaman" role="button" tabindex="0" data-i18n-aria="classes.shamanAria" data-i18n="classes.shaman" aria-label="Shaman class" aria-pressed="false">Shaman</li>
-                  <li class="mini-class" data-class="mage" role="button" tabindex="0" data-i18n-aria="classes.mageAria" data-i18n="classes.mage" aria-label="Mage class" aria-pressed="false">Mage</li>
-                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" data-i18n="classes.warlock" aria-label="Warlock class" aria-pressed="false">Warlock</li>
-                  <li class="mini-class" data-class="druid" role="button" tabindex="0" data-i18n-aria="classes.druidAria" data-i18n="classes.druid" aria-label="Druid class" aria-pressed="false">Druid</li>
+                  <li class="mini-class" data-class="warrior" role="button" tabindex="0" data-i18n-aria="classes.warriorAria" aria-label="Warrior class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v12"/><path d="M9 5l3-3 3 3"/><path d="M8 14h8"/><path d="M12 14v7"/><path d="M10 19h4"/></svg></span><span class="mc-name" data-i18n="classes.warrior">Warrior</span><span class="mc-role" data-i18n="classDetails.roles.warrior">Tank / Melee DPS</span></li>
+                  <li class="mini-class" data-class="paladin" role="button" tabindex="0" data-i18n-aria="classes.paladinAria" aria-label="Paladin class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3l7 2.4v5.4c0 4.4-3 7.6-7 9.2-4-1.6-7-4.8-7-9.2V5.4z"/><path d="M12 7.5v7M8.6 11h6.8"/></svg></span><span class="mc-name" data-i18n="classes.paladin">Paladin</span><span class="mc-role" data-i18n="classDetails.roles.paladin">Tank / Healer</span></li>
+                  <li class="mini-class" data-class="hunter" role="button" tabindex="0" data-i18n-aria="classes.hunterAria" aria-label="Hunter class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4a14 14 0 0 1 0 16"/><path d="M5 4l15 16"/><path d="M16 20h4v-4"/></svg></span><span class="mc-name" data-i18n="classes.hunter">Hunter</span><span class="mc-role" data-i18n="classDetails.roles.hunter">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="rogue" role="button" tabindex="0" data-i18n-aria="classes.rogueAria" aria-label="Rogue class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3l3.5 8-1.5 1.5L5 4z"/><path d="M9 12.5L4 20"/><path d="M17 3l-3.5 8 1.5 1.5L19 4z"/><path d="M15 12.5L20 20"/></svg></span><span class="mc-name" data-i18n="classes.rogue">Rogue</span><span class="mc-role" data-i18n="classDetails.roles.rogue">Melee DPS</span></li>
+                  <li class="mini-class" data-class="priest" role="button" tabindex="0" data-i18n-aria="classes.priestAria" aria-label="Priest class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v18M7 8h10"/></svg></span><span class="mc-name" data-i18n="classes.priest">Priest</span><span class="mc-role" data-i18n="classDetails.roles.priest">Healer</span></li>
+                  <li class="mini-class" data-class="shaman" role="button" tabindex="0" data-i18n-aria="classes.shamanAria" aria-label="Shaman class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L5 13h5l-1 9 8-12h-5z"/></svg></span><span class="mc-name" data-i18n="classes.shaman">Shaman</span><span class="mc-role" data-i18n="classDetails.roles.shaman">Hybrid</span></li>
+                  <li class="mini-class" data-class="mage" role="button" tabindex="0" data-i18n-aria="classes.mageAria" aria-label="Mage class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L15 9"/><path d="M18 4l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/></svg></span><span class="mc-name" data-i18n="classes.mage">Mage</span><span class="mc-role" data-i18n="classDetails.roles.mage">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" aria-label="Warlock class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7v3l2 2v3h10v-3l2-2v-3a7 7 0 0 0-7-7z"/><circle cx="9.5" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="mc-name" data-i18n="classes.warlock">Warlock</span><span class="mc-role" data-i18n="classDetails.roles.warlock">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="druid" role="button" tabindex="0" data-i18n-aria="classes.druidAria" aria-label="Druid class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19C5 9 12 5 19 5c0 10-7 14-14 14z"/><path d="M6 18C10 14 14 10 17 8"/></svg></span><span class="mc-name" data-i18n="classes.druid">Druid</span><span class="mc-role" data-i18n="classDetails.roles.druid">Tank / Healer</span></li>
                 </ul>
                 <div id="online-skin-row" class="skin-row" role="list" aria-label="Chroma"></div>
                 <div class="auth-actions">
@@ -5035,16 +5186,17 @@
                   <input id="char-name" maxlength="16" data-i18n-placeholder="auth.characterNamePlaceholder" placeholder="Character name" value="" aria-describedby="offline-error" autocomplete="off" />
                   <div id="offline-error" class="auth-error" aria-live="polite"></div>
                 </div>
+                <div class="cc-class-label" data-i18n="auth.chooseClass">Choose Your Class</div>
                 <ul class="mini-class-row" role="list">
-                  <li class="mini-class" data-class="warrior" role="button" tabindex="0" data-i18n-aria="classes.warriorAria" data-i18n="classes.warrior" aria-label="Warrior class" aria-pressed="false">Warrior</li>
-                  <li class="mini-class" data-class="paladin" role="button" tabindex="0" data-i18n-aria="classes.paladinAria" data-i18n="classes.paladin" aria-label="Paladin class" aria-pressed="false">Paladin</li>
-                  <li class="mini-class" data-class="hunter" role="button" tabindex="0" data-i18n-aria="classes.hunterAria" data-i18n="classes.hunter" aria-label="Hunter class" aria-pressed="false">Hunter</li>
-                  <li class="mini-class" data-class="rogue" role="button" tabindex="0" data-i18n-aria="classes.rogueAria" data-i18n="classes.rogue" aria-label="Rogue class" aria-pressed="false">Rogue</li>
-                  <li class="mini-class" data-class="priest" role="button" tabindex="0" data-i18n-aria="classes.priestAria" data-i18n="classes.priest" aria-label="Priest class" aria-pressed="false">Priest</li>
-                  <li class="mini-class" data-class="shaman" role="button" tabindex="0" data-i18n-aria="classes.shamanAria" data-i18n="classes.shaman" aria-label="Shaman class" aria-pressed="false">Shaman</li>
-                  <li class="mini-class" data-class="mage" role="button" tabindex="0" data-i18n-aria="classes.mageAria" data-i18n="classes.mage" aria-label="Mage class" aria-pressed="false">Mage</li>
-                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" data-i18n="classes.warlock" aria-label="Warlock class" aria-pressed="false">Warlock</li>
-                  <li class="mini-class" data-class="druid" role="button" tabindex="0" data-i18n-aria="classes.druidAria" data-i18n="classes.druid" aria-label="Druid class" aria-pressed="false">Druid</li>
+                  <li class="mini-class" data-class="warrior" role="button" tabindex="0" data-i18n-aria="classes.warriorAria" aria-label="Warrior class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v12"/><path d="M9 5l3-3 3 3"/><path d="M8 14h8"/><path d="M12 14v7"/><path d="M10 19h4"/></svg></span><span class="mc-name" data-i18n="classes.warrior">Warrior</span><span class="mc-role" data-i18n="classDetails.roles.warrior">Tank / Melee DPS</span></li>
+                  <li class="mini-class" data-class="paladin" role="button" tabindex="0" data-i18n-aria="classes.paladinAria" aria-label="Paladin class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3l7 2.4v5.4c0 4.4-3 7.6-7 9.2-4-1.6-7-4.8-7-9.2V5.4z"/><path d="M12 7.5v7M8.6 11h6.8"/></svg></span><span class="mc-name" data-i18n="classes.paladin">Paladin</span><span class="mc-role" data-i18n="classDetails.roles.paladin">Tank / Healer</span></li>
+                  <li class="mini-class" data-class="hunter" role="button" tabindex="0" data-i18n-aria="classes.hunterAria" aria-label="Hunter class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4a14 14 0 0 1 0 16"/><path d="M5 4l15 16"/><path d="M16 20h4v-4"/></svg></span><span class="mc-name" data-i18n="classes.hunter">Hunter</span><span class="mc-role" data-i18n="classDetails.roles.hunter">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="rogue" role="button" tabindex="0" data-i18n-aria="classes.rogueAria" aria-label="Rogue class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3l3.5 8-1.5 1.5L5 4z"/><path d="M9 12.5L4 20"/><path d="M17 3l-3.5 8 1.5 1.5L19 4z"/><path d="M15 12.5L20 20"/></svg></span><span class="mc-name" data-i18n="classes.rogue">Rogue</span><span class="mc-role" data-i18n="classDetails.roles.rogue">Melee DPS</span></li>
+                  <li class="mini-class" data-class="priest" role="button" tabindex="0" data-i18n-aria="classes.priestAria" aria-label="Priest class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v18M7 8h10"/></svg></span><span class="mc-name" data-i18n="classes.priest">Priest</span><span class="mc-role" data-i18n="classDetails.roles.priest">Healer</span></li>
+                  <li class="mini-class" data-class="shaman" role="button" tabindex="0" data-i18n-aria="classes.shamanAria" aria-label="Shaman class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L5 13h5l-1 9 8-12h-5z"/></svg></span><span class="mc-name" data-i18n="classes.shaman">Shaman</span><span class="mc-role" data-i18n="classDetails.roles.shaman">Hybrid</span></li>
+                  <li class="mini-class" data-class="mage" role="button" tabindex="0" data-i18n-aria="classes.mageAria" aria-label="Mage class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L15 9"/><path d="M18 4l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/></svg></span><span class="mc-name" data-i18n="classes.mage">Mage</span><span class="mc-role" data-i18n="classDetails.roles.mage">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" aria-label="Warlock class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7v3l2 2v3h10v-3l2-2v-3a7 7 0 0 0-7-7z"/><circle cx="9.5" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="mc-name" data-i18n="classes.warlock">Warlock</span><span class="mc-role" data-i18n="classDetails.roles.warlock">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="druid" role="button" tabindex="0" data-i18n-aria="classes.druidAria" aria-label="Druid class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19C5 9 12 5 19 5c0 10-7 14-14 14z"/><path d="M6 18C10 14 14 10 17 8"/></svg></span><span class="mc-name" data-i18n="classes.druid">Druid</span><span class="mc-role" data-i18n="classDetails.roles.druid">Tank / Healer</span></li>
                 </ul>
                 <div id="offline-skin-row" class="skin-row" role="list" aria-label="Skin"></div>
                 <div class="auth-actions">
