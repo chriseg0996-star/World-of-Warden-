@@ -41,6 +41,9 @@ export class CharacterPreview {
   private bannerMat: THREE.MeshStandardMaterial | null = null;
   private dust: THREE.Points | null = null;
   private dustBaseY: Float32Array | null = null;
+  private embers: THREE.Points | null = null;
+  private emberPhase: Float32Array | null = null;
+  private emberBaseColor: Float32Array | null = null;
   private currentVisual: CharacterVisual | null = null;
   private currentSkin = 0;
   private clock = new THREE.Clock();
@@ -106,9 +109,13 @@ export class CharacterPreview {
     // 5a. Hero-local lights (short range so they lift the character without
     //     washing out the village): a warm front fill, a cool rim behind, and a
     //     warm up-glow rising from the pedestal.
-    const warmFront = new THREE.PointLight(0xffd7ab, 3.1, 7, 2);
-    warmFront.position.set(0.4, 1.7, 2.6);
+    const warmFront = new THREE.PointLight(0xffe1bc, 3.9, 7.5, 2);
+    warmFront.position.set(0.3, 1.95, 2.7);
     this.scene.add(warmFront);
+    // A soft chest-level fill to bring out the armour without flattening it.
+    const chestFill = new THREE.PointLight(0xfff0dc, 1.5, 5, 2);
+    chestFill.position.set(0.1, 1.2, 2.4);
+    this.scene.add(chestFill);
     const heroRim = new THREE.PointLight(0xcfe0ff, 2.3, 6, 2);
     heroRim.position.set(-0.5, 2.6, -2.0);
     this.scene.add(heroRim);
@@ -228,6 +235,11 @@ export class CharacterPreview {
     };
     mkHouse(-9.5, -6.5, 1.1);
     mkHouse(10, -7.5, 1.25);
+    // A small cluster directly behind the hero so the centre reads as a village
+    // (kept far back + fogged so it stays a soft, dark backdrop).
+    mkHouse(-2.6, -8.5, 1.0);
+    mkHouse(2.8, -9.2, 1.15);
+    mkHouse(0.2, -11, 1.3);
 
     // Warm campfire light (bonfire prop loads in below).
     this.campfireLight = new THREE.PointLight(0xff8a36, 3.0, 12, 2);
@@ -323,6 +335,44 @@ export class CharacterPreview {
       shaft.rotation.y = -0.5;
       this.scene.add(shaft);
     }
+
+    // Light embers + fireflies: warm sparks clustered over the campfire and a
+    // few cool fireflies drifting through the clearing. Each flickers on its own.
+    const E = 56;
+    const epos = new Float32Array(E * 3);
+    const ecol = new Float32Array(E * 3);
+    this.emberPhase = new Float32Array(E);
+    this.emberBaseColor = new Float32Array(E * 3);
+    for (let i = 0; i < E; i++) {
+      const ember = i < E * 0.6;
+      if (ember) {
+        // Rising sparks above the campfire at (-2.1, _, 1.7).
+        epos[i * 3] = -2.1 + (Math.random() - 0.5) * 1.3;
+        epos[i * 3 + 1] = gY + 0.2 + Math.random() * 1.8;
+        epos[i * 3 + 2] = 1.7 + (Math.random() - 0.5) * 1.3;
+        ecol[i * 3] = 1.0; ecol[i * 3 + 1] = 0.55; ecol[i * 3 + 2] = 0.18;
+      } else {
+        // Fireflies wandering the clearing.
+        epos[i * 3] = (Math.random() - 0.5) * 8;
+        epos[i * 3 + 1] = gY + 0.5 + Math.random() * 2.4;
+        epos[i * 3 + 2] = (Math.random() - 0.5) * 5 + 0.5;
+        ecol[i * 3] = 0.75; ecol[i * 3 + 1] = 0.95; ecol[i * 3 + 2] = 0.5;
+      }
+      this.emberPhase[i] = Math.random() * Math.PI * 2;
+      this.emberBaseColor[i * 3] = ecol[i * 3];
+      this.emberBaseColor[i * 3 + 1] = ecol[i * 3 + 1];
+      this.emberBaseColor[i * 3 + 2] = ecol[i * 3 + 2];
+    }
+    const emberGeo = new THREE.BufferGeometry();
+    emberGeo.setAttribute('position', new THREE.BufferAttribute(epos, 3));
+    emberGeo.setAttribute('color', new THREE.BufferAttribute(ecol, 3));
+    const emberMat = new THREE.PointsMaterial({
+      map: this.makeRadialTexture(['rgba(255,255,255,0.95)', 'rgba(255,230,180,0.4)', 'rgba(255,210,150,0)']),
+      size: 0.09, sizeAttenuation: true, vertexColors: true,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9,
+    });
+    this.embers = new THREE.Points(emberGeo, emberMat);
+    this.scene.add(this.embers);
   }
 
   /** Radial gradient sprite/decal texture from a list of colour stops. */
@@ -566,10 +616,38 @@ export class CharacterPreview {
       (this.dust.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
     }
 
-    // Auto-rotation if prefers-reduced-motion is false and not dragging
+    // Embers / fireflies: rise and drift, flickering individually.
+    if (this.embers && this.emberPhase && this.emberBaseColor) {
+      const t = this.clock.elapsedTime;
+      const pAttr = this.embers.geometry.getAttribute('position') as THREE.BufferAttribute;
+      const cAttr = this.embers.geometry.getAttribute('color') as THREE.BufferAttribute;
+      const p = pAttr.array as Float32Array;
+      const c = cAttr.array as Float32Array;
+      for (let i = 0; i < this.emberPhase.length; i++) {
+        let y = p[i * 3 + 1] + dt * 0.28;
+        if (y > this.groundY + 3.0) y = this.groundY + 0.2;
+        p[i * 3 + 1] = y;
+        p[i * 3] += Math.sin(t * 0.8 + this.emberPhase[i]) * dt * 0.08;
+        const flick = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 3.5 + this.emberPhase[i] * 4));
+        c[i * 3] = this.emberBaseColor[i * 3] * flick;
+        c[i * 3 + 1] = this.emberBaseColor[i * 3 + 1] * flick;
+        c[i * 3 + 2] = this.emberBaseColor[i * 3 + 2] * flick;
+      }
+      pAttr.needsUpdate = true;
+      cAttr.needsUpdate = true;
+    }
+
+    // Auto-rotation: half-speed turntable that eases to a brief dwell whenever
+    // the hero faces forward, so the face stays visible more of the time.
     const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!isReducedMotion && !this.isDragging) {
-      this.characterGroup.rotation.y += 0.35 * dt; // Slow rotation: ~0.35 rad per sec
+      const TAU = Math.PI * 2;
+      let a = this.characterGroup.rotation.y % TAU;
+      if (a < 0) a += TAU;
+      const distFront = Math.min(a, TAU - a);              // 0 when facing forward
+      const ease = Math.min(distFront / 0.7, 1);           // slow within ~0.7 rad of front
+      const factor = 0.06 + 0.94 * ease;                   // near-pause at the front
+      this.characterGroup.rotation.y += 0.175 * factor * dt; // 50% of the old speed
     }
 
     // Update animations inside visual

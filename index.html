@@ -2039,9 +2039,25 @@
     outline: none;
   }
   .mini-class.sel {
-    border-color: var(--class-color);
+    border-color: var(--gold, #ffd100);
     color: #fff;
-    box-shadow: 0 0 10px var(--class-color);
+    background:
+      linear-gradient(180deg, rgba(255, 209, 0, 0.12) 0%, rgba(0, 0, 0, 0.28) 100%),
+      #181826;
+    box-shadow:
+      0 0 18px var(--class-color),
+      0 0 6px rgba(255, 209, 0, 0.85),
+      inset 0 0 0 1px rgba(255, 209, 0, 0.55),
+      inset 0 3px 6px rgba(0, 0, 0, 0.6),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  }
+  /* De-emphasise unselected cards so the active class clearly stands out. */
+  .mini-class:not(.sel) {
+    opacity: 0.82;
+  }
+  .mini-class:not(.sel):hover,
+  .mini-class:not(.sel):focus-visible {
+    opacity: 1;
   }
 
   /* ---------- Skin picker (alternate body textures) ---------- */
