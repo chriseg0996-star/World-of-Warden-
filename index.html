@@ -4122,6 +4122,8 @@
   /* PNG-image icon variant (e.g. Warlock): show the art cleanly, contained and
      centred, with no emblem box — hover/selected keep the class-colour glow. */
   .mc-ico-img {
+    width: 54px;
+    height: 54px;
     background: none;
     border: none;
     box-shadow: none;
@@ -4134,11 +4136,13 @@
     object-position: center;
     display: block;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+    transition: filter var(--transition-speed);
   }
-  .mini-class:hover .mc-ico-img,
-  .mini-class:focus-visible .mc-ico-img,
-  .mini-class.sel .mc-ico-img {
-    box-shadow: 0 0 14px -2px var(--class-color);
+  /* glow follows the crest silhouette (drop-shadow), not a square box */
+  .mini-class:hover .mc-img,
+  .mini-class:focus-visible .mc-img,
+  .mini-class.sel .mc-img {
+    filter: drop-shadow(0 0 7px var(--class-color)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
   }
   .mc-name {
     font-size: 12px;
@@ -4271,26 +4275,33 @@
     #offline-select .mini-class-row {
       grid-template-columns: repeat(3, 1fr);
       gap: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
     }
     #offline-select .mini-class {
       min-height: 46px;
-      gap: 2px;
-      padding: 6px 4px;
+      gap: 1px;
+      padding: 5px 4px 4px;
       border-radius: 8px;
     }
+    /* Large image icon is the focal point (~70% of card height) */
+    #offline-select .mc-ico-img {
+      width: 70px;
+      height: 70px;
+    }
+    #offline-select .mini-class .mc-name { line-height: 1.05; }
+    #offline-select .mini-class .mc-role { line-height: 1.05; }
     #offline-select .char-input-group {
-      margin-bottom: 7px;
+      margin-bottom: 5px;
     }
     #offline-select .cc-class-label {
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
     #offline-select .char-create > .auth-label {
       margin-bottom: 3px;
     }
     #offline-select .auth-actions {
       margin-top: auto;
-      padding-top: 6px;
+      padding-top: 4px;
     }
     /* Skins are alternate body textures, not character slots — hide the picker. */
     #offline-select #offline-skin-row {
