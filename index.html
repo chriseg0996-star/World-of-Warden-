@@ -4119,6 +4119,27 @@
   .mini-class.sel .mc-ico {
     box-shadow: 0 0 16px -2px var(--class-color), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
+  /* PNG-image icon variant (e.g. Warlock): show the art cleanly, contained and
+     centred, with no emblem box — hover/selected keep the class-colour glow. */
+  .mc-ico-img {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+  .mc-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+  .mini-class:hover .mc-ico-img,
+  .mini-class:focus-visible .mc-ico-img,
+  .mini-class.sel .mc-ico-img {
+    box-shadow: 0 0 14px -2px var(--class-color);
+  }
   .mc-name {
     font-size: 12px;
     line-height: 1.1;
@@ -5321,7 +5342,7 @@
                   <li class="mini-class" data-class="priest" role="button" tabindex="0" data-i18n-aria="classes.priestAria" aria-label="Priest class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v18M7 8h10"/></svg></span><span class="mc-name" data-i18n="classes.priest">Priest</span><span class="mc-role" data-i18n="classRoleShort.priest">Healer</span></li>
                   <li class="mini-class" data-class="shaman" role="button" tabindex="0" data-i18n-aria="classes.shamanAria" aria-label="Shaman class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L5 13h5l-1 9 8-12h-5z"/></svg></span><span class="mc-name" data-i18n="classes.shaman">Shaman</span><span class="mc-role" data-i18n="classRoleShort.shaman">Hybrid</span></li>
                   <li class="mini-class" data-class="mage" role="button" tabindex="0" data-i18n-aria="classes.mageAria" aria-label="Mage class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L15 9"/><path d="M18 4l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/></svg></span><span class="mc-name" data-i18n="classes.mage">Mage</span><span class="mc-role" data-i18n="classRoleShort.mage">Ranged DPS</span></li>
-                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" aria-label="Warlock class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7v3l2 2v3h10v-3l2-2v-3a7 7 0 0 0-7-7z"/><circle cx="9.5" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="mc-name" data-i18n="classes.warlock">Warlock</span><span class="mc-role" data-i18n="classRoleShort.warlock">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" aria-label="Warlock class" aria-pressed="false"><span class="mc-ico mc-ico-img" aria-hidden="true"><img class="mc-img" src="/assets/icons/classes/warlock.png" alt="" /></span><span class="mc-name" data-i18n="classes.warlock">Warlock</span><span class="mc-role" data-i18n="classRoleShort.warlock">Ranged DPS</span></li>
                   <li class="mini-class" data-class="druid" role="button" tabindex="0" data-i18n-aria="classes.druidAria" aria-label="Druid class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19C5 9 12 5 19 5c0 10-7 14-14 14z"/><path d="M6 18C10 14 14 10 17 8"/></svg></span><span class="mc-name" data-i18n="classes.druid">Druid</span><span class="mc-role" data-i18n="classRoleShort.druid">Tank / Healer</span></li>
                 </ul>
                 <div id="online-skin-row" class="skin-row" role="list" aria-label="Chroma"></div>
@@ -5361,7 +5382,7 @@
                   <li class="mini-class" data-class="priest" role="button" tabindex="0" data-i18n-aria="classes.priestAria" aria-label="Priest class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v18M7 8h10"/></svg></span><span class="mc-name" data-i18n="classes.priest">Priest</span><span class="mc-role" data-i18n="classRoleShort.priest">Healer</span></li>
                   <li class="mini-class" data-class="shaman" role="button" tabindex="0" data-i18n-aria="classes.shamanAria" aria-label="Shaman class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L5 13h5l-1 9 8-12h-5z"/></svg></span><span class="mc-name" data-i18n="classes.shaman">Shaman</span><span class="mc-role" data-i18n="classRoleShort.shaman">Hybrid</span></li>
                   <li class="mini-class" data-class="mage" role="button" tabindex="0" data-i18n-aria="classes.mageAria" aria-label="Mage class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L15 9"/><path d="M18 4l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/></svg></span><span class="mc-name" data-i18n="classes.mage">Mage</span><span class="mc-role" data-i18n="classRoleShort.mage">Ranged DPS</span></li>
-                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" aria-label="Warlock class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7v3l2 2v3h10v-3l2-2v-3a7 7 0 0 0-7-7z"/><circle cx="9.5" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="14.5" cy="11" r="1.4" fill="currentColor" stroke="none"/></svg></span><span class="mc-name" data-i18n="classes.warlock">Warlock</span><span class="mc-role" data-i18n="classRoleShort.warlock">Ranged DPS</span></li>
+                  <li class="mini-class" data-class="warlock" role="button" tabindex="0" data-i18n-aria="classes.warlockAria" aria-label="Warlock class" aria-pressed="false"><span class="mc-ico mc-ico-img" aria-hidden="true"><img class="mc-img" src="/assets/icons/classes/warlock.png" alt="" /></span><span class="mc-name" data-i18n="classes.warlock">Warlock</span><span class="mc-role" data-i18n="classRoleShort.warlock">Ranged DPS</span></li>
                   <li class="mini-class" data-class="druid" role="button" tabindex="0" data-i18n-aria="classes.druidAria" aria-label="Druid class" aria-pressed="false"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19C5 9 12 5 19 5c0 10-7 14-14 14z"/><path d="M6 18C10 14 14 10 17 8"/></svg></span><span class="mc-name" data-i18n="classes.druid">Druid</span><span class="mc-role" data-i18n="classRoleShort.druid">Tank / Healer</span></li>
                 </ul>
                 <div id="offline-skin-row" class="skin-row" role="list" aria-label="Skin"></div>
