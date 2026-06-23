@@ -4255,7 +4255,7 @@
       z-index: 2;
       width: 298px;
       height: auto;
-      padding: 12px 13px 11px;
+      padding: 9px 13px 9px;
       box-sizing: border-box;
       overflow: hidden;
       border-radius: var(--radius-md);
@@ -4270,12 +4270,13 @@
       padding-top: 0;
       margin-top: 0;
       justify-content: flex-start;
-      gap: 4px;
+      gap: 2px;
     }
     #offline-select .mini-class-row {
       grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      margin-bottom: 5px;
+      column-gap: 6px;
+      row-gap: 5px;
+      margin-bottom: 4px;
     }
     #offline-select .mini-class {
       min-height: 46px;
@@ -4291,13 +4292,18 @@
     #offline-select .mini-class .mc-name { line-height: 1.05; }
     #offline-select .mini-class .mc-role { line-height: 1.05; }
     #offline-select .char-input-group {
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
     #offline-select .cc-class-label {
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
     #offline-select .char-create > .auth-label {
-      margin-bottom: 3px;
+      margin-bottom: 1px;
+    }
+    /* trim the name input height a touch (Character Name section) */
+    #offline-select #char-name {
+      padding-top: 6px;
+      padding-bottom: 6px;
     }
     #offline-select .auth-actions {
       margin-top: auto;
