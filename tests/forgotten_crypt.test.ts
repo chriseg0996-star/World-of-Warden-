@@ -1,7 +1,7 @@
 // Forgotten Crypt (hollow_crypt): first dungeon vertical slice — entry quest,
 // elite/boss kills, loot, and quest chain gating.
 import { describe, expect, it } from 'vitest';
-import { MOBS, instanceOrigin } from '../src/sim/data';
+import { MOBS, instanceOrigin, DUNGEON_X_THRESHOLD } from '../src/sim/data';
 import { emptyAllocation } from '../src/sim/content/talents';
 import type { Entity } from '../src/sim/types';
 import { Sim } from '../src/sim/sim';
@@ -69,11 +69,15 @@ function fightMob(sim: Sim, mobId: number, maxTicks = 20 * 300): 'killed' | 'pla
     if (!m || m.dead) return 'killed';
     faceTarget(sim, m);
     if (p.gcdRemaining <= 0 && !p.castingAbility) {
-      const hostiles = [...sim.entities.values()].filter((e) => e.kind === 'mob' && !e.dead && e.aggroTargetId === p.id);
+      const hostiles = [...sim.entities.values()].filter((e) => {
+        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id) return false;
+        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
+        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
+      });
       if (!hasAura(p, 'battle_shout')) sim.castAbility('battle_shout');
       else if (hostiles.length > 1 && sim.known.some((k) => k.def.id === 'thunder_clap')) sim.castAbility('thunder_clap');
       else if (!hasAura(m, 'rend') && sim.known.some((k) => k.def.id === 'rend')) sim.castAbility('rend');
-      else if ((p.resource ?? 0) >= 15 && sim.known.some((k) => k.def.id === 'mortal_strike')) sim.castAbility('mortal_strike');
+      else if ((p.resource ?? 0) >= 30 && sim.known.some((k) => k.def.id === 'mortal_strike')) sim.castAbility('mortal_strike');
       else if ((p.resource ?? 0) >= 15) sim.castAbility('heroic_strike');
       else if ((p.resource ?? 0) < 10 && sim.known.some((k) => k.def.id === 'bloodrage')) sim.castAbility('bloodrage');
     }
@@ -118,6 +122,33 @@ describe('Forgotten Crypt dungeon slice', () => {
     const guardian = nearestMob(sim, 'bone_guardian', origin)!;
     expect(fightMob(sim, guardian.id)).toBe('killed');
     expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 10 offense warrior with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10);
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'offense',
+      ranks: {
+        war_battle_training: 2,
+        off_brutality: 1,
+        off_lethal_blows: 1,
+        off_deep_wounds: 2,
+      },
+    });
+    sim.inventory.push({ itemId: 'wardens_hammer', qty: 1 }, { itemId: 'bone_shield', qty: 1 });
+    sim.equipItem('wardens_hammer');
+    sim.equipItem('bone_shield');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMob(sim, warden.id, 20 * 400)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
   });
 
   it('scales elite and boss levels within template bands', () => {

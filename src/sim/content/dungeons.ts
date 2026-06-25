@@ -68,11 +68,11 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
   crypt_warden: {
     id: 'crypt_warden', name: 'The Crypt Warden', minLevel: 8, maxLevel: 10, family: 'undead',
     elite: true, boss: true,
-    hpBase: 220, hpPerLevel: 30, dmgBase: 11, dmgPerLevel: 2.5, attackSpeed: 2.5,
-    armorPerLevel: 24, moveSpeed: 7, aggroRadius: 16,
-    cleave: { radius: 8, mult: 0.55, name: 'Cleave' },
-    summonAdds: { mobId: 'skeleton_warrior_add', count: 2, atHpPct: [0.65, 0.35] },
-    stomp: { radius: 10, every: 14, duration: 1.5, min: 18, max: 28, name: 'Ground Slam' },
+    hpBase: 180, hpPerLevel: 24, dmgBase: 9, dmgPerLevel: 2.2, attackSpeed: 2.5,
+    armorPerLevel: 22, moveSpeed: 7, aggroRadius: 16,
+    cleave: { radius: 8, mult: 0.35, name: 'Cleave' },
+    summonAdds: { mobId: 'skeleton_warrior_add', count: 1, atHpPct: [0.35] },
+    stomp: { radius: 10, every: 20, duration: 1.0, min: 12, max: 18, name: 'Ground Slam' },
     loot: [
       { copper: 2200, chance: 1 },
       { itemId: 'crypt_blade', chance: 0.34, rollGroup: 'warden_guaranteed_uncommon' },
