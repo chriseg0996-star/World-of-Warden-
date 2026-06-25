@@ -301,6 +301,9 @@ describe("i18n Localization Key Coverage", () => {
     perCombo: 7,
     percent: 30,
     position: 3,
+    delta: "+1.2",
+    sign: "+",
+    npc: "Marshal Redbrook",
     price: "1g 20s",
     proceeds: "95s",
     quality: "Rare",
@@ -781,8 +784,8 @@ describe("i18n Localization Key Coverage", () => {
     }
 
     setLanguage("es");
-    expect(renderTalentManifestEntry(talentEntries.find((entry) => entry.id === "war_toughness" && entry.field === "name")!)).toContain("Dureza");
-    expect(renderTalentManifestEntry(talentEntries.find((entry) => entry.id === "arms.mastery" && entry.field === "description")!)).toContain("daño");
+    expect(renderTalentManifestEntry(talentEntries.find((entry) => entry.id === "war_battle_training" && entry.field === "name")!)).toContain("Entrenamiento");
+    expect(renderTalentManifestEntry(talentEntries.find((entry) => entry.id === "offense.mastery" && entry.field === "description")!)).toContain("daño");
 
     setLanguage("en");
   });
@@ -846,6 +849,8 @@ describe("i18n Localization Key Coverage", () => {
   it("should keep representative Phase 9 quest narratives translated with quest-specific content", () => {
     const expectations: Array<readonly [typeof supportedLanguages[number], string, "text" | "completion", string]> = [
       ["es", "q_hollow", "completion", "Eastbrook te debe"],
+      ["es", "q_fc_enter", "text", "Cripta Olvidada"],
+      ["es", "q_fc_warden", "title", "Guardián de la Cripta"],
     ];
 
     for (const [lang, questId, field, expected] of expectations) {

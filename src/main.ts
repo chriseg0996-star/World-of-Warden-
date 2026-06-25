@@ -24,6 +24,7 @@ import { tServer } from './ui/server_i18n';
 import { tEntity } from './ui/entity_i18n';
 import { hydrateIcons } from './ui/ui_icons';
 import { createPerfMonitor } from './game/perf';
+import { createDebugHud } from './game/debug_hud';
 import { updateFollowCameraYaw, wrapAngle } from './game/camera_follow';
 
 
@@ -516,6 +517,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
   let renderer!: Renderer;
   let hud!: Hud;
   const perf = createPerfMonitor(null);
+  const debugHud = createDebugHud();
   try {
     renderer = new renderModule.Renderer(world, canvas, nameplates);
     perf.setRenderer(renderer);
@@ -916,6 +918,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       updateClickMoveMarker();
       perf.markInputVisible(performance.now());
       perf.time('hud', () => hud.update());
+      debugHud.tick(world, now);
       perf.tick(now);
       return;
     }
@@ -951,6 +954,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     updateClickMoveMarker();
     perf.markInputVisible(performance.now());
     perf.time('hud', () => hud.update());
+    debugHud.tick(world, now);
     perf.tick(now);
   }
   requestAnimationFrame(frame);
@@ -965,7 +969,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     face(facing: unknown) { input.setControllerFacing(facing); },
     stop() { input.clearControllerMoveInput(); },
   };
-  (window as any).__game = { sim: world, world, renderer, input, hud, online, controller, perf };
+  (window as any).__game = { sim: world, world, renderer, input, hud, online, controller, perf, debugHud };
 }
 
 // ---------------------------------------------------------------------------

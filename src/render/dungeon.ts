@@ -43,7 +43,7 @@ interface TorchColors {
 }
 
 const TORCH_COLORS: Record<Variant, TorchColors> = {
-  crypt: { flame: 0x7fd4ff, emissive: 0x2288cc, light: 0x66bbff },
+  crypt: { flame: 0xffa84a, emissive: 0x994a0a, light: 0xff8833 },
   bastion: { flame: 0x7ffbe0, emissive: 0x18b89a, light: 0x4fe3c0 },
   sanctum: { flame: 0xa6ffb8, emissive: 0x22cc55, light: 0x55e08a },
   // the Drowned Temple burns with cold moonfire — pale lilac over still water

@@ -184,11 +184,11 @@ describe('friends', () => {
     h.add(3, 'Gimel');
     await h.svc.friendAdd(h.actor(1), 'Bet');
     await h.svc.friendAdd(h.actor(1), 'Gimel');
-    h.tx.setOnline(3, { zone: 'Hollow Crypt', status: 'dungeon' });
+    h.tx.setOnline(3, { zone: 'Forgotten Crypt', status: 'dungeon' });
     const snap = await h.svc.snapshot(1);
     expect(snap.friends[0].name).toBe('Gimel');
     expect(snap.friends[0].online).toBe(true);
-    expect(snap.friends[0].zone).toBe('Hollow Crypt');
+    expect(snap.friends[0].zone).toBe('Forgotten Crypt');
     expect(snap.friends[0].status).toBe('dungeon');
     expect(snap.friends[1].online).toBe(false);
     expect(snap.friends[1].zone).toBeUndefined();

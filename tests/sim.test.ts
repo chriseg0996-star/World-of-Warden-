@@ -33,6 +33,12 @@ function teleportTo(sim: Sim, x: number, z: number) {
   p.vx = 0; p.vz = 0; p.vy = 0; p.onGround = true; p.fallStartY = p.pos.y;
 }
 
+function teleportNearNpc(sim: Sim, templateId: string) {
+  const npc = [...sim.entities.values()].find((e) => e.kind === 'npc' && e.templateId === templateId);
+  if (!npc) throw new Error(`npc not found: ${templateId}`);
+  teleportTo(sim, npc.pos.x + 2, npc.pos.z + 2);
+}
+
 function facePlayerAt(sim: Sim, target: any) {
   sim.player.facing = Math.atan2(target.pos.x - sim.player.pos.x, target.pos.z - sim.player.pos.z);
 }
@@ -407,7 +413,7 @@ describe('combat', () => {
   it('mage casts fireball with a cast time and applies its dot', () => {
     const sim = makeSim('mage');
     const wolf = nearestMob(sim, 'forest_wolf');
-    teleportTo(sim, wolf.pos.x + 15, wolf.pos.z);
+    teleportTo(sim, wolf.pos.x + 2, wolf.pos.z);
     sim.targetEntity(wolf.id);
     facePlayerAt(sim, wolf);
     const hpBefore = wolf.hp;
@@ -421,7 +427,7 @@ describe('combat', () => {
     const sim = makeSim('mage');
     sim.setPlayerLevel(8);
     const wolf = nearestMob(sim, 'forest_wolf');
-    teleportTo(sim, wolf.pos.x + 10, wolf.pos.z);
+    teleportTo(sim, wolf.pos.x + 2, wolf.pos.z);
     sim.targetEntity(wolf.id);
     facePlayerAt(sim, wolf);
     sim.castAbility('polymorph');
@@ -457,7 +463,7 @@ describe('spell pushback', () => {
     const sim = makeSim('mage');
     if (level > 1) sim.setPlayerLevel(level);
     const wolf = nearestMob(sim, 'forest_wolf');
-    teleportTo(sim, wolf.pos.x + 15, wolf.pos.z);
+    teleportTo(sim, wolf.pos.x + 2, wolf.pos.z);
     sim.targetEntity(wolf.id);
     facePlayerAt(sim, wolf);
     return { sim, wolf };
@@ -992,14 +998,14 @@ describe('leveling', () => {
 });
 
 describe('quests', () => {
-  it('full wolf quest flow: accept, kill 8, turn in', () => {
+  it('full wolf quest flow: accept, kill 5, turn in', () => {
     const sim = makeSim('warrior');
-    teleportTo(sim, 4, 4);
+    teleportNearNpc(sim, 'marshal_redbrook');
     sim.interact();
     expect(sim.questState('q_wolves')).toBe('active');
     const wolves = [...sim.entities.values()].filter((e) => e.templateId === 'forest_wolf');
-    expect(wolves.length).toBeGreaterThanOrEqual(8);
-    for (let k = 0; k < 8; k++) {
+    expect(wolves.length).toBeGreaterThanOrEqual(5);
+    for (let k = 0; k < 5; k++) {
       const wolf = wolves[k];
       wolf.hp = 1;
       teleportTo(sim, wolf.pos.x + 2, wolf.pos.z);
@@ -1012,9 +1018,10 @@ describe('quests', () => {
       expect(wolf.dead).toBe(true);
     }
     expect(sim.questState('q_wolves')).toBe('ready');
-    teleportTo(sim, 4, 4);
+    teleportNearNpc(sim, 'marshal_redbrook');
     sim.interact();
     expect(sim.questState('q_wolves')).toBe('done');
+    expect(sim.questState('q_wolf_pelts')).toBe('available');
     expect(sim.questState('q_bandits')).toBe('available');
     expect(sim.questState('q_greyjaw')).toBe('available');
   });
@@ -1041,7 +1048,7 @@ describe('quests', () => {
     expect(sim.events).toContainEqual({ type: 'error', text: 'Too far away.', pid: sim.player.id });
 
     sim.events = [];
-    sim.questLog.set('q_wolves', { questId: 'q_wolves', counts: [8], state: 'ready' });
+    sim.questLog.set('q_wolves', { questId: 'q_wolves', counts: [5], state: 'ready' });
     sim.turnInQuest('q_wolves');
     expect(sim.questState('q_wolves')).toBe('ready');
     expect(sim.events).toContainEqual({ type: 'error', text: 'Too far away.', pid: sim.player.id });
@@ -1094,11 +1101,12 @@ describe('quests', () => {
 
   it('quest reward weapon is granted and auto-equipped', () => {
     const sim = makeSim('warrior');
-    teleportTo(sim, 4, 4);
+    teleportNearNpc(sim, 'marshal_redbrook');
     sim.interact();
     const qp = sim.questLog.get('q_wolves')!;
-    qp.counts[0] = 8;
+    qp.counts[0] = 5;
     (sim as any).checkQuestReady(qp, (sim as any).primary);
+    teleportNearNpc(sim, 'marshal_redbrook');
     sim.interact(); // turn in wolves
     // accept bandits specifically
     sim.acceptQuest('q_bandits');

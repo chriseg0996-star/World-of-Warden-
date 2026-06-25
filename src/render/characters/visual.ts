@@ -30,7 +30,7 @@ type BaseState = 'idle' | 'walk' | 'walkBack' | 'run' | 'cast' | 'swim' | 'sit' 
 const FADE = 0.22;
 const ONESHOT_FADE = 0.1;
 const RUN_SPEED_THRESHOLD = 4.5; // u/s — sim walk/wander sits well below
-const HIT_REACT_COOLDOWN = 0.9;
+const HIT_REACT_COOLDOWN = 0.38;
 const DEFAULT_WALK_REF = 2.2;
 const DEFAULT_RUN_REF = 7;
 // Lie_Idle already lays the rig flat — a touch of extra pitch reads as a
@@ -98,6 +98,8 @@ export class CharacterVisual {
   private initialized = false;
   private attackIdx = 0;
   private hitCooldown = 0;
+  private knockX = 0;
+  private knockZ = 0;
   private pendingDt = 0;
   private swimPitch = 0;
 
@@ -182,6 +184,12 @@ export class CharacterVisual {
    *  edges still latch so the pose catches up when the entity nears. */
   update(dt: number, s: AnimState, animate: boolean): void {
     this.hitCooldown = Math.max(0, this.hitCooldown - dt);
+    this.knockX *= Math.max(0, 1 - dt * 16);
+    this.knockZ *= Math.max(0, 1 - dt * 16);
+    if (!s.swimming || s.dead) {
+      this.poseWrap.position.x = this.knockX;
+      this.poseWrap.position.z = this.knockZ;
+    }
 
     // death is a level sim-side — edge-trigger the clip locally
     if (s.dead && !this.wasDead) this.enterDeath();
@@ -251,11 +259,20 @@ export class CharacterVisual {
   }
 
   playHit(): void {
-    if (this.deadLock || this.currentIsOneShot || this.hitCooldown > 0) return;
+    if (this.deadLock || this.hitCooldown > 0) return;
     const clips = this.def.clips.hit;
     if (!clips || clips.length === 0) return;
     this.hitCooldown = HIT_REACT_COOLDOWN;
-    this.playOneShot(clips[Math.floor(Math.random() * clips.length)], 1.2);
+    this.playOneShot(clips[Math.floor(Math.random() * clips.length)], 1.35);
+  }
+
+  /** Brief recoil away from the attacker — visual-only, does not move sim position. */
+  reactHit(dirX: number, dirZ: number, crit: boolean): void {
+    if (this.deadLock) return;
+    const push = crit ? 0.14 : 0.09;
+    this.knockX += dirX * push;
+    this.knockZ += dirZ * push;
+    this.playHit();
   }
 
   playEmote(id: OverheadEmoteId): void {

@@ -72,6 +72,8 @@ export interface Stats {
   int: number;
   spi: number;
   armor: number;
+  /** Bonus crit chance from gear (0.02 = +2% critical strike). */
+  crit?: number;
 }
 
 export interface WeaponInfo {
@@ -136,7 +138,7 @@ export interface ItemDef {
   // potions: restored instantly, usable in combat, share a cooldown (#103)
   potionHp?: number;
   potionMana?: number;
-  quality?: 'poor' | 'common' | 'uncommon' | 'rare' | 'epic'; // gray/white/green/blue/purple name colors
+  quality?: 'poor' | 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'; // gray/white/green/blue/purple/orange name colors
   requiredClass?: PlayerClass[];
 }
 
@@ -203,6 +205,8 @@ export interface MobTemplate {
   moveSpeed: number;
   aggroRadius: number; // base, at equal level
   loot: LootEntry[];
+  /** When set, overrides mobXpValue() for kill XP (level-diff scaling skipped). */
+  xpReward?: number;
   scale: number; // render hint
   color: number; // render hint
   boss?: boolean;
@@ -347,6 +351,9 @@ export interface NpcDef {
   // (auction house) instead of a fixed vendor stock.
   market?: boolean;
   greeting: string;
+  /** Optional closed loop of world xz points; NPC walks the route at patrolSpeed. */
+  patrol?: { x: number; z: number }[];
+  patrolSpeed?: number;
 }
 
 export interface CampDef {
@@ -435,6 +442,8 @@ export function emptyZoneProps(): ZonePropsDef {
 
 export interface QuestObjective {
   type: 'kill' | 'collect' | 'talk' | 'explore';
+  /** When set on an explore objective, credit on dungeon entry instead of position. */
+  dungeonId?: string;
   targetMobId?: string; // for kill
   itemId?: string; // for collect
   targetNpcId?: string; // for talk: the NPC template id to speak with
@@ -602,6 +611,7 @@ export interface Entity {
 // `pid` (when present) marks a personal event that should only be delivered to
 // that player entity's owner; events without pid are world-visible.
 export type SimEvent = { pid?: number } & (
+  | { type: 'swing'; sourceId: number; targetId: number; school: string }
   | { type: 'damage'; sourceId: number; targetId: number; amount: number; crit: boolean; school: string; ability: string | null; kind: 'hit' | 'miss' | 'dodge' | 'parry' }
   | { type: 'heal'; targetId: number; amount: number }
   | { type: 'death'; entityId: number; killerId: number }

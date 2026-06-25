@@ -795,6 +795,7 @@ export class GameServer {
       case 'turnin': if (typeof msg.quest === 'string') { sim.turnInQuest(msg.quest, pid); this.resyncQuests(session); } break;
       case 'abandon': if (typeof msg.quest === 'string') { sim.abandonQuest(msg.quest, pid); this.resyncQuests(session); } break;
       case 'equip': if (typeof msg.item === 'string') sim.equipItem(msg.item, pid); break;
+      case 'unequip': if (typeof msg.slot === 'string') sim.unequipItem(msg.slot as import('../src/sim/types').EquipSlot, pid); break;
       case 'use': if (typeof msg.item === 'string') sim.useItem(msg.item, pid); break;
       case 'discard':
         if (typeof msg.item === 'string') {

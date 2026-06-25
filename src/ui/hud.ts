@@ -16,9 +16,10 @@ import {
   dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
 } from '../sim/types';
 import { xpBarView, formatXp } from './xp_bar';
+import { Meters } from './meters';
 import { terrainHeight, WATER_LEVEL, roadDistance, generateDecorations } from '../sim/world';
 import type { Decoration } from '../sim/world';
-import { Meters } from './meters';
+import { TOWN_RADIUS } from '../sim/content/zone1';
 import { audio } from '../game/audio';
 import { music, musicZoneForLocation } from '../game/music';
 import { iconDataUrl, iconCanvas, QUALITY_COLOR, raidMarkerDataUrl, RAID_MARKER_NAMES } from './icons';
@@ -137,6 +138,7 @@ const ITEM_QUALITY_LABEL_KEYS: Record<ItemQuality, TranslationKey> = {
   uncommon: 'itemUi.quality.uncommon',
   rare: 'itemUi.quality.rare',
   epic: 'itemUi.quality.epic',
+  legendary: 'itemUi.quality.legendary',
 };
 const ITEM_KIND_LABEL_KEYS: Record<ItemDef['kind'], TranslationKey> = {
   weapon: 'itemUi.kind.weapon',
@@ -155,6 +157,7 @@ const ITEM_STAT_LABEL_KEYS: Partial<Record<keyof Stats, TranslationKey>> = {
   sta: 'itemUi.stats.sta',
   int: 'itemUi.stats.int',
   spi: 'itemUi.stats.spi',
+  crit: 'itemUi.stats.critStrike',
 };
 
 // Classic class colors (CLASSES[cls].color is a 0xRRGGBB number) as a CSS
@@ -256,6 +259,7 @@ export class Hud {
   private peekGuard = new TouchPeekGuard();
   private errorTimer: number | undefined;
   private bannerTimer: number | undefined;
+  private fctStacks = new Map<number, number>();
   private pfLevelEl = $('#pf-level');
   private pfHpEl = $('#pf-hp');
   private pfHpTextEl = $('#pf-hp-text');
@@ -353,11 +357,13 @@ export class Hud {
     this.initWindowManagement();
     this.emoteWheelSlots = this.loadEmoteWheelSlots();
     this.loadSlotMap();
+    this.seedStarterHotbar();
     this.buildActionBar();
     this.refreshKeybindLabels();
     this.buildXpTicks();
     document.addEventListener('woc:languagechange', () => this.refreshLocalizedDynamicUi());
     $('#pf-name').textContent = sim.player.name;
+    $('#player-frame').style.setProperty('--class-color', classCss(sim.cfg.playerClass));
     this.drawPortrait($('#pf-portrait') as unknown as HTMLCanvasElement, `class_${sim.cfg.playerClass}`);
     const mm = $('#minimap') as unknown as HTMLCanvasElement;
     this.minimapCtx = mm.getContext('2d')!;
@@ -988,7 +994,53 @@ export class Hud {
     this.tooltipEl.style.display = 'none';
   }
 
-  private itemTooltip(item: ItemDef): string {
+  private equippedItemFor(item: ItemDef): ItemDef | null {
+    if (!item.slot) return null;
+    let slot: EquipSlot = item.slot;
+    if (slot === 'ring1') {
+      const primary = this.sim.equipment.ring1;
+      const secondary = this.sim.equipment.ring2;
+      const id = primary ?? secondary;
+      return id ? ITEMS[id] ?? null : null;
+    }
+    const id = this.sim.equipment[slot];
+    return id ? ITEMS[id] ?? null : null;
+  }
+
+  private itemCompareHtml(candidate: ItemDef, equipped: ItemDef): string {
+    let html = '';
+    if (candidate.weapon && equipped.weapon) {
+      const candDps = (candidate.weapon.min + candidate.weapon.max) / 2 / candidate.weapon.speed;
+      const eqDps = (equipped.weapon.min + equipped.weapon.max) / 2 / equipped.weapon.speed;
+      const delta = candDps - eqDps;
+      if (Math.abs(delta) >= 0.05) {
+        const cls = delta > 0 ? 'tt-green' : 'tt-red';
+        const sign = delta > 0 ? '+' : '';
+        html += `<div class="${cls}">${esc(t('itemUi.tooltip.compareDps', { delta: `${sign}${itemNumber(delta, 1)}` }))}</div>`;
+      }
+    }
+    const keys = new Set<string>([
+      ...Object.keys(candidate.stats ?? {}),
+      ...Object.keys(equipped.stats ?? {}),
+    ]);
+    for (const k of keys) {
+      const next = (candidate.stats as Record<string, number | undefined> | undefined)?.[k] ?? 0;
+      const cur = (equipped.stats as Record<string, number | undefined> | undefined)?.[k] ?? 0;
+      const delta = k === 'crit' ? (next - cur) * 100 : next - cur;
+      if (Math.abs(delta) < (k === 'crit' ? 0.05 : 0.01)) continue;
+      const cls = delta > 0 ? 'tt-green' : 'tt-red';
+      const sign = delta > 0 ? '+' : '';
+      const value = k === 'crit' ? itemNumber(delta, 1) : itemNumber(delta);
+      html += `<div class="${cls}">${esc(t('itemUi.tooltip.compareStat', {
+        sign,
+        value,
+        stat: itemStatName(k),
+      }))}</div>`;
+    }
+    return html;
+  }
+
+  private itemTooltip(item: ItemDef, opts?: { compare?: boolean }): string {
     const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
     let html = `<div class="tt-title" style="color:${qColor}">${esc(itemDisplayName(item))}</div>`;
     html += `<div class="tt-sub">${esc(t('itemUi.tooltip.qualityKind', {
@@ -1013,6 +1065,11 @@ export class Hud {
         if (v === undefined) continue;
         if (k === 'armor') {
           html += `<div class="tt-stat">${esc(t('itemUi.tooltip.armorStat', { value: itemNumber(v) }))}</div>`;
+        } else if (k === 'crit') {
+          html += `<div class="tt-green">${esc(t('itemUi.tooltip.stat', {
+            value: itemNumber(v * 100, 1),
+            stat: itemStatName(k),
+          }))}</div>`;
         } else {
           html += `<div class="tt-green">${esc(t('itemUi.tooltip.stat', {
             value: itemNumber(v),
@@ -1063,6 +1120,12 @@ export class Hud {
       html += `<div class="tt-sub">${esc(t('itemUi.tooltip.classes', { classes: item.requiredClass.map(classDisplayName).join(', ') }))}</div>`;
     }
     if (item.sellValue > 0) html += `<div class="tt-sub">${esc(t('itemUi.tooltip.sellPrice', { money: formatLocalizedMoney(item.sellValue) }))}</div>`;
+    if (opts?.compare !== false && (item.kind === 'weapon' || item.kind === 'armor')) {
+      const equipped = this.equippedItemFor(item);
+      if (equipped && equipped.id !== item.id) {
+        html += this.itemCompareHtml(item, equipped);
+      }
+    }
     return html;
   }
 
@@ -1203,6 +1266,18 @@ export class Hud {
     this.knownAbilityIdsAtLastSlotSync = null;
   }
 
+  private seedStarterHotbar(): void {
+    if (this.loadedSlotMapFromStorage) return;
+    const firstAbility = this.sim.known[0]?.def.id;
+    if (firstAbility) {
+      this.hotbarActions = placeAbilityOnSlot(this.hotbarActions, firstAbility, 0);
+    }
+    if (this.isHotbarItemId('minor_healing_potion')) {
+      this.hotbarActions = placeItemOnSlot(this.hotbarActions, 'minor_healing_potion', 2);
+    }
+    this.saveSlotMap();
+  }
+
   private saveSlotMap(): void {
     try { localStorage.setItem(this.slotMapKey(), JSON.stringify(this.hotbarActions)); } catch { /* storage unavailable */ }
   }
@@ -1223,8 +1298,8 @@ export class Hud {
     const knownAbilityIds = this.sim.known.map((k) => k.def.id);
     const autoPlaceAbilityIds = new Set<string>();
     if (this.knownAbilityIdsAtLastSlotSync === null) {
-      if (!this.loadedSlotMapFromStorage) {
-        for (const id of knownAbilityIds) autoPlaceAbilityIds.add(id);
+      if (!this.loadedSlotMapFromStorage && knownAbilityIds[0]) {
+        autoPlaceAbilityIds.add(knownAbilityIds[0]);
       }
     } else {
       for (const id of knownAbilityIds) {
@@ -1578,6 +1653,7 @@ export class Hud {
     const target = p.targetId !== null ? sim.entities.get(p.targetId) : null;
     if (target && target.kind !== 'object') {
       this.setDisplay(this.targetFrameEl, 'flex');
+      this.targetFrameEl.classList.add('has-target');
       this.targetFrameEl.classList.toggle('elite', !!MOBS[target.templateId]?.elite);
       this.setText(this.targetEliteTagEl, MOBS[target.templateId]?.boss ? t('hud.core.boss') : t('hud.core.elite'));
       this.setText(this.targetNameEl, entityDisplayName(target));
@@ -1612,6 +1688,7 @@ export class Hud {
       }
     } else {
       this.setDisplay(this.targetFrameEl, 'none');
+      this.targetFrameEl.classList.remove('has-target');
       this.lastPortraitTarget = -999;
     }
 
@@ -1660,7 +1737,8 @@ export class Hud {
         this.setText(ab.countEl, '');
         if (ab.cdOverlay.style.height !== '0%') ab.cdOverlay.style.height = '0%';
         this.setText(ab.cdText, '');
-        ab.btn.classList.toggle('queued', !!p.autoAttack);
+        ab.btn.classList.remove('queued');
+        ab.btn.classList.toggle('auto-attack', !!p.autoAttack);
         ab.btn.classList.toggle('oor', tgtDist !== null && tgtDist > MELEE_RANGE);
         continue;
       }
@@ -1772,6 +1850,7 @@ export class Hud {
         currentZone.id, currentZone.biome, inHub, inDungeon, dungeon?.id ?? null,
       );
       music.update(zone, inCombat);
+      audio.updateAmbient(inHub, Math.hypot(p.pos.x - 7, p.pos.z - 16.5) < 14, 0.5);
 
       this.updateQuestTracker();
       this.updatePartyFrames();
@@ -1837,14 +1916,31 @@ export class Hud {
 
   private updateQuestTracker(): void {
     const el = $('#quest-tracker');
-    let html = this.sim.questLog.size > 0 ? `<div class="qt-header">${esc(t('questUi.tracker.title'))}</div>` : '';
-    for (const qp of this.sim.questLog.values()) {
-      const quest = QUESTS[qp.questId];
-      html += `<div class="qt-title">${esc(questTitle(qp.questId))}${qp.state === 'ready' ? ` <span class="quest-complete">(${esc(t('questUi.tracker.complete'))})</span>` : ''}</div>`;
-      quest.objectives.forEach((obj, i) => {
-        const done = qp.counts[i] >= obj.count;
-        html += `<div class="qt-obj${done ? ' done' : ''}">- ${esc(this.questProgressText(questObjectiveLabel(qp.questId, i), qp.counts[i], obj.count))}</div>`;
-      });
+    let html = '';
+    if (this.sim.questLog.size > 0) {
+      html = `<div class="qt-header">${esc(t('questUi.tracker.title'))}</div>`;
+      for (const qp of this.sim.questLog.values()) {
+        const quest = QUESTS[qp.questId];
+        html += `<div class="qt-title">${esc(questTitle(qp.questId))}${qp.state === 'ready' ? ` <span class="quest-complete">(${esc(t('questUi.tracker.complete'))})</span>` : ''}</div>`;
+        quest.objectives.forEach((obj, i) => {
+          const done = qp.counts[i] >= obj.count;
+          html += `<div class="qt-obj${done ? ' done' : ''}">- ${esc(this.questProgressText(questObjectiveLabel(qp.questId, i), qp.counts[i], obj.count))}</div>`;
+        });
+      }
+    } else {
+      const zone = zoneAt(this.sim.player.pos.z);
+      const welcomeId = zone.welcomeQuestId;
+      if (welcomeId && this.sim.questState(welcomeId) === 'available') {
+        const quest = QUESTS[welcomeId];
+        html = `<div class="qt-header">${esc(t('questUi.tracker.title'))}</div>`;
+        html += `<div class="qt-title qt-preview">${esc(questTitle(welcomeId))}</div>`;
+        quest.objectives.forEach((obj, i) => {
+          html += `<div class="qt-obj qt-preview">- ${esc(this.questProgressText(questObjectiveLabel(welcomeId, i), 0, obj.count))}</div>`;
+        });
+        if (quest.giverNpcId) {
+          html += `<div class="qt-hint">${esc(t('questUi.tracker.availableHint', { npc: npcDisplayName(quest.giverNpcId) }))}</div>`;
+        }
+      }
     }
     if (el.innerHTML !== html) el.innerHTML = html;
   }
@@ -2393,6 +2489,11 @@ export class Hud {
       this.renderer.handleEvent(ev);
       this.meters.onEvent(ev);
       switch (ev.type) {
+        case 'swing': {
+          const isPlayerSource = ev.sourceId === sim.playerId;
+          if (isPlayerSource) audio.meleeSwing();
+          break;
+        }
         case 'damage': {
           const src = sim.entities.get(ev.sourceId);
           const tgt = sim.entities.get(ev.targetId);
@@ -2401,7 +2502,7 @@ export class Hud {
           const isPlayerTarget = ev.targetId === sim.playerId;
           if (isPlayerSource || isPlayerTarget) this.lastCombatEventAt = performance.now();
           if (ev.kind === 'miss' || ev.kind === 'dodge') {
-            this.fct(tgt, ev.kind === 'miss' ? t('hud.combat.floatingMiss') : t('hud.combat.floatingDodge'), isPlayerTarget ? '#bbb' : '#fff', false);
+            this.fct(tgt, ev.kind === 'miss' ? t('hud.combat.floatingMiss') : t('hud.combat.floatingDodge'), isPlayerTarget ? '#bbb' : '#ccc', false, ev.kind);
             if (isPlayerSource) {
               this.combatLog(t(ev.kind === 'miss' ? 'hud.combat.miss' : 'hud.combat.dodged', {
                 ability: combatAbilityName(ev.ability),
@@ -2412,19 +2513,21 @@ export class Hud {
             break;
           }
           if (isPlayerSource && !isPlayerTarget) {
-            const color = ev.ability ? '#ffe97a' : '#fff';
-            this.fct(tgt, `${ev.amount}${ev.crit ? '!' : ''}`, color, ev.crit);
+            const color = ev.ability ? '#ffe97a' : '#fff8d0';
+            const amount = formatNumber(ev.amount, { maximumFractionDigits: 0 });
+            this.fct(tgt, ev.crit ? `${amount}!` : amount, color, ev.crit);
             this.combatLog(t(ev.crit ? 'hud.combat.damageDoneCrit' : 'hud.combat.damageDone', {
               ability: combatAbilityName(ev.ability),
               target: entityDisplayName(tgt),
               amount: ev.amount,
-            }), ev.ability ? '#ffe97a' : '#eee');
+            }), ev.crit ? '#ffd966' : ev.ability ? '#ffe97a' : '#eee');
             if (ev.school === 'fire') audio.fire();
             else if (ev.school === 'frost') audio.frost();
             else if (ev.school === 'arcane') audio.arcane();
             else audio.meleeHit(ev.crit);
           } else if (isPlayerTarget) {
-            this.fct(tgt, `-${ev.amount}`, '#ff5544', ev.crit);
+            const amount = formatNumber(ev.amount, { maximumFractionDigits: 0 });
+            this.fct(tgt, `-${amount}`, '#ff5544', ev.crit);
             this.combatLog(t(ev.crit ? 'hud.combat.damageTakenCrit' : 'hud.combat.damageTaken', {
               source: src ? entityDisplayName(src) : '?',
               amount: ev.amount,
@@ -2441,12 +2544,16 @@ export class Hud {
         }
         case 'death': {
           const e = sim.entities.get(ev.entityId);
-          if (e && ev.entityId !== sim.playerId) this.combatLog(t('hud.combat.death', { name: entityDisplayName(e) }), '#aaa');
+          if (e && ev.entityId !== sim.playerId) {
+            this.combatLog(t('hud.combat.death', { name: entityDisplayName(e) }), '#aaa');
+            if (ev.killerId === sim.playerId && e.kind === 'mob') audio.enemyDeath();
+          }
           break;
         }
         case 'xp': {
           this.fct(sim.player, t('hud.core.xpFloat', { amount: ev.amount }), '#b974ff', false);
           this.log(t('hud.core.xpGain', { amount: ev.amount }), '#a980d8');
+          audio.xpGain();
           break;
         }
         case 'levelup': {
@@ -2477,9 +2584,18 @@ export class Hud {
         case 'learnAbility': break; // logged by sim
         case 'comboPoint': break;
         case 'loot': {
-          this.log(this.localizeLootText(ev.text), '#7fdc4f');
+          const localized = this.localizeLootText(ev.text);
+          this.log(localized, '#7fdc4f');
+          const itemMatch = /^You receive: (.+)\.$/.exec(ev.text);
+          if (itemMatch) {
+            const item = itemFromLootSource(itemMatch[1]);
+            const display = item ? itemDisplayName(item) : itemDisplayNameFromSource(itemMatch[1].replace(/ x\d+$/, ''));
+            const color = item ? (QUALITY_COLOR[item.quality ?? 'common'] ?? '#7fdc4f') : '#7fdc4f';
+            this.fctLoot(sim.player, display, color);
+          }
           if (ev.text.includes('loot') || ev.text.includes('Sold') || ev.text.includes('Bought back')) audio.coin();
           else audio.lootItem();
+          this.renderer.showLootPickup(sim.playerId);
           if ($('#bags').style.display !== 'none') this.renderBags();
           break;
         }
@@ -2973,17 +3089,37 @@ export class Hud {
     if (wasNearBottom) el.scrollTop = el.scrollHeight;
   }
 
-  private fct(target: Entity, text: string, color: string, crit: boolean): void {
+  private fct(target: Entity, text: string, color: string, crit: boolean, kind?: 'miss' | 'dodge'): void {
     const v = this.renderer.worldToScreen(target.pos.x, target.pos.y + 2.2 * target.scale, target.pos.z);
     if (v.behind) return;
+    const stack = this.fctStacks.get(target.id) ?? 0;
+    this.fctStacks.set(target.id, stack + 1);
     const el = document.createElement('div');
-    el.className = 'fct' + (crit ? ' crit' : '');
+    el.className = 'fct' + (crit ? ' crit' : '') + (kind ? ' miss' : '');
     el.style.color = color;
-    el.style.left = `${v.x + (Math.random() * 30 - 15)}px`;
+    el.style.left = `${v.x + (Math.random() * 24 - 12)}px`;
+    el.style.top = `${v.y - stack * 16}px`;
+    el.textContent = text;
+    document.getElementById('ui')!.appendChild(el);
+    window.setTimeout(() => {
+      el.remove();
+      const n = (this.fctStacks.get(target.id) ?? 1) - 1;
+      if (n <= 0) this.fctStacks.delete(target.id);
+      else this.fctStacks.set(target.id, n);
+    }, crit ? 1400 : 1250);
+  }
+
+  private fctLoot(target: Entity, text: string, color: string): void {
+    const v = this.renderer.worldToScreen(target.pos.x, target.pos.y + 2.0 * target.scale, target.pos.z);
+    if (v.behind) return;
+    const el = document.createElement('div');
+    el.className = 'fct loot';
+    el.style.color = color;
+    el.style.left = `${v.x}px`;
     el.style.top = `${v.y}px`;
     el.textContent = text;
     document.getElementById('ui')!.appendChild(el);
-    setTimeout(() => el.remove(), 1250);
+    window.setTimeout(() => el.remove(), 1400);
   }
 
   showError(text: string): void {
@@ -3742,6 +3878,7 @@ export class Hud {
       <span>${esc(t('itemUi.stats.sta'))}: <b>${formatNumber(p.stats.sta, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.dps'))}: <b>${formatNumber(dps, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</b></span>
       <span>${esc(t('itemUi.stats.int'))}: <b>${formatNumber(p.stats.int, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.critChance'))}: <b>${formatNumber(p.critChance * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</b></span>
       <span>${esc(t('itemUi.stats.spi'))}: <b>${formatNumber(p.stats.spi, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.dodge'))}: <b>${formatNumber(p.dodgeChance * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</b></span>
+      <span>${esc(t('itemUi.stats.maxHealth'))}: <b>${formatNumber(p.maxHp, { maximumFractionDigits: 0 })}</b></span>
     </div>`;
     html += this.talentSummaryHtml();
     html += this.progressionHtml(p.level);
@@ -3759,7 +3896,15 @@ export class Hud {
       row.innerHTML = `${item ? this.itemIcon(item) : `<img class="item-icon" style="border-color:#444" src="${iconDataUrl('item', 'slot_empty')}" alt="" draggable="false">`}
         <div><div class="slot-name">${esc(slot.name)}</div><div class="slot-item" style="color:${qColor}">${item ? esc(itemDisplayName(item)) : esc(t('itemUi.equipment.empty'))}</div></div>`;
       if (item) {
-        this.attachTooltip(row, () => this.itemTooltip(item));
+        this.attachTooltip(row, () => this.itemTooltip(item, { compare: false }));
+        if (item.use?.type !== 'trinketUse') {
+          row.addEventListener('contextmenu', (ev) => {
+            ev.preventDefault();
+            this.sim.unequipItem(slot.key);
+            this.renderChar();
+            if ($('#bags').style.display === 'block') this.renderBags();
+          });
+        }
         // On-use trinkets activate when their paperdoll slot is clicked/activated.
         if (item.use?.type === 'trinketUse' && itemId) {
           row.setAttribute('role', 'button');
@@ -3841,13 +3986,32 @@ export class Hud {
   private talentSummaryHtml(): string {
     const ct = talentsFor(this.sim.cfg.playerClass);
     if (!ct) return '';
+    const tp = this.sim.talentPoints();
+    const nodeById = new Map(ct.nodes.map((n) => [n.id, n]));
     const sp = ct.specs.find((s) => s.id === this.sim.talentSpec);
     const specName = sp ? esc(tTalent({ kind: 'talentSpec', spec: sp, field: 'name' })) : t('game.talents.noSpec');
     let html = `<div class="char-progression"><div class="cp-title">${t('game.talents.specTab')}</div>`;
     html += `<div class="char-stats cp-stats"><span>${t('game.talents.specTab')}: <b>${specName}</b></span>`;
     if (sp) html += `<span>${t('game.talents.role')}: <b>${this.roleLabel(sp.role)}</b></span>`;
+    html += `<span>${t('game.talents.charPoints', { available: tp.total - tp.spent, spent: tp.spent, total: tp.total })}</span>`;
     html += `</div>`;
     if (sp) html += `<div class="cp-milestones"><span class="cp-ms-label">${t('game.talents.mastery')}:</span> <b style="color:var(--gold)">${esc(tTalent({ kind: 'talentMastery', spec: sp, field: 'name' }))}</b> <span class="cp-none">${esc(tTalent({ kind: 'talentMastery', spec: sp, field: 'description' }))}</span></div>`;
+    const invested: string[] = [];
+    for (const [id, rank] of Object.entries(this.sim.talents.ranks)) {
+      if (!rank) continue;
+      const node = nodeById.get(id);
+      if (!node) continue;
+      invested.push(t('game.talents.investedRank', {
+        name: tTalent({ kind: 'talentNode', node, field: 'name' }),
+        rank,
+        max: node.maxRank,
+      }));
+    }
+    html += `<div class="cp-milestones"><span class="cp-ms-label">${t('game.talents.investedHeading')}:</span> `;
+    html += invested.length > 0
+      ? invested.map((line) => `<span class="cp-none">${esc(line)}</span>`).join(' · ')
+      : `<span class="cp-none">${t('game.talents.noTalentsInvested')}</span>`;
+    html += `</div>`;
     return html + `</div>`;
   }
 
@@ -5900,8 +6064,13 @@ function itemDisplayName(item: ItemDef): string {
 }
 
 function itemDisplayNameFromSource(name: string): string {
-  const item = Object.values(ITEMS).find((candidate) => candidate.name === name);
+  const item = itemFromLootSource(name);
   return item ? itemDisplayName(item) : name;
+}
+
+function itemFromLootSource(name: string): ItemDef | undefined {
+  const base = name.replace(/ x\d+$/, '');
+  return Object.values(ITEMS).find((candidate) => candidate.name === base);
 }
 
 function itemStackDisplayName(item: string, stackSuffix?: string): string {

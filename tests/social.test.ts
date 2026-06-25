@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Sim } from '../src/sim/sim';
 import { ALL_CLASSES, MAX_LEVEL, dist2d } from '../src/sim/types';
-import { CLASSES, MOBS, abilitiesKnownAt, instanceOrigin, CRYPT_SPAWNS } from '../src/sim/data';
+import { CLASSES, MOBS, abilitiesKnownAt, instanceOrigin, CRYPT_SPAWNS, GROUP_XP_BONUS } from '../src/sim/data';
 import { groundHeight } from '../src/sim/world';
 
 function makeWorld() {
@@ -111,16 +111,16 @@ describe('nine classes', () => {
     sim.tick();
     expect(p.auras.some((a) => a.kind === 'imbue')).toBe(true);
     const wolf = nearestMob(sim, 'forest_wolf');
-    teleport(sim, p.id, wolf.pos.x + 3, wolf.pos.z);
+    wolf.hp = wolf.maxHp;
+    teleport(sim, p.id, wolf.pos.x + 2, wolf.pos.z);
     sim.targetEntity(wolf.id);
     face(sim, p.id, wolf.id);
     p.resource = p.maxResource;
-    // wait out gcd then judge
-    for (let i = 0; i < 35; i++) sim.tick();
+    for (let i = 0; i < 20 * 4 && p.gcdRemaining > 0; i++) sim.tick();
     face(sim, p.id, wolf.id);
     const dealtBefore = sim.counters.damageDealt;
     sim.castAbility('judgement');
-    sim.tick();
+    for (let i = 0; i < 5; i++) sim.tick();
     expect(sim.counters.damageDealt).toBeGreaterThan(dealtBefore);
     expect(p.auras.some((a) => a.kind === 'imbue')).toBe(false); // consumed
   });
@@ -137,15 +137,19 @@ describe('nine classes', () => {
     expect(p.resource).toBe(40);
     // drain life channel heals
     const wolf = nearestMob(sim, 'forest_wolf');
-    teleport(sim, p.id, wolf.pos.x + 10, wolf.pos.z);
+    wolf.hp = wolf.maxHp;
+    teleport(sim, p.id, wolf.pos.x + 8, wolf.pos.z);
     sim.targetEntity(wolf.id);
     face(sim, p.id, wolf.id);
     p.hp = 30;
     p.resource = p.maxResource;
-    for (let i = 0; i < 35; i++) sim.tick();
+    for (let i = 0; i < 20 * 4 && p.gcdRemaining > 0; i++) sim.tick();
     face(sim, p.id, wolf.id);
     sim.castAbility('drain_life');
-    for (let i = 0; i < 20 * 6 && p.castingAbility; i++) sim.tick();
+    for (let i = 0; i < 20 * 8 && (p.castingAbility || p.hp <= 30); i++) {
+      face(sim, p.id, wolf.id);
+      sim.tick();
+    }
     expect(p.hp).toBeGreaterThan(30);
   });
 
@@ -214,13 +218,13 @@ describe('elite mobs', () => {
     const pid = sim.addPlayer('warrior', 'Tank');
     sim.enterCrypt(pid);
     const origin = instanceOrigin(0, 0);
-    const shambler = nearestMob(sim, 'crypt_shambler', origin);
-    expect(shambler).toBeTruthy();
-    const t = MOBS.crypt_shambler;
-    const normalHp = t.hpBase + t.hpPerLevel * (shambler.level - 1);
-    expect(shambler.maxHp).toBe(Math.round(normalHp * 2.3));
-    const normalDmg = t.dmgBase + t.dmgPerLevel * (shambler.level - 1);
-    expect(shambler.weapon.max).toBe(Math.round(normalDmg * 1.5 * 1.25));
+    const guardian = nearestMob(sim, 'bone_guardian', origin);
+    expect(guardian).toBeTruthy();
+    const t = MOBS.bone_guardian;
+    const normalHp = t.hpBase + t.hpPerLevel * (guardian.level - 1);
+    expect(guardian.maxHp).toBe(Math.round(normalHp * 2.3));
+    const normalDmg = t.dmgBase + t.dmgPerLevel * (guardian.level - 1);
+    expect(guardian.weapon.max).toBe(Math.round(normalDmg * 1.5 * 1.25));
   });
 });
 
@@ -346,7 +350,9 @@ describe('parties', () => {
     // both got xp (half of solo, with 1.166 duo bonus applied)
     expect(metaA.xp).toBeGreaterThan(0);
     expect(metaB.xp).toBeGreaterThan(0);
-    expect(metaA.xp).toBe(Math.round((50 * 1.166) / 2));
+    const wolfXp = MOBS.forest_wolf.xpReward!;
+    const duoBonus = GROUP_XP_BONUS[1];
+    expect(metaA.xp).toBe(Math.round((wolfXp * duoBonus) / 2));
     // both got quest credit
     expect(metaA.questLog.get('q_wolves')!.counts[0]).toBe(1);
     expect(metaB.questLog.get('q_wolves')!.counts[0]).toBe(1);
@@ -611,7 +617,7 @@ describe('trading', () => {
   });
 });
 
-describe('the Hollow Crypt', () => {
+describe('the Forgotten Crypt', () => {
   it('party members enter the same instance; strangers get their own', () => {
     const sim = makeWorld();
     const a = sim.addPlayer('warrior', 'Aleph');
@@ -631,7 +637,7 @@ describe('the Hollow Crypt', () => {
     // elites spawned in each claimed instance
     const slotA = sim.instanceSlotAt(ea.pos)!;
     const originA = instanceOrigin(0, slotA);
-    const bossA = nearestMob(sim, 'morthen', originA);
+    const bossA = nearestMob(sim, 'crypt_warden', originA);
     expect(bossA).toBeTruthy();
     expect(Math.abs(bossA.pos.x - originA.x)).toBeLessThan(50);
     expect(sim.instances.filter((i) => i.partyKey !== null).length).toBe(2);
@@ -640,7 +646,7 @@ describe('the Hollow Crypt', () => {
     expect(ea.pos.x).toBeLessThan(200);
   });
 
-  it('crypt has the full spawn set and Morthen pulses in combat', () => {
+  it('crypt has the full spawn set and the Crypt Warden stomps in combat', () => {
     const sim = makeWorld();
     const a = sim.addPlayer('warrior', 'Aleph');
     teleport(sim, a, 80, 88);
@@ -651,8 +657,7 @@ describe('the Hollow Crypt', () => {
       (e) => e.kind === 'mob' && Math.abs(e.pos.x - origin.x) < 120 && Math.abs(e.pos.z - origin.z) < 250,
     );
     expect(cryptMobs.length).toBe(CRYPT_SPAWNS.length);
-    // walk the player onto the boss: pulse should hit within ~12s
-    const boss = nearestMob(sim, 'morthen', origin);
+    const boss = nearestMob(sim, 'crypt_warden', origin);
     const ea = sim.entities.get(a)!;
     sim.setPlayerLevel(10, a);
     ea.hp = ea.maxHp;
@@ -660,14 +665,15 @@ describe('the Hollow Crypt', () => {
     sim.targetEntity(boss.id, a);
     face(sim, a, boss.id);
     sim.startAutoAttack(a);
-    let pulsed = false;
-    for (let i = 0; i < 20 * 25 && !pulsed; i++) {
+    boss.stompTimer = 0.001;
+    let stomped = false;
+    for (let i = 0; i < 20 * 25 && !stomped; i++) {
       face(sim, a, boss.id);
       const events = sim.tick();
-      if (events.some((e) => e.type === 'damage' && e.ability === 'Shadow Pulse' && e.targetId === a)) pulsed = true;
+      if (events.some((e) => e.type === 'damage' && e.ability === 'Ground Slam' && e.targetId === a)) stomped = true;
       if (ea.dead) break;
     }
-    expect(pulsed).toBe(true);
+    expect(stomped).toBe(true);
   });
 
   it('the storyline chain gates the dungeon quest', () => {
@@ -675,6 +681,8 @@ describe('the Hollow Crypt', () => {
     expect(sim.questState('q_whispers')).toBe('unavailable'); // needs q_bones
     expect(sim.questState('q_rite')).toBe('unavailable');
     expect(sim.questState('q_hollow')).toBe('unavailable');
+    sim.setPlayerLevel(5);
+    expect(sim.questState('q_fc_enter')).toBe('available');
     sim.questsDone.add('q_bones');
     expect(sim.questState('q_whispers')).toBe('available');
     sim.questsDone.add('q_whispers');

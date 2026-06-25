@@ -527,6 +527,7 @@ export class Sim {
   /** When true, /dev level|tp|give chat commands are accepted (local dev only). */
   readonly devCommands: boolean;
   private pendingMobRespawns: PendingMobRespawn[] = [];
+  private npcPatrol = new Map<number, { points: Vec3[]; index: number; pause: number }>();
 
   constructor(cfg: SimConfig) {
     this.devCommands = cfg.devCommands ?? false;
@@ -545,6 +546,10 @@ export class Sim {
       const safe = this.findSafePos(npcDef.pos.x, npcDef.pos.z, WATER_LEVEL + 0.6);
       const npc = createNpc(this.nextId++, npcDef, this.groundPos(safe.x, safe.z));
       this.addEntity(npc);
+      if (npcDef.patrol?.length) {
+        const points = npcDef.patrol.map((p) => this.groundPos(p.x, p.z));
+        this.npcPatrol.set(npc.id, { points, index: points.length > 1 ? 1 : 0, pause: 0 });
+      }
       if (npcDef.market) this.merchantId = npc.id; // the World Market is anchored here
     }
     this.seedHouseListings();
@@ -945,6 +950,32 @@ export class Sim {
     return { x, y: groundHeight(x, z, this.cfg.seed), z };
   }
 
+  private updateNpcPatrol(npc: Entity): void {
+    const state = this.npcPatrol.get(npc.id);
+    if (!state || state.points.length < 2) return;
+    if (state.pause > 0) {
+      state.pause -= DT;
+      return;
+    }
+    const target = state.points[state.index];
+    const dx = target.x - npc.pos.x;
+    const dz = target.z - npc.pos.z;
+    const dist = Math.hypot(dx, dz);
+    const speed = 2.4;
+    if (dist < 0.4) {
+      state.index = (state.index + 1) % state.points.length;
+      state.pause = 1.2 + this.rng.range(0, 2.5);
+      return;
+    }
+    const step = Math.min(dist, speed * DT);
+    npc.pos.x += (dx / dist) * step;
+    npc.pos.z += (dz / dist) * step;
+    npc.pos.y = groundHeight(npc.pos.x, npc.pos.z, this.cfg.seed);
+    npc.facing = Math.atan2(dx, dz);
+    npc.prevPos = { ...npc.pos };
+    npc.prevFacing = npc.facing;
+  }
+
   // Deterministic outward spiral to the nearest spot that is on dry-enough
   // ground and not inside a building/prop. Keeps NPCs out of houses and lakes.
   findSafePos(x: number, z: number, minHeight: number): { x: number; z: number } {
@@ -1235,6 +1266,7 @@ export class Sim {
         this.updateAuras(e);
       } else if (e.kind === 'npc') {
         this.cleanseFriendlyNpcAuras(e);
+        this.updateNpcPatrol(e);
       } else if (e.kind === 'object') {
         if (!e.lootable) {
           e.respawnTimer -= DT;
@@ -3155,12 +3187,17 @@ export class Sim {
     }
   }
 
+  private emitSwing(attacker: Entity, target: Entity, school: string): void {
+    this.emit({ type: 'swing', sourceId: attacker.id, targetId: target.id, school });
+  }
+
   private rangedSwing(
     attacker: Entity, target: Entity,
     ranged: { min: number; max: number; speed: number; wand?: boolean; school?: string },
   ): void {
     const school = ranged.wand ? (ranged.school ?? 'arcane') : 'physical';
     const label = ranged.wand ? 'Wand' : 'Auto Shot';
+    this.emitSwing(attacker, target, school);
     this.emit({ type: 'spellfx', sourceId: attacker.id, targetId: target.id, school, fx: 'projectile' });
     const missChance = meleeMissChance(attacker.level, target.level);
     if (this.rng.chance(missChance)) {
@@ -3181,6 +3218,7 @@ export class Sim {
     attacker: Entity, target: Entity, bonus: number, abilityName: string | null,
     opts: { cannotBeDodged?: boolean; weaponMult?: number; threatFlat?: number; threatMult?: number },
   ): boolean {
+    this.emitSwing(attacker, target, 'physical');
     const missChance = meleeMissChance(attacker.level, target.level);
     const dodgeChance = opts.cannotBeDodged ? 0
       : (target.kind === 'player' ? target.dodgeChance : 0.05 + Math.max(0, target.level - attacker.level) * 0.005);
@@ -3461,7 +3499,9 @@ export class Sim {
           // mobXpValue keeps the level-diff (anti-farm) scaling; grantXp now
           // routes the award to lifetimeXp even at the cap, so the party gate no
           // longer blocks max-level members — it just forwards every positive award.
-          const xpGain = Math.round((mobXpValue(e.level, mE.level) * eliteMult * bonus) / eligible.length);
+          const mobTpl = MOBS[e.templateId];
+          const baseXp = mobTpl?.xpReward ?? mobXpValue(e.level, mE.level);
+          const xpGain = Math.round((baseXp * eliteMult * bonus) / eligible.length);
           if (xpGain > 0) this.grantXp(xpGain, member);
           this.onMobKilledForQuests(e, member);
         }
@@ -4048,6 +4088,7 @@ export class Sim {
   }
 
   private mobSwing(mob: Entity, target: Entity): void {
+    this.emitSwing(mob, target, 'physical');
     const missChance = meleeMissChance(mob.level, target.level);
     const dodgeChance = target.kind === 'player' ? target.dodgeChance : 0.05;
     const roll = this.rng.next();
@@ -4636,6 +4677,19 @@ export class Sim {
     this.emit({ type: 'log', text: `Equipped ${def.name}.`, color: '#8f8', pid: meta.entityId });
   }
 
+  unequipItem(slot: EquipSlot, pid?: number): void {
+    const r = this.resolve(pid);
+    if (!r) return;
+    const { meta, e: p } = r;
+    const itemId = meta.equipment[slot];
+    if (!itemId) return;
+    const def = ITEMS[itemId];
+    delete meta.equipment[slot];
+    this.addItemSilent(itemId, 1, meta);
+    recalcPlayerStats(p, meta.cls, meta.equipment, meta.talentMods);
+    this.emit({ type: 'log', text: `Unequipped ${def?.name ?? itemId}.`, color: '#8f8', pid: meta.entityId });
+  }
+
   private hasFishableWaterAhead(p: Entity): boolean {
     const sin = Math.sin(p.facing);
     const cos = Math.cos(p.facing);
@@ -5063,6 +5117,7 @@ export class Sim {
       const quest = QUESTS[qp.questId];
       let changed = false;
       quest.objectives.forEach((obj, i) => {
+        if (obj.type === 'explore' && obj.dungeonId) return;
         if (obj.type === 'explore' && obj.point && qp.counts[i] < obj.count) {
           const dx = p.pos.x - obj.point.x;
           const dz = p.pos.z - obj.point.z;
@@ -6770,6 +6825,24 @@ export class Sim {
     p.autoAttack = false;
     inst.emptyFor = 0;
     this.emit({ type: 'log', text: dungeon.enterText, color: '#b9f', pid: r.meta.entityId });
+    this.creditDungeonQuestObjectives(dungeonId, r.meta);
+  }
+
+  private creditDungeonQuestObjectives(dungeonId: string, meta: PlayerMeta): void {
+    for (const qp of meta.questLog.values()) {
+      if (qp.state !== 'active') continue;
+      const quest = QUESTS[qp.questId];
+      let changed = false;
+      quest.objectives.forEach((obj, i) => {
+        if (obj.type === 'explore' && obj.dungeonId === dungeonId && qp.counts[i] < obj.count) {
+          qp.counts[i] = obj.count;
+          changed = true;
+          meta.counters.questProgress++;
+          this.emit({ type: 'questProgress', questId: qp.questId, text: `${obj.label}: ${qp.counts[i]}/${obj.count}`, pid: meta.entityId });
+        }
+      });
+      if (changed) this.checkQuestReady(qp, meta);
+    }
   }
 
   leaveDungeon(pid?: number): void {

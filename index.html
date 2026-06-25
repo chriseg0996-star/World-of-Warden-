@@ -86,7 +86,8 @@
     --gold: #ffd100;
     --gold-dim: #c8a838;
     --border: #6f5a2a;
-    --panel-bg: linear-gradient(170deg, #15151fF2 0%, #0b0b12F2 60%, #08080dF2 100%);
+    --color-navy: #0c1024;
+    --panel-bg: linear-gradient(170deg, #151a2fF2 0%, #0c1024F2 55%, #08080dF2 100%);
     /* Typography — Cinzel (heraldic display/headings), Alegreya Sans (UI + body),
        Alegreya (serif flavour prose). Legacy token names alias the canonical set
        so every existing usage resolves to the new system. */
@@ -377,6 +378,7 @@
     text-shadow: 1px 1px 2px #000; white-space: nowrap; will-change: transform; }
   .nameplate.has-emote { z-index: 30; }
   .np-name { font-size: 12px; font-weight: bold; font-family: var(--title-font); letter-spacing: 0.3px; }
+  .np-title { font-size: 10px; color: #b8ad8a; font-family: var(--ui-font); margin-bottom: 1px; letter-spacing: 0.2px; }
   .np-hpbar { width: 78px; height: 6px; background: #2a0000; border: 1px solid #000; margin: 1px auto 0; border-radius: 2px; }
   .np-hpfill { height: 100%; background: linear-gradient(#48e060, #1d7a32); border-radius: 2px; }
   .np-marker { font-size: 24px; font-weight: bold; height: 26px; font-family: var(--title-font); }
@@ -418,6 +420,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    --class-color: var(--gold-dim);
+  }
+  #player-frame .portrait {
+    border-color: var(--class-color);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--class-color) 45%, transparent), 0 2px 8px #000c, inset 0 0 12px #0009;
   }
   #player-frame .uf-bars {
     flex: 1;
@@ -425,7 +432,15 @@
     min-width: 0;
     max-width: 520px;
   }
-  #target-frame { left: 12px; top: 12px; display: none; z-index: 6; }
+  #target-frame { left: 12px; top: 12px; display: none; z-index: 6; transition: filter .15s; }
+  #target-frame.has-target .uf-bars {
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 14px #ffd10044, 0 2px 10px #000a;
+  }
+  #target-frame.has-target .portrait {
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 12px #ffd10055, 0 2px 8px #000c, inset 0 0 12px #0009;
+  }
   .portrait-wrap { position: relative; width: 64px; height: 64px; z-index: 2; }
   .portrait {
     width: 60px; height: 60px; border-radius: 50%;
@@ -487,7 +502,7 @@
   #xpbar .fill { height: 100%; width: 0%; background: linear-gradient(#b85eff, #6a1bb0); transition: background .3s; }
   #xpbar .ticks { position: absolute; inset: 0; display: flex; }
   #xpbar .ticks i { flex: 1; border-right: 1px solid #00000055; }
-  #xpbar .label { position: absolute; inset: 0; font-size: 9px; color: #fff; text-align: center; line-height: 10px; text-shadow: 1px 1px 1px #000; opacity: 0; transition: opacity .15s; }
+  #xpbar .label { position: absolute; inset: 0; font-size: 9px; color: #fff; text-align: center; line-height: 10px; text-shadow: 1px 1px 1px #000; opacity: 0.78; transition: opacity .15s; }
   #xpbar:hover .label { opacity: 1; }
   /* Post-cap overflow bar (Max-Level XP Overflow): gold/prestige tint. */
   #xpbar.overflow { outline-color: #b8902a; box-shadow: 0 0 6px #f5c84355; }
@@ -510,6 +525,16 @@
   .pet-btn .cdtext { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     font-size: 13px; color: var(--gold); text-shadow: 1px 1px 2px #000; font-weight: bold; pointer-events: none; }
   #actionbar { display: flex; gap: 4px; padding: 6px; }
+  #actionbar.bar-six {
+    gap: 6px;
+    padding: 8px 10px;
+    border: 2px solid var(--border);
+    outline: 1px solid #000;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px #000a, inset 0 1px 0 #ffffff0a;
+    background: linear-gradient(170deg, #151a2fee 0%, #0c1024ee 55%, #08080dee 100%);
+  }
+  #actionbar.bar-six .action-btn:nth-child(n+7) { display: none; }
   .action-btn { width: 46px; height: 46px; position: relative; border: 2px solid #4a3d1d; border-radius: 6px;
     background: radial-gradient(circle at 35% 30%, #2c2c3a, #15151f); color: #fff; cursor: pointer;
     font-family: var(--title-font); text-shadow: 1px 1px 2px #000;
@@ -528,6 +553,8 @@
   .action-btn.unusable .icon-label { filter: grayscale(1) brightness(0.5); }
   .action-btn.oor .icon-label { filter: brightness(0.55) saturate(0.4); }
   .action-btn.queued { border-color: #fff; box-shadow: 0 0 9px #ffd100cc, inset 0 1px 0 #ffffff18; }
+  .action-btn.auto-attack { border-color: var(--gold); box-shadow: 0 0 10px #ffd10088, inset 0 0 0 1px #ffd10044; }
+  .action-btn.auto-attack .icon-label { filter: brightness(1.12); }
   .action-btn:not(.empty)[draggable="true"] { cursor: grab; }
   .action-btn.drop-target { border-color: #7fd1ff; box-shadow: 0 0 8px #7fd1ff88; }
   /* micro-menu: bottom-right, stacked upward, sitting just above the
@@ -596,11 +623,16 @@
   .report-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 
   /* ---------- quest tracker ---------- */
-  #quest-tracker { position: absolute; right: 14px; top: 262px; width: 240px; font-size: 12px;
-    color: var(--gold); text-shadow: 1px 1px 2px #000; pointer-events: none; }
-  #quest-tracker .qt-header { font-family: var(--title-font); font-size: 14px; border-bottom: 1px solid #ffd10044; margin-bottom: 4px; padding-bottom: 2px; }
+  #quest-tracker { position: absolute; right: 14px; top: 262px; width: 248px; font-size: 12px;
+    color: var(--gold); text-shadow: 1px 1px 2px #000; pointer-events: none;
+    background: var(--panel-bg); border: 2px solid var(--border); outline: 1px solid #000;
+    border-radius: 6px; padding: 8px 10px; box-shadow: 0 4px 14px #000a; }
+  #quest-tracker .qt-header { font-family: var(--title-font); font-size: 14px; border-bottom: 1px solid #ffd10044; margin-bottom: 4px; padding-bottom: 3px; letter-spacing: 0.4px; }
   #quest-tracker .qt-title { font-weight: bold; margin-top: 8px; font-family: var(--title-font); }
+  #quest-tracker .qt-title.qt-preview { color: #d4bc6a; margin-top: 4px; }
   #quest-tracker .qt-obj { color: #e8e0c8; font-size: 11px; margin-left: 8px; }
+  #quest-tracker .qt-obj.qt-preview { color: #b8ad8a; }
+  #quest-tracker .qt-hint { color: var(--color-text-muted); font-size: 10px; margin-top: 6px; font-style: italic; line-height: 1.35; }
   #quest-tracker .qt-obj.done,
   .qd-obj.done,
   .quest-complete { color: var(--color-text-success); }
@@ -635,9 +667,11 @@
   }
 
   /* ---------- minimap ---------- */
-  #minimap-wrap { position: absolute; right: 12px; top: 10px; width: 170px; text-align: center; }
-  #zone-label { font-size: 13px; color: var(--gold); font-family: var(--title-font); text-shadow: 1px 1px 3px #000; margin-bottom: 3px; letter-spacing: 0.5px; }
-  #minimap { border-radius: 50%; border: 4px solid var(--border); outline: 1px solid #000; box-shadow: 0 0 14px #000c, inset 0 0 20px #0008; }
+  #minimap-wrap { position: absolute; right: 12px; top: 10px; width: 178px; text-align: center;
+    background: var(--panel-bg); border: 2px solid var(--border); outline: 1px solid #000;
+    border-radius: 10px; padding: 6px 8px 8px; box-shadow: 0 4px 16px #000a; }
+  #zone-label { font-size: 13px; color: var(--gold); font-family: var(--title-font); text-shadow: 1px 1px 3px #000; margin-bottom: 4px; letter-spacing: 0.5px; }
+  #minimap { border-radius: 50%; border: 3px solid var(--gold-dim); outline: 1px solid #000; box-shadow: 0 0 14px #000c, inset 0 0 20px #0008; }
 
   /* ---------- community HUD ---------- */
   /* Discord/GitHub: bottom-right, directly below the micro-menu, right-aligned with it. */
@@ -1169,15 +1203,23 @@
   #tooltip .tt-desc { color: #ffd100; margin-top: 4px; font-size: 11.5px; }
   #tooltip .tt-stat { color: #fff; font-size: 11.5px; }
   #tooltip .tt-green { color: #1eff00; font-size: 11.5px; }
+  #tooltip .tt-red { color: #ff4040; font-size: 11.5px; }
 
   /* ---------- floating combat text ---------- */
-  .fct { position: absolute; font-weight: bold; pointer-events: none; text-shadow: 1px 1px 3px #000;
-    animation: fct-rise 1.1s ease-out forwards; font-size: 17px; transform: translate(-50%, -50%);
-    font-family: var(--title-font); z-index: 5; }
-  .fct.crit { font-size: 26px; animation: fct-crit 1.2s ease-out forwards; }
-  @keyframes fct-rise { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -76px; } }
-  @keyframes fct-crit { 0% { opacity: 1; margin-top: 0; } 15% { transform: translate(-50%,-50%) scale(1.5); }
-    100% { opacity: 0; margin-top: -86px; transform: translate(-50%,-50%) scale(1); } }
+  .fct { position: absolute; font-weight: bold; pointer-events: none; text-shadow: 1px 1px 3px #000, 0 0 8px #00000088;
+    animation: fct-rise 1.15s ease-out forwards; font-size: 18px; transform: translate(-50%, -50%);
+    font-family: var(--title-font); z-index: 5; letter-spacing: 0.02em; }
+  .fct.crit { font-size: 28px; color: #ffd966 !important; animation: fct-crit 1.25s ease-out forwards;
+    text-shadow: 1px 1px 4px #000, 0 0 12px #ff880066; }
+  .fct.miss { font-size: 15px; font-style: italic; opacity: 0.92; animation-duration: 1s; }
+  .fct.loot { font-size: 16px; animation: fct-loot 1.35s ease-out forwards; }
+  @keyframes fct-loot { from { opacity: 1; margin-top: 0; transform: translate(-50%, -50%) scale(0.9); }
+    to { opacity: 0; margin-top: -70px; transform: translate(-50%, -50%) scale(1.05); } }
+  @keyframes fct-rise { from { opacity: 1; margin-top: 0; transform: translate(-50%, -50%) scale(1); }
+    to { opacity: 0; margin-top: -82px; transform: translate(-50%, -50%) scale(0.92); } }
+  @keyframes fct-crit { 0% { opacity: 1; margin-top: 0; transform: translate(-50%,-50%) scale(0.85); }
+    12% { transform: translate(-50%,-50%) scale(1.55); }
+    100% { opacity: 0; margin-top: -90px; transform: translate(-50%,-50%) scale(1.05); } }
 
   /* ---------- center messages ---------- */
   #error-msg { position: absolute; left: 50%; top: 21%; transform: translateX(-50%); color: #ff2020;
@@ -5086,7 +5128,7 @@
           </div>
           <div id="petbar" class="panel"></div>
           <div id="xpbar"><div class="fill"></div><div class="ticks"></div><div class="label"></div></div>
-          <div id="actionbar" class="panel"></div>
+          <div id="actionbar" class="panel bar-six"></div>
         </div>
         <div id="meters-window" class="panel">
           <div class="panel-title">

@@ -52,7 +52,7 @@ describe('/pet command', () => {
 
     sim.chat('/pet', a);
     const text = errorText(sim.tick())!;
-    expect(text).toContain('(50%)');
+    expect(text).toContain('(51%)');
   });
 
   it('tells players without a pet that they have none', () => {

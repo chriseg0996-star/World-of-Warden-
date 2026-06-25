@@ -99,6 +99,36 @@ describe('hoverCursorKind', () => {
 });
 
 describe('handlePickedEntity', () => {
+  it('starts auto-attack when left-clicking a hostile mob', () => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    const wolf = stubEntity({ id: 2, kind: 'mob', hostile: true, dead: false, pos: { x: 3, y: 0, z: 0 } });
+    let targetId: number | null = null;
+    let attacks = 0;
+    const world: any = {
+      playerId: 1,
+      player,
+      entities: new Map([[1, player], [2, wolf]]),
+      duelInfo: null,
+      arenaInfo: null,
+      targetEntity: (id: number | null) => { targetId = id; },
+      enterDungeon: () => {},
+      leaveDungeon: () => {},
+      pickUpObject: () => {},
+      startAutoAttack: () => { attacks++; },
+    };
+    const hud = {
+      openLoot: () => {},
+      openQuestDialog: () => {},
+      showError: () => {},
+      closeContextMenu: () => {},
+    };
+
+    handlePickedEntity(world, hud, 2, 0, 10, 20);
+
+    expect(targetId).toBe(2);
+    expect(attacks).toBe(1);
+  });
+
   it('starts auto-attack when right-clicking an active duel opponent', () => {
     const player = stubEntity({ id: 1, kind: 'player' });
     const opponent = stubEntity({ id: 2, kind: 'player', pos: { x: 3, y: 0, z: 0 } });

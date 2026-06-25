@@ -338,11 +338,56 @@ export class Vfx {
   meleeSpark(targetId: number, crit: boolean): void {
     const at = this.anchor(targetId, 0.55);
     if (!at) return;
-    // a single slash arc reads as the hit itself...
-    const steel = new THREE.Color(0xffe6c0).multiplyScalar(hdr(crit ? 2.0 : 1.5));
-    this.spawn(at.x, at.y + 0.1, at.z, 0, 0.4, 0, steel, crit ? 1.0 : 0.75, 0.18, 0, SPR.slash);
-    // ...backed by a steel-spark shower big enough to read at 1600x900
-    this.burst(at, 'physical', crit ? 20 : 9, crit ? 1.4 : 0.85);
+    const steel = new THREE.Color(crit ? 0xfff4d0 : 0xffe6c0).multiplyScalar(hdr(crit ? 2.4 : 1.6));
+    this.spawn(at.x, at.y + 0.1, at.z, 0, 0.45, 0, steel, crit ? 1.1 : 0.8, 0.2, 0, SPR.slash);
+    this.burst(at, 'physical', crit ? 24 : 12, crit ? 1.5 : 0.95);
+    if (crit) {
+      const hot = new THREE.Color(0xff8844).multiplyScalar(hdr(2));
+      this.spawn(at.x, at.y + 0.35, at.z, 0, 0.6, 0, hot, 0.9, 0.14, 0, SPR.star);
+    }
+  }
+
+  swingTrail(sourceId: number, targetId: number, school: string): void {
+    const from = this.anchor(sourceId, 0.55);
+    const to = this.anchor(targetId, 0.55);
+    if (!from || !to) return;
+    const c = SCHOOL_COLORS[school] ?? SCHOOL_COLORS.physical;
+    const dx = to.x - from.x;
+    const dz = to.z - from.z;
+    const len = Math.hypot(dx, dz) || 1;
+    const steps = 4;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / (steps + 1);
+      this.spawn(
+        from.x + dx * t, from.y + 0.15 + (to.y - from.y) * t, from.z + dz * t,
+        0, 0.35, 0, c, 0.35, 0.12, 0, SPR.slash,
+      );
+    }
+  }
+
+  deathBurst(targetId: number): void {
+    const at = this.anchor(targetId, 0.2);
+    if (!at) return;
+    const ash = new THREE.Color(0xcccccc).multiplyScalar(hdr(1.2));
+    const red = new THREE.Color(0xff5544).multiplyScalar(hdr(1.4));
+    this.burst(at, 'physical', 14, 0.7);
+    for (let i = 0; i < 10; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.spawn(
+        at.x + Math.sin(a) * 0.4, at.y + 0.2, at.z + Math.cos(a) * 0.4,
+        0, 1.2 + Math.random(), 0, i % 2 === 0 ? ash : red, 0.5, 0.35, -0.2, SPR.sparkle,
+      );
+    }
+  }
+
+  lootShimmer(entityId: number): void {
+    const at = this.anchor(entityId, 0.05);
+    if (!at) return;
+    const gold = new THREE.Color(0xffd966).multiplyScalar(hdr(1.6));
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      this.spawn(at.x + Math.sin(a) * 0.5, at.y + 0.15, at.z + Math.cos(a) * 0.5, 0, 0.8, 0, gold, 0.4, 0.5, 0, SPR.sparkle);
+    }
   }
 
   levelUpPillar(targetId: number): void {

@@ -43,7 +43,7 @@ describe('/gear command', () => {
     sim.chat('/gear', a);
     const text = errorText(sim.tick());
     expect(text).toMatch(/^Equipped \(4\/14\):/);
-    expect(text).toContain('Worn Shortsword');
+    expect(text).toContain('Rusty Sword');
     expect(text).toContain('Quilted Trousers');
     // the other 10 slots remain empty
     expect(text).toContain('Head: (empty)');

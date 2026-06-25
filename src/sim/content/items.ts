@@ -13,20 +13,44 @@ const ROG: PlayerClass[] = ['rogue', 'hunter'];
 export const BASE_ITEMS: Record<string, ItemDef> = {
   // --- starting gear ---
   worn_sword: {
-    id: 'worn_sword', name: 'Worn Shortsword', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    id: 'worn_sword', name: 'Rusty Sword', kind: 'weapon', slot: 'mainhand', quality: 'common',
     weapon: { min: 2, max: 5, speed: 2.0 }, sellValue: 10,
   },
   gnarled_staff: {
-    id: 'gnarled_staff', name: 'Gnarled Staff', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    id: 'gnarled_staff', name: 'Apprentice Staff', kind: 'weapon', slot: 'mainhand', quality: 'common',
     weapon: { min: 3, max: 6, speed: 2.9 }, stats: { int: 1 }, sellValue: 12,
   },
   rusty_dagger: {
-    id: 'rusty_dagger', name: 'Rusty Dagger', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    id: 'rusty_dagger', name: 'Worn Daggers', kind: 'weapon', slot: 'mainhand', quality: 'common',
     weapon: { min: 2, max: 4, speed: 1.8, dagger: true }, sellValue: 10,
   },
   training_mace: {
     id: 'training_mace', name: 'Training Mace', kind: 'weapon', slot: 'mainhand', quality: 'common',
     weapon: { min: 2, max: 5, speed: 2.6 }, sellValue: 10,
+  },
+  initiate_hammer: {
+    id: 'initiate_hammer', name: 'Initiate Hammer', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 3, max: 6, speed: 2.6 }, stats: { str: 1 }, sellValue: 12,
+  },
+  training_crossbow: {
+    id: 'training_crossbow', name: 'Training Crossbow', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 3, max: 6, speed: 2.4 }, stats: { agi: 1 }, sellValue: 12,
+  },
+  novice_staff: {
+    id: 'novice_staff', name: 'Novice Staff', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 3, max: 5, speed: 2.8 }, stats: { int: 1, spi: 1 }, sellValue: 12,
+  },
+  spirit_staff: {
+    id: 'spirit_staff', name: 'Spirit Staff', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 3, max: 6, speed: 2.7 }, stats: { int: 1, sta: 1 }, sellValue: 12,
+  },
+  forbidden_tome: {
+    id: 'forbidden_tome', name: 'Forbidden Tome', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 2, max: 4, speed: 2.2 }, stats: { int: 2 }, sellValue: 12,
+  },
+  woodland_staff: {
+    id: 'woodland_staff', name: 'Woodland Staff', kind: 'weapon', slot: 'mainhand', quality: 'common',
+    weapon: { min: 3, max: 6, speed: 2.8 }, stats: { int: 1, spi: 1 }, sellValue: 12,
   },
   rusty_hatchet: {
     id: 'rusty_hatchet', name: 'Rusty Hatchet', kind: 'weapon', slot: 'mainhand', quality: 'common',
@@ -117,6 +141,27 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     id: 'cryptbone_greaves', name: 'Cryptbone Greaves', kind: 'armor', slot: 'legs', quality: 'uncommon',
     stats: { armor: 48, sta: 2 }, sellValue: 180,
   },
+  // --- Forgotten Crypt dungeon drops ---
+  crypt_blade: {
+    id: 'crypt_blade', name: 'Crypt Blade', kind: 'weapon', slot: 'mainhand', quality: 'uncommon',
+    weapon: { min: 6, max: 11, speed: 2.1 }, stats: { str: 2, crit: 0.01 }, sellValue: 220,
+  },
+  bone_shield: {
+    id: 'bone_shield', name: 'Bone Shield', kind: 'armor', slot: 'hands', quality: 'uncommon',
+    stats: { armor: 28, sta: 2 }, sellValue: 200,
+  },
+  cultist_robes: {
+    id: 'cultist_robes', name: 'Cultist Robes', kind: 'armor', slot: 'chest', quality: 'uncommon',
+    stats: { armor: 36, int: 3, spi: 2 }, sellValue: 210, requiredClass: MAG,
+  },
+  ancient_ring: {
+    id: 'ancient_ring', name: 'Ancient Ring', kind: 'armor', slot: 'ring1', quality: 'uncommon',
+    stats: { sta: 2, spi: 2 }, sellValue: 180,
+  },
+  wardens_hammer: {
+    id: 'wardens_hammer', name: "Warden's Hammer", kind: 'weapon', slot: 'mainhand', quality: 'rare',
+    weapon: { min: 9, max: 14, speed: 2.5 }, stats: { str: 3, sta: 2, crit: 0.02 }, sellValue: 450, requiredClass: WAR,
+  },
   // --- food & drink (vendor) ---
   baked_bread: {
     id: 'baked_bread', name: 'Freshly Baked Bread', kind: 'food', quality: 'common',
@@ -182,16 +227,16 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
     weapon: { min: 6, max: 11, speed: 3.0 }, stats: { int: 1 }, sellValue: 150, buyValue: 1500,
   },
   eastbrook_chain_vest: {
-    id: 'eastbrook_chain_vest', name: 'Eastbrook Chainmail Vest', kind: 'armor', slot: 'chest', quality: 'common',
-    stats: { armor: 60 }, sellValue: 180, buyValue: 1800,
+    id: 'eastbrook_chain_vest', name: 'Eastbrook Chainmail Vest', kind: 'armor', slot: 'chest', quality: 'uncommon',
+    stats: { armor: 78, sta: 2, str: 1 }, sellValue: 180, buyValue: 1800, requiredClass: WAR,
   },
   valespun_robe: {
-    id: 'valespun_robe', name: 'Valespun Robe', kind: 'armor', slot: 'chest', quality: 'common',
-    stats: { armor: 22 }, sellValue: 140, buyValue: 1400,
+    id: 'valespun_robe', name: 'Valespun Robe', kind: 'armor', slot: 'chest', quality: 'uncommon',
+    stats: { armor: 28, int: 3, spi: 2 }, sellValue: 140, buyValue: 1400, requiredClass: MAG,
   },
   tanned_leather_jerkin: {
-    id: 'tanned_leather_jerkin', name: 'Tanned Leather Jerkin', kind: 'armor', slot: 'chest', quality: 'common',
-    stats: { armor: 40 }, sellValue: 160, buyValue: 1600,
+    id: 'tanned_leather_jerkin', name: 'Tanned Leather Jerkin', kind: 'armor', slot: 'chest', quality: 'uncommon',
+    stats: { armor: 52, agi: 3, crit: 0.01 }, sellValue: 160, buyValue: 1600, requiredClass: ROG,
   },
   hobnail_boots: {
     id: 'hobnail_boots', name: 'Hobnailed Boots', kind: 'armor', slot: 'feet', quality: 'common',
@@ -257,6 +302,7 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   weathered_ledger_page: { id: 'weathered_ledger_page', name: 'Weathered Ledger Page', kind: 'quest', sellValue: 0, questId: 'q_names_of_the_dead' },
   morthen_grimoire: { id: 'morthen_grimoire', name: "Morthen's Grimoire", kind: 'quest', sellValue: 0, questId: 'q_gravecallers_trail' },
   // --- junk (gray) ---
+  wolf_pelt: { id: 'wolf_pelt', name: 'Wolf Pelt', kind: 'junk', quality: 'common', sellValue: 6 },
   wolf_fang: { id: 'wolf_fang', name: 'Cracked Wolf Fang', kind: 'junk', quality: 'poor', sellValue: 4 },
   bandit_bandana: { id: 'bandit_bandana', name: 'Red Bandana', kind: 'junk', quality: 'poor', sellValue: 6 },
   tough_jerky: { id: 'tough_jerky', name: 'Tough Jerky', kind: 'food', quality: 'common', foodHp: 61, sellValue: 2, buyValue: 25 },
@@ -281,4 +327,29 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   // the trinket paperdoll slot to fire); the coin is a passive chance-on-hit proc.
   recruits_hourglass: { id: 'recruits_hourglass', name: "Recruit's Hourglass", kind: 'armor', slot: 'trinket', quality: 'uncommon', use: { type: 'trinketUse', aura: 'buff_ap', value: 30, duration: 12, cooldown: 60 }, sellValue: 25, buyValue: 200 },
   coin_of_fortune: { id: 'coin_of_fortune', name: 'Coin of Fortune', kind: 'armor', slot: 'trinket', quality: 'uncommon', proc: { chance: 0.1, aura: 'buff_armor', value: 20, duration: 8 }, sellValue: 25, buyValue: 200 },
+  // --- Eastbrook wolf / bandit progression gear ---
+  wolf_fang_blade: {
+    id: 'wolf_fang_blade', name: 'Wolf Fang Blade', kind: 'weapon', slot: 'mainhand', quality: 'rare',
+    weapon: { min: 5, max: 9, speed: 2.0 }, stats: { agi: 2, crit: 0.02 }, sellValue: 15,
+  },
+  wolfhide_gloves: {
+    id: 'wolfhide_gloves', name: 'Wolfhide Gloves', kind: 'armor', slot: 'hands', quality: 'uncommon',
+    stats: { armor: 12, agi: 1 }, sellValue: 18,
+  },
+  wolf_runner_boots: {
+    id: 'wolf_runner_boots', name: 'Wolf Runner Boots', kind: 'armor', slot: 'feet', quality: 'uncommon',
+    stats: { armor: 14, agi: 1, sta: 1 }, sellValue: 20,
+  },
+  bandit_cudgel: {
+    id: 'bandit_cudgel', name: 'Bandit Cudgel', kind: 'weapon', slot: 'mainhand', quality: 'uncommon',
+    weapon: { min: 5, max: 9, speed: 2.3 }, stats: { str: 1 }, sellValue: 22, requiredClass: WAR,
+  },
+  road_scout_coif: {
+    id: 'road_scout_coif', name: 'Road Scout Coif', kind: 'armor', slot: 'head', quality: 'uncommon',
+    stats: { armor: 16, sta: 1 }, sellValue: 18,
+  },
+  pilfered_chain_vest: {
+    id: 'pilfered_chain_vest', name: 'Pilfered Chain Vest', kind: 'armor', slot: 'chest', quality: 'uncommon',
+    stats: { armor: 55, sta: 2 }, sellValue: 28,
+  },
 };

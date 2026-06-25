@@ -67,6 +67,7 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
     spi: def.baseStats.spi + def.statsPerLevel.spi * (lvl - 1),
     armor: def.baseStats.armor + def.statsPerLevel.armor * (lvl - 1),
   };
+  let bonusCrit = 0;
   const setCounts = new Map<string, number>();
   for (const slot of EQUIP_SLOTS) {
     const itemId = equipment[slot];
@@ -81,6 +82,7 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
     s.int += item.stats.int ?? 0;
     s.spi += item.stats.spi ?? 0;
     s.armor += item.stats.armor ?? 0;
+    bonusCrit += item.stats.crit ?? 0;
   }
   // Set bonuses: each tier whose piece threshold is met adds its flat stats.
   for (const [setId, count] of setCounts) {
@@ -146,7 +148,7 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
   // Hunters: ranged AP = 2/agi (vanilla)
   e.rangedPower = cls === 'hunter' ? Math.round((s.agi * 2 + bonusAp) * (1 + (mods?.stats.apPct ?? 0))) : 0;
   // Crit: ~1% per 20 agi at low level
-  e.critChance = 0.05 + s.agi * 0.0005 + (mods?.stats.crit ?? 0);
+  e.critChance = 0.05 + s.agi * 0.0005 + bonusCrit + (mods?.stats.crit ?? 0);
   e.dodgeChance = 0.05 + s.agi * 0.0005 + bonusDodge;
 
   const hpFrac = e.maxHp > 0 ? e.hp / e.maxHp : 1;

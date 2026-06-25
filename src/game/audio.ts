@@ -66,6 +66,21 @@ export class GameAudio {
     osc.stop(t + duration + 0.05);
   }
 
+  meleeSwing(): void {
+    this.noise(0.1, 2200, 0.1, 0.75, 'bandpass');
+    this.tone(180 + Math.random() * 60, 0.06, 0.08, 'triangle', 0, 90);
+  }
+
+  enemyDeath(): void {
+    this.tone(160, 0.22, 0.14, 'sawtooth', 0, 70);
+    this.noise(0.18, 700, 0.12, 0.85);
+  }
+
+  xpGain(): void {
+    this.tone(784, 0.14, 0.1, 'sine');
+    this.tone(988, 0.18, 0.08, 'sine', 0.06);
+  }
+
   meleeHit(crit = false): void {
     this.noise(0.12, 900, crit ? 0.5 : 0.3);
     this.tone(110 + Math.random() * 40, 0.08, crit ? 0.3 : 0.16, 'triangle');
@@ -190,6 +205,43 @@ export class GameAudio {
   duelEnd(): void {
     this.tone(392, 0.18, 0.18, 'triangle');
     this.tone(523, 0.3, 0.18, 'triangle', 0.12);
+  }
+
+  private ambientTimer = 0;
+
+  /** Occasional environmental one-shots near town, forge, or open vale. */
+  updateAmbient(inTown: boolean, nearForge: boolean, dt: number): void {
+    this.ambientTimer -= dt;
+    if (this.ambientTimer > 0) return;
+    if (inTown) {
+      this.ambientTimer = 3 + Math.random() * 7;
+      if (Math.random() < 0.55) this.birdChirp();
+      else this.townRustle();
+    } else if (nearForge) {
+      this.ambientTimer = 5 + Math.random() * 8;
+      this.forgeClang();
+    } else {
+      this.ambientTimer = 6 + Math.random() * 10;
+      if (Math.random() < 0.4) this.windGust();
+    }
+  }
+
+  private birdChirp(): void {
+    this.tone(1800 + Math.random() * 600, 0.06, 0.04, 'sine');
+    this.tone(2200 + Math.random() * 400, 0.08, 0.03, 'sine', 0.05);
+  }
+
+  private townRustle(): void {
+    this.noise(0.25, 400, 0.04, 0.85);
+  }
+
+  private forgeClang(): void {
+    this.tone(120, 0.12, 0.08, 'triangle');
+    this.noise(0.08, 1200, 0.1, 0.6, 'bandpass');
+  }
+
+  private windGust(): void {
+    this.noise(0.5, 280, 0.05, 0.9);
   }
 }
 

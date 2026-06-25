@@ -372,7 +372,7 @@ describe("S1: sim event-text pipeline is localized in every locale", () => {
 
   it("localizes embedded item and mob names inside sim text", () => {
     setLanguage("es");
-    expect(localizeSimText("Equipped Worn Shortsword.")).not.toContain("Worn Shortsword");
+    expect(localizeSimText("Equipped Rusty Sword.")).not.toContain("Rusty Sword");
     expect(localizeSimText("Forest Wolf dies.")).not.toContain("Forest Wolf");
     setLanguage("en");
   });

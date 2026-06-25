@@ -1,5 +1,5 @@
 // The big one: five bots form a party, enter the Hollow Crypt together,
-// and fight their way to Morthen the Gravecaller with simple raid AI
+// and fight their way to the Crypt Warden with simple raid AI
 // (focus fire + two healers). Verifies party instancing, elite combat,
 // boss mechanics and group xp over the real server.
 // Requires the server running with ALLOW_DEV_COMMANDS=1.
@@ -163,7 +163,7 @@ async function main() {
     // telemetry every 20s
     if (Date.now() - lastTelemetry > 20_000) {
       lastTelemetry = Date.now();
-      const boss = [...tank.ents.values()].find((e) => e.tid === 'morthen');
+      const boss = [...tank.ents.values()].find((e) => e.tid === 'crypt_warden');
       console.log(`  t=${Math.round((Date.now() - start) / 1000)}s boss=${boss ? `${boss.hp}/${boss.mhp}` : 'n/a'} ` +
         bots.map((b) => `${b.name.slice(0, 4)}:${b.self?.dead ? 'DEAD' : `${b.self?.hp}|${Math.round(b.self?.res ?? 0)}`}`).join(' '));
     }
@@ -220,8 +220,8 @@ async function main() {
       const candidates = b.mobs()
         .filter((m) => Math.hypot(m.x - anchor.self.x, m.z - anchor.self.z) < 30)
         .sort((x, y) => {
-          const xBoss = x.tid === 'morthen' ? 1 : 0;
-          const yBoss = y.tid === 'morthen' ? 1 : 0;
+          const xBoss = x.tid === 'crypt_warden' ? 1 : 0;
+          const yBoss = y.tid === 'crypt_warden' ? 1 : 0;
           return xBoss - yBoss || x.id - y.id;
         });
       const target = candidates[0];
@@ -258,10 +258,10 @@ async function main() {
 
       // events: pulse + boss death
       for (const ev of b.events) {
-        if (ev.type === 'damage' && ev.ability === 'Shadow Pulse') sawPulse = true;
+        if (ev.type === 'damage' && ev.ability === 'Ground Slam') sawPulse = true;
         if (ev.type === 'death') {
           const dead = b.ents.get(ev.entityId);
-          if (dead?.tid === 'morthen') bossDead = true;
+          if (dead?.tid === 'crypt_warden') bossDead = true;
         }
       }
       b.events = [];
@@ -270,8 +270,8 @@ async function main() {
   }
 
   check('fought elite mobs', sawElite);
-  check('Morthen the Gravecaller defeated by the party', bossDead, `wipes=${wipes} elapsed=${Math.round((Date.now() - start) / 1000)}s`);
-  check('boss pulse mechanic fired during the fight', sawPulse);
+  check('The Crypt Warden defeated by the party', bossDead, `wipes=${wipes} elapsed=${Math.round((Date.now() - start) / 1000)}s`);
+  check('boss Ground Slam mechanic fired during the fight', sawPulse);
   console.log(`deaths during the run: ${wipes}`);
 
   await sleep(500);
@@ -283,7 +283,7 @@ async function main() {
   process.exit(fail > 0 ? 1 : 0);
 }
 
-const MOBS_ELITE = new Set(['crypt_shambler', 'hollow_acolyte', 'bonechill_widow', 'sexton_marrow', 'morthen']);
+const MOBS_ELITE = new Set(['bone_guardian', 'cult_adept', 'crypt_warden']);
 
 main().catch((err) => {
   console.error('fatal:', err);

@@ -39,7 +39,7 @@ describe('quest lifecycle', () => {
     const starterZone = zoneAt(sim.player.pos.z);
 
     expect(zoneWelcomeText(starterZone, (questId) => sim.questState(questId)))
-      .toBe('Find Marshal Redbrook in town — he has work for you.');
+      .toBe('Marshal Redbrook stands in the town square. Wolves prowl the north road, and Eastbrook needs every blade.');
 
     const redbrook = [...sim.entities.values()].find((e) => e.templateId === 'marshal_redbrook')!;
     teleportTo(sim, redbrook.pos.x + 2, redbrook.pos.z + 2);
@@ -47,7 +47,7 @@ describe('quest lifecycle', () => {
     expect(zoneWelcomeText(starterZone, (questId) => sim.questState(questId))).toBeNull();
 
     const qp = sim.questLog.get('q_wolves')!;
-    qp.counts[0] = 8;
+    qp.counts[0] = 5;
     qp.state = 'ready';
 
     teleportTo(sim, redbrook.pos.x + 2, redbrook.pos.z + 2);
@@ -79,7 +79,7 @@ describe('quest lifecycle', () => {
     expect(sim.questState('q_wolves')).toBe('active');
 
     const qp = sim.questLog.get('q_wolves')!;
-    qp.counts[0] = 8;
+    qp.counts[0] = 5;
     qp.state = 'ready';
 
     teleportTo(sim, redbrook.pos.x + 2, redbrook.pos.z + 2);
@@ -401,8 +401,8 @@ describe('boss loot and encounter resets', () => {
     const sim = makeSim();
     const meta = sim.meta(sim.playerId)!;
     for (const [bossId, groupId, exactlyOne] of [
-      ['morthen', 'morthen_guaranteed_uncommon', true],
-      ['morthen', 'morthen_bonus', false],
+      ['crypt_warden', 'warden_guaranteed_uncommon', true],
+      ['crypt_warden', 'warden_bonus', false],
       ['knight_commander_olen', 'olen_guaranteed_uncommon', true],
       ['knight_commander_olen', 'olen_bonus', false],
       ['vael_the_mistcaller', 'vael_guaranteed_uncommon', true],
@@ -441,7 +441,7 @@ describe('boss loot and encounter resets', () => {
     const meta = sim.meta(sim.playerId)!;
     const lootOf = (m: Entity) => m.loot;
     for (const bossId of [
-      'morthen',
+      'crypt_warden',
       'knight_commander_olen',
       'vael_the_mistcaller',
       'korgath_the_bound',

@@ -25,7 +25,9 @@ import { buildTerrain, TerrainView } from './terrain';
 import { buildWater, WaterView } from './water';
 import { buildClouds, buildSky, SkyView } from './sky';
 import { buildFoliage, FoliageView } from './foliage';
+import { WorldAmbience } from './ambience';
 import { shouldRenderStealthGhost } from './stealth';
+import { TOWN_RADIUS } from '../sim/content/zone1';
 import { t } from '../ui/i18n';
 import { tEntity } from '../ui/entity_i18n';
 import { raidMarkerDataUrl } from '../ui/icons';
@@ -112,6 +114,7 @@ interface EntityView {
   clickTarget: THREE.Object3D;
   nameplate: HTMLDivElement;
   nameEl: HTMLDivElement;
+  titleEl: HTMLDivElement;
   hpBar: HTMLDivElement;
   hpFill: HTMLDivElement;
   emoteEl: HTMLDivElement;
@@ -124,6 +127,7 @@ interface EntityView {
   nameplateSig: string;
   nameplateHpWidth: string;
   sparkle?: THREE.Sprite; // ground objects
+  corpseSparkle?: THREE.Sprite; // lootable mob corpses
   objectMesh?: THREE.Object3D;
   portal?: THREE.Mesh; // dungeon door swirl
   objectCasters: THREE.Object3D[]; // object-view shadow meshes, distance-gated
@@ -192,6 +196,10 @@ function objectDisplayName(entity: Entity): string {
   return entity.name;
 }
 
+function npcDisplayTitle(npcId: string): string {
+  return tEntity({ kind: 'npc', id: npcId, field: 'title' });
+}
+
 export class Renderer {
   scene = new THREE.Scene();
   camera: THREE.PerspectiveCamera;
@@ -220,6 +228,8 @@ export class Renderer {
   private tmpV2 = new THREE.Vector3();
   // floating /say-/yell bubbles, keyed by speaker entity id
   private chatBubbles = new Map<number, { el: HTMLDivElement; until: number }>();
+  private pendingImpacts: { due: number; sourceId: number; targetId: number; crit: boolean; school: string }[] = [];
+  private static readonly SWING_IMPACT_DELAY_MS = 95;
   private sun: THREE.DirectionalLight;
   private hemi!: THREE.HemisphereLight;
   private sky!: THREE.Mesh;
@@ -244,6 +254,7 @@ export class Renderer {
   private time = 0;
   private frameIdx = 0;
   vfx: Vfx;
+  private worldAmbience: WorldAmbience;
 
   private lowGfx: boolean;
   private post: PostPipeline | null = null;
@@ -456,6 +467,7 @@ export class Renderer {
       return new THREE.Vector3(v.group.position.x, v.group.position.y + h, v.group.position.z);
     });
     this.vfx.setViewportScale(this.webgl.domElement.clientHeight * this.webgl.getPixelRatio(), 60);
+    this.worldAmbience = new WorldAmbience(this.scene, this.sim.cfg.seed);
 
     // post chain (bloom + grade, GTAO on ultra); low renders direct
     if (GFX.composer) this.post = buildComposer(this.webgl, this.scene, this.camera, this.viewport.width, this.viewport.height);
@@ -647,17 +659,29 @@ export class Renderer {
         else if (ev.fx === 'tick') this.vfx.tick(ev.targetId, ev.school);
         else this.vfx.nova(ev.targetId, ev.school);
         break;
+      case 'swing':
+        if (ev.school === 'physical') this.triggerAttack(ev.sourceId);
+        this.vfx.swingTrail(ev.sourceId, ev.targetId, ev.school);
+        break;
       case 'damage':
-        // every melee/ranged swing animates the attacker for all to see
-        if (ev.school === 'physical' && ev.sourceId !== -1) this.triggerAttack(ev.sourceId);
         if (ev.kind === 'hit' && ev.amount > 0) {
-          // landed blows flinch the victim (rate-limited inside the visual)
-          this.triggerHit(ev.targetId);
-          if (ev.school === 'physical') this.vfx.meleeSpark(ev.targetId, ev.crit);
+          this.pendingImpacts.push({
+            due: performance.now() + Renderer.SWING_IMPACT_DELAY_MS,
+            sourceId: ev.sourceId,
+            targetId: ev.targetId,
+            crit: ev.crit,
+            school: ev.school,
+          });
+        } else if (ev.kind === 'miss' || ev.kind === 'dodge') {
+          // whiff feedback lands with the swing, not delayed
+          if (ev.school === 'physical' && ev.sourceId !== -1) this.triggerAttack(ev.sourceId);
         }
         break;
       case 'heal2':
         if (ev.amount > 0 || ev.crit) this.vfx.healGlow(ev.targetId);
+        break;
+      case 'death':
+        this.vfx.deathBurst(ev.entityId);
         break;
       case 'aura': {
         const tgt = this.sim.entities.get(ev.targetId);
@@ -668,6 +692,37 @@ export class Renderer {
         this.vfx.levelUpPillar(this.sim.playerId);
         break;
     }
+  }
+
+  showLootPickup(entityId: number): void {
+    this.vfx.lootShimmer(entityId);
+  }
+
+  private flushImpacts(now: number): void {
+    while (this.pendingImpacts.length > 0 && this.pendingImpacts[0].due <= now) {
+      const imp = this.pendingImpacts.shift()!;
+      this.applyImpact(imp.sourceId, imp.targetId, imp.crit, imp.school);
+    }
+  }
+
+  private applyImpact(sourceId: number, targetId: number, crit: boolean, school: string): void {
+    const src = sourceId >= 0 ? this.sim.entities.get(sourceId) : null;
+    const tgt = this.sim.entities.get(targetId);
+    if (!tgt) return;
+    const tv = this.views.get(targetId);
+    if (tv) {
+      const vis = this.activeVisual(tv);
+      if (vis && src) {
+        const dx = tgt.pos.x - src.pos.x;
+        const dz = tgt.pos.z - src.pos.z;
+        const len = Math.hypot(dx, dz) || 1;
+        vis.reactHit(dx / len, dz / len, crit);
+      } else if (vis) {
+        vis.playHit();
+      }
+    }
+    if (school === 'physical') this.vfx.meleeSpark(targetId, crit);
+    else this.vfx.burst(this.tmpV.set(tgt.pos.x, tgt.pos.y + 0.8, tgt.pos.z), school, crit ? 12 : 7, crit ? 1.1 : 0.75);
   }
 
   // -------------------------------------------------------------------------
@@ -798,6 +853,9 @@ export class Renderer {
     raidMark.style.display = 'none';
     const marker = document.createElement('div');
     marker.className = 'np-marker';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'np-title';
+    titleEl.style.display = 'none';
     const nameEl = document.createElement('div');
     nameEl.className = 'np-name';
     nameEl.textContent = e.name;
@@ -806,7 +864,7 @@ export class Renderer {
     const hpFill = document.createElement('div');
     hpFill.className = 'np-hpfill';
     hpBar.appendChild(hpFill);
-    np.append(emoteEl, raidMark, marker, nameEl, hpBar);
+    np.append(emoteEl, raidMark, marker, titleEl, nameEl, hpBar);
     this.nameplateLayer.appendChild(np);
 
     // object views gate their own casters; character shadows live in visual
@@ -814,7 +872,7 @@ export class Renderer {
     if (!visual) collectCasters(group, objectCasters);
     this.views.set(e.id, {
       group, visual, sheepVisual: null, bearVisual: null, catVisual: null, height, clickTarget,
-      nameplate: np, nameEl, hpBar, hpFill, emoteEl, emoteIconEl, emoteLabelEl, markerEl: marker, raidMarkEl: raidMark, sparkle, objectMesh, portal,
+      nameplate: np, nameEl, titleEl, hpBar, hpFill, emoteEl, emoteIconEl, emoteLabelEl, markerEl: marker, raidMarkEl: raidMark, sparkle, objectMesh, portal,
       nameplateDisplay: 'none', nameplateTransform: '', nameplateSig: '', nameplateHpWidth: '',
       objectCasters, shadowOn: true, isFar: false, lastOverheadEmoteKey: null,
       lastX: e.pos.x, lastZ: e.pos.z, skin: e.skin,
@@ -833,11 +891,6 @@ export class Renderer {
   triggerAttack(entityId: number): void {
     const v = this.views.get(entityId);
     if (v) this.activeVisual(v)?.playAttack();
-  }
-
-  triggerHit(entityId: number): void {
-    const v = this.views.get(entityId);
-    if (v) this.activeVisual(v)?.playHit();
   }
 
   // -------------------------------------------------------------------------
@@ -1019,6 +1072,7 @@ export class Renderer {
     const sim = this.sim;
     const p = sim.player;
     const now = performance.now();
+    this.flushImpacts(now);
     markPhase('setup');
 
     // dynamic worlds: create nearby views lazily and drop views for leavers or
@@ -1213,6 +1267,32 @@ export class Renderer {
         this.vfx.castSparkle(e.id, e.castingAbility === 'demon_heal' ? 'shadow' : ABILITIES[e.castingAbility!]?.school ?? 'arcane', dt);
       }
       if (swimming) this.vfx.swimRipple(v.group.position, moving ? dt * 3 : dt);
+
+      // lootable corpse shimmer (mobs only — ground objects use sparkle above)
+      if (e.kind === 'mob' && e.dead && e.lootable) {
+        if (!v.corpseSparkle) {
+          if (!this.sparkleMat) {
+            this.sparkleMat = new THREE.SpriteMaterial({ map: sparkleTexture(), transparent: true, depthWrite: false });
+            if (!this.lowGfx) this.sparkleMat.color.setScalar(SPARKLE_BOOST);
+          }
+          const mat = this.sparkleMat.clone();
+          v.corpseSparkle = new THREE.Sprite(mat);
+          v.corpseSparkle.scale.set(0.55, 0.55, 1);
+          v.corpseSparkle.position.y = 0.25;
+          v.group.add(v.corpseSparkle);
+        }
+        const cdx = e.pos.x - p.pos.x, cdz = e.pos.z - p.pos.z;
+        const corpseNear = cdx * cdx + cdz * cdz < SPARKLE_DRAW_RANGE_SQ;
+        v.corpseSparkle.visible = corpseNear;
+        if (corpseNear) {
+          const pulse = 0.65 + Math.sin(this.time * 4 + e.id) * 0.2;
+          v.corpseSparkle.scale.set(0.5 * pulse, 0.5 * pulse, 1);
+          v.corpseSparkle.material.rotation = this.time * 1.2;
+          (v.corpseSparkle.material as THREE.SpriteMaterial).opacity = 0.55 + Math.sin(this.time * 3 + e.id * 0.7) * 0.25;
+        }
+      } else if (v.corpseSparkle) {
+        v.corpseSparkle.visible = false;
+      }
     }
 
     // selection ring
@@ -1276,6 +1356,10 @@ export class Renderer {
     this.terrainView.update(this.camera.position.x, this.camera.position.z, fogFar);
     this.propsView.update(this.camera.position.x, this.camera.position.y, this.camera.position.z, fogFar);
     this.foliage.update(p.pos.x, p.pos.z, this.camera.position.x, this.camera.position.z, fogFar);
+
+    const inEastbrook = Math.hypot(p.pos.x, p.pos.z) < TOWN_RADIUS + 10;
+    this.worldAmbience.setActive(inEastbrook && this.fogState === 'outdoor');
+    this.worldAmbience.update(this.time);
 
     this.vfx.update(dt);
 
@@ -1510,6 +1594,7 @@ export class Renderer {
         this.setNameplateHp(v, e);
       } else if (e.kind === 'npc') {
         const npcName = npcDisplayName(e.templateId);
+        const npcTitle = npcDisplayTitle(e.templateId);
         let marker = '';
         let cls = '';
         // role-aware: '!' only at the quest's giver, '?' only at its turn-in
@@ -1523,7 +1608,18 @@ export class Renderer {
           else if (st === 'active' && quest.turnInNpcId === e.templateId && !marker) { marker = '?'; cls = 'active'; }
         }
         const markerClass = cls ? `np-marker ${cls}` : 'np-marker';
-        this.setNameplateStatic(v, `npc|${npcName}|${marker}|${markerClass}`, npcName, '#9fdc7f', 'none', marker, markerClass, '1');
+        const sig = `npc|${npcName}|${npcTitle}|${marker}|${markerClass}`;
+        if (sig !== v.nameplateSig) {
+          v.nameplateSig = sig;
+          v.nameEl.textContent = npcName;
+          v.titleEl.textContent = npcTitle;
+          v.titleEl.style.display = npcTitle ? '' : 'none';
+          v.nameEl.style.color = '#9fdc7f';
+          v.hpBar.style.display = 'none';
+          v.markerEl.textContent = marker;
+          v.markerEl.className = markerClass;
+          v.nameplate.style.opacity = '1';
+        }
       } else {
         const diff = e.level - p.level;
         const template = MOBS[e.templateId];

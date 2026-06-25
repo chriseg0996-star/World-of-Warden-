@@ -1037,6 +1037,11 @@ const ITEM_RECIPES: Record<string, IconRecipe> = {
   gravecaller_blade: r('shadow', 'steel', ['sword', { p: 'skull', ...BR }], ['glow']),
   widowfang_dirk: r('frost', 'ice', ['dagger', { p: 'web', ...TL }]),
   gravecaller_staff: r('shadow', 'shadowPurple', ['staff', { p: 'skull', ...BR }], ['glow']),
+  crypt_blade: r('shadow', 'bone', ['sword', { p: 'bone', x: -5, y: 8, s: 0.5 }], ['glow']),
+  bone_shield: r('shadow', 'bone', ['shield', { p: 'bone', ...BR }]),
+  cultist_robes: r('shadow', 'shadowPurple', [{ p: 'chestplate', pal: 'shadowPurple' }], ['glow']),
+  ancient_ring: r('arcane', 'arcanePink', ['ring'], ['glow']),
+  wardens_hammer: r('holy', 'steel', ['hammer', { p: 'skull', ...BR }], ['glow']),
   boar_hide: r('leather', 'earthBrown', ['pelt']),
   gravecaller_sigil: r('shadow', 'shadowPurple', ['sigil_rune'], ['glow']),
   weathered_ledger_page: r('parchment', 'leather', ['scroll']),
@@ -1357,6 +1362,7 @@ export const QUALITY_COLOR: Record<string, string> = {
   uncommon: '#1eff00',
   rare: '#0070dd',
   epic: '#a335ee',
+  legendary: '#ff8000',
 };
 
 const urlCache = new Map<string, string>();

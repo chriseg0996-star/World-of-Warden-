@@ -526,10 +526,15 @@ const MOB_KEYS: Record<string, string> = {
   bastion_revenant: 'skel_warrior',
   knight_commander_olen: 'skel_warrior',
   sanctum_boneguard: 'skel_warrior',
-  hollow_acolyte: 'skel_mage',
-  sexton_marrow: 'skel_mage',
-  morthen: 'skel_boss',
-  crypt_shambler: 'skel_rogue',
+  skeleton_warrior: 'skel_warrior',
+  skeleton_warrior_add: 'skel_warrior',
+  skeleton_archer: 'skel_rogue',
+  restless_spirit: 'skel_mage',
+  crypt_cultist: 'mob_dark_caster',
+  crypt_hound: 'mob_wolf',
+  bone_guardian: 'skel_warrior',
+  cult_adept: 'mob_dark_caster',
+  crypt_warden: 'skel_boss',
 };
 
 const FAMILY_KEYS: Record<string, string> = {
@@ -548,6 +553,12 @@ const FAMILY_KEYS: Record<string, string> = {
 
 const NPC_KEYS: Record<string, string> = {
   marshal_redbrook: 'npc_knight',
+  hunter_rowan: 'npc_scout',
+  guard_ashford: 'npc_knight',
+  guard_merrick: 'npc_knight',
+  innkeeper_eliza: 'npc_villager',
+  villager_marta: 'npc_villager',
+  villager_cedric: 'npc_villager',
   warden_fenwick: 'npc_knight',
   captain_thessaly: 'npc_knight',
   loremaster_caddis: 'npc_mage',
