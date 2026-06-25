@@ -47,6 +47,22 @@ function hasAura(e: Entity, auraId: string) {
   return (e.auras ?? []).some((a) => a.id === auraId);
 }
 
+function pullDist(mob: Entity) {
+  return mob.templateId === 'crypt_warden' ? 8 : 22;
+}
+
+function prepDist(mob: Entity) {
+  return mob.templateId === 'crypt_warden' ? 18 : pullDist(mob);
+}
+
+function hostilesOn(sim: Sim, p: Entity, mobId: number) {
+  return [...sim.entities.values()].filter((e) => {
+    if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
+    if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
+    return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
+  });
+}
+
 /** Simple warrior rotation for solo viability checks (deterministic seed 42). */
 function clearCryptExcept(sim: Sim, keepTemplateId: string) {
   for (const e of [...sim.entities.values()]) {
@@ -90,12 +106,18 @@ function fightMobWarrior(sim: Sim, mobId: number, maxTicks = 20 * 300): 'killed'
 function fightMobMage(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + 22);
+  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
   if (sim.known.some((k) => k.def.id === 'frost_armor') && !hasAura(p, 'frost_armor')) sim.castAbility('frost_armor');
   if (sim.known.some((k) => k.def.id === 'arcane_intellect') && !hasAura(p, 'arcane_intellect')) sim.castAbility('arcane_intellect');
   for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
+  if (mob.templateId === 'crypt_warden') {
+    teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+    faceTarget(sim, mob);
+    sim.targetEntity(mobId);
+    if (sim.known.some((k) => k.def.id === 'fire_blast')) sim.castAbility('fire_blast');
+  }
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
@@ -109,6 +131,7 @@ function fightMobMage(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 
         return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
       });
       if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'frost_nova') && dist < 12) sim.castAbility('frost_nova');
+      else if (hostiles.length > 0 && m.hp / m.maxHp < 0.35 && sim.known.some((k) => k.def.id === 'fire_blast') && dist < 12) sim.castAbility('fire_blast');
       else if (dist < 10 && sim.known.some((k) => k.def.id === 'frost_nova') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('frost_nova');
       else if (dist < 10 && sim.known.some((k) => k.def.id === 'fire_blast')) sim.castAbility('fire_blast');
       else if (sim.known.some((k) => k.def.id === 'fireball') && (p.resource ?? 0) >= 45) sim.castAbility('fireball');
@@ -213,15 +236,15 @@ function fightMobPaladin(sim: Sim, mobId: number, maxTicks = 20 * 500): 'killed'
 function fightMobPriest(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + 22);
+  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
+  faceTarget(sim, mob);
+  sim.targetEntity(p.id);
+  if (sim.known.some((k) => k.def.id === 'power_word_fortitude') && !hasAura(p, 'power_word_fortitude')) sim.castAbility('power_word_fortitude');
+  if (sim.known.some((k) => k.def.id === 'renew') && !hasAura(p, 'renew')) sim.castAbility('renew');
+  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
+  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
-  if (sim.known.some((k) => k.def.id === 'power_word_fortitude') && !hasAura(p, 'power_word_fortitude')) {
-    sim.targetEntity(p.id);
-    sim.castAbility('power_word_fortitude');
-    sim.targetEntity(mobId);
-  }
-  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
@@ -233,11 +256,16 @@ function fightMobPriest(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' 
         sim.targetEntity(p.id);
         sim.castAbility('power_word_shield');
         sim.targetEntity(mobId);
-      } else if (hpPct < 0.45 && sim.known.some((k) => k.def.id === 'lesser_heal')) {
+      } else if (hpPct < 0.55 && sim.known.some((k) => k.def.id === 'renew') && !hasAura(p, 'renew')) {
+        sim.targetEntity(p.id);
+        sim.castAbility('renew');
+        sim.targetEntity(mobId);
+      } else if (hpPct < 0.4 && sim.known.some((k) => k.def.id === 'lesser_heal')) {
         sim.targetEntity(p.id);
         sim.castAbility('lesser_heal');
         sim.targetEntity(mobId);
-      } else if (!hasAura(m, 'shadow_word_pain') && sim.known.some((k) => k.def.id === 'shadow_word_pain')) sim.castAbility('shadow_word_pain');
+      }       else if (!hasAura(m, 'shadow_word_pain') && sim.known.some((k) => k.def.id === 'shadow_word_pain')) sim.castAbility('shadow_word_pain');
+      else if (m.hp / m.maxHp < 0.35 && sim.known.some((k) => k.def.id === 'mind_blast') && (p.resource ?? 0) >= 50) sim.castAbility('mind_blast');
       else if (sim.known.some((k) => k.def.id === 'mind_blast') && (p.resource ?? 0) >= 50) sim.castAbility('mind_blast');
       else if ((p.resource ?? 0) >= 20 && sim.known.some((k) => k.def.id === 'smite')) sim.castAbility('smite');
     }
@@ -246,19 +274,18 @@ function fightMobPriest(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' 
   return 'timeout';
 }
 
-function pullDist(mob: Entity) {
-  return mob.templateId === 'crypt_warden' ? 8 : 22;
-}
-
 /** Affliction warlock rotation for solo viability checks. */
 function fightMobWarlock(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
-  sim.targetEntity(mobId);
+  const opener = prepDist(mob);
+  teleport(sim, mob.pos.x, mob.pos.z + opener);
+  faceTarget(sim, mob);
   if (sim.known.some((k) => k.def.id === 'demon_skin') && !hasAura(p, 'demon_skin')) sim.castAbility('demon_skin');
-  if (sim.known.some((k) => k.def.id === 'curse_of_agony') && !hasAura(mob, 'curse_of_agony')) sim.castAbility('curse_of_agony');
-  for (let i = 0; i < 120 && (p.castingAbility || p.channeling); i++) sim.tick();
+  for (let i = 0; i < 40 && (p.castingAbility || p.channeling); i++) sim.tick();
+  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
@@ -267,19 +294,22 @@ function fightMobWarlock(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed'
     const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
     const manaPct = (p.resource ?? 0) / Math.max(1, p.maxResource ?? 1);
     const hpPct = p.hp / p.maxHp;
+    const hostiles = hostilesOn(sim, p, mobId);
     if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
-      const hostiles = [...sim.entities.values()].filter((e) => {
-        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
-        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
-        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
-      });
-      if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'fear') && dist <= 20) sim.castAbility('fear');
-      else if (manaPct < 0.3 && hpPct > 0.4 && sim.known.some((k) => k.def.id === 'life_tap')) sim.castAbility('life_tap');
-      else if (hpPct < 0.75 && dist <= 20 && sim.known.some((k) => k.def.id === 'drain_life') && (p.resource ?? 0) >= 35) sim.castAbility('drain_life');
+      if (manaPct < 0.2 && hpPct > 0.35 && sim.known.some((k) => k.def.id === 'life_tap')) sim.castAbility('life_tap');
+      else if (m.hp / m.maxHp < 0.25 && (p.resource ?? 0) >= 25 && sim.known.some((k) => k.def.id === 'shadow_bolt')) sim.castAbility('shadow_bolt');
+      else if (hpPct < 0.8 && dist <= 20 && sim.known.some((k) => k.def.id === 'drain_life') && (p.resource ?? 0) >= 35) sim.castAbility('drain_life');
       else if (!hasAura(m, 'immolate') && sim.known.some((k) => k.def.id === 'immolate') && (p.resource ?? 0) >= 25) sim.castAbility('immolate');
       else if (!hasAura(m, 'corruption') && sim.known.some((k) => k.def.id === 'corruption') && (p.resource ?? 0) >= 35) sim.castAbility('corruption');
       else if (!hasAura(m, 'curse_of_agony') && sim.known.some((k) => k.def.id === 'curse_of_agony') && (p.resource ?? 0) >= 25) sim.castAbility('curse_of_agony');
-      else if ((p.resource ?? 0) >= 25 && sim.known.some((k) => k.def.id === 'shadow_bolt')) sim.castAbility('shadow_bolt');
+      else if (hostiles.length > 1 && sim.known.some((k) => k.def.id === 'corruption')) {
+        const add = hostiles.find((e) => e.id !== mobId);
+        if (add && !hasAura(add, 'corruption')) {
+          sim.targetEntity(add.id);
+          sim.castAbility('corruption');
+          sim.targetEntity(mobId);
+        } else if ((p.resource ?? 0) >= 25) sim.castAbility('shadow_bolt');
+      } else if ((p.resource ?? 0) >= 25 && sim.known.some((k) => k.def.id === 'shadow_bolt')) sim.castAbility('shadow_bolt');
     }
     sim.tick();
   }
@@ -290,15 +320,15 @@ function fightMobWarlock(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed'
 function fightMobDruidBalance(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
+  faceTarget(sim, mob);
+  sim.targetEntity(p.id);
+  if (sim.known.some((k) => k.def.id === 'mark_of_the_wild') && !hasAura(p, 'mark_of_the_wild')) sim.castAbility('mark_of_the_wild');
+  if (sim.known.some((k) => k.def.id === 'rejuvenation') && !hasAura(p, 'rejuvenation')) sim.castAbility('rejuvenation');
+  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
   teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
-  if (sim.known.some((k) => k.def.id === 'mark_of_the_wild') && !hasAura(p, 'mark_of_the_wild')) {
-    sim.targetEntity(p.id);
-    sim.castAbility('mark_of_the_wild');
-    sim.targetEntity(mobId);
-  }
-  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
@@ -330,12 +360,17 @@ function fightMobDruidBalance(sim: Sim, mobId: number, maxTicks = 20 * 600): 'ki
 function fightMobShaman(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
   if (sim.known.some((k) => k.def.id === 'rockbiter_weapon') && !hasAura(p, 'rockbiter_weapon')) sim.castAbility('rockbiter_weapon');
   if (sim.known.some((k) => k.def.id === 'lightning_shield') && !hasAura(p, 'lightning_shield')) sim.castAbility('lightning_shield');
   for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
+  if (mob.templateId === 'crypt_warden') {
+    teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+    faceTarget(sim, mob);
+    sim.targetEntity(mobId);
+  }
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
@@ -344,18 +379,14 @@ function fightMobShaman(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed' 
     const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
     const hpPct = p.hp / p.maxHp;
     if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
-      const hostiles = [...sim.entities.values()].filter((e) => {
-        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
-        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
-        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
-      });
-      if (hpPct < 0.55 && sim.known.some((k) => k.def.id === 'healing_wave')) {
+      const hostiles = hostilesOn(sim, p, mobId);
+      if (hpPct < 0.35 && sim.known.some((k) => k.def.id === 'healing_wave')) {
         sim.targetEntity(p.id);
         sim.castAbility('healing_wave');
         sim.targetEntity(mobId);
       } else if (hostiles.length > 1 && sim.known.some((k) => k.def.id === 'earth_shock')) sim.castAbility('earth_shock');
       else if (!hasAura(m, 'flame_shock') && sim.known.some((k) => k.def.id === 'flame_shock') && (p.resource ?? 0) >= 35) sim.castAbility('flame_shock');
-      else if (sim.known.some((k) => k.def.id === 'earth_shock') && (p.resource ?? 0) >= 30) sim.castAbility('earth_shock');
+      else if (m.hp / m.maxHp < 0.3 && sim.known.some((k) => k.def.id === 'earth_shock') && (p.resource ?? 0) >= 30) sim.castAbility('earth_shock');
       else if ((p.resource ?? 0) >= 15 && sim.known.some((k) => k.def.id === 'lightning_bolt')) sim.castAbility('lightning_bolt');
     }
     sim.tick();
