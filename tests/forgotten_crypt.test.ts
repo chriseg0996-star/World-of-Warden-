@@ -106,4 +106,50 @@ describe('Forgotten Crypt dungeon slice', () => {
     expect(MOBS.crypt_warden.summonAdds?.mobId).toBe('skeleton_warrior_add');
     expect(MOBS.skeleton_warrior_add.loot).toEqual([]);
   });
+
+  it('completes the Alden crypt quest chain through boss turn-in', () => {
+    const sim = makeSim(8);
+    const meta = sim.meta(sim.playerId)!;
+    const xp0 = meta.lifetimeXp;
+    const alden = { x: -14, z: -10 };
+    const door = { x: 80, z: 88 };
+
+    teleport(sim, alden.x, alden.z);
+    sim.acceptQuest('q_fc_enter');
+    teleport(sim, door.x, door.z);
+    sim.enterCrypt();
+    expect(sim.meta(sim.playerId)!.questLog.get('q_fc_enter')!.state).toBe('ready');
+    teleport(sim, alden.x, alden.z);
+    sim.turnInQuest('q_fc_enter');
+    expect(meta.questsDone.has('q_fc_enter')).toBe(true);
+
+    sim.acceptQuest('q_fc_guardian');
+    teleport(sim, door.x, door.z);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    killMob(sim, nearestMob(sim, 'bone_guardian', origin)!.id);
+    expect(sim.meta(sim.playerId)!.questLog.get('q_fc_guardian')!.state).toBe('ready');
+    teleport(sim, alden.x, alden.z);
+    sim.turnInQuest('q_fc_guardian');
+    expect(meta.questsDone.has('q_fc_guardian')).toBe(true);
+    const hasBoneShield = sim.inventory.some((s) => s.itemId === 'bone_shield')
+      || Object.values(meta.equipment).includes('bone_shield');
+    expect(hasBoneShield).toBe(true);
+
+    sim.acceptQuest('q_fc_warden');
+    teleport(sim, door.x, door.z);
+    sim.enterCrypt();
+    const origin2 = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin2)!;
+    killMob(sim, warden.id);
+    (sim as any).rollLoot(warden, meta);
+    expect(sim.meta(sim.playerId)!.questLog.get('q_fc_warden')!.state).toBe('ready');
+    teleport(sim, alden.x, alden.z);
+    sim.turnInQuest('q_fc_warden');
+    expect(meta.questsDone.has('q_fc_warden')).toBe(true);
+    expect(meta.lifetimeXp).toBeGreaterThan(xp0);
+    const hasWardenHammer = sim.inventory.some((s) => s.itemId === 'wardens_hammer')
+      || Object.values(meta.equipment).includes('wardens_hammer');
+    expect(hasWardenHammer).toBe(true);
+  });
 });
