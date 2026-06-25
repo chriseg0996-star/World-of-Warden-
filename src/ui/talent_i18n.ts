@@ -475,6 +475,7 @@ const titleOverrides: Partial<Record<SupportedLanguage, Record<string, string>>>
     "Survival Tactics": "Tácticas de supervivencia",
     "Tactical Mastery": "Maestría táctica",
     "Tidal Focus": "Concentración de mareas",
+    "Tidal Mastery": "Dominio de mareas",
     "Toughness": "Dureza",
     "Unleashed Fury": "Furia desatada",
     "Wand Specialization": "Especialización en varitas",

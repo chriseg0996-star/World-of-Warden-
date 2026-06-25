@@ -16,9 +16,11 @@ import { MAGE_TALENTS } from './talents_mage';
 import { ROGUE_TALENTS } from './talents_rogue';
 import { HUNTER_TALENTS } from './talents_hunter';
 import { PALADIN_TALENTS } from './talents_paladin';
+import { PRIEST_TALENTS } from './talents_priest';
+import { SHAMAN_TALENTS } from './talents_shaman';
 import {
-  DRUID_TALENTS, PRIEST_TALENTS,
-  SHAMAN_TALENTS, WARLOCK_TALENTS,
+  DRUID_TALENTS,
+  WARLOCK_TALENTS,
 } from './talents_classic';
 
 export type TalentTree = 'class' | 'spec';

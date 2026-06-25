@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
-// Classic-inspired talent content for priest, shaman, warlock, and druid.
-// Warrior, mage, rogue, hunter, and paladin live in dedicated files.
+// Classic-inspired talent content for warlock and druid.
+// Warrior, mage, rogue, hunter, paladin, priest, and shaman live in dedicated files.
 // ---------------------------------------------------------------------------
 
 import type { PlayerClass } from '../types';
@@ -23,118 +23,6 @@ function choice(id: string, tree: TalentTree, specId: string | undefined, icon: 
 function spec(id: string, cls: PlayerClass, name: string, role: Role, icon: string, description: string, signature: string, masteryName: string, masteryDescription: string, effect: TalentEffect): SpecDef {
   return { id, class: cls, name, role, icon, description, signature, mastery: { name: masteryName, description: masteryDescription, effect } };
 }
-
-const PRIEST_CLASS: TalentNode[] = [
-  passive('pri_wand_specialization', 'class', undefined, 3, { stats: { int: 1, spi: 1 } }, '/', 'Wand Specialization', 'Increases Intellect and Spirit by 1 per rank.', 0, 0),
-  passive('pri_spirit_tap', 'class', undefined, 3, { stats: { spi: 3 } }, '*', 'Spirit Tap', 'Increases Spirit by 3 per rank.', 0, 2),
-  passive('pri_imp_fortitude', 'class', undefined, 2, { ability: [{ ability: 'power_word_fortitude', dmgPct: 0.20 }], stats: { sta: 2 } }, '+', 'Improved Fortitude', 'Increases Stamina by 2 and strengthens Fortitude per rank.', 1, 0, { requires: ['pri_wand_specialization'] }),
-  passive('pri_meditation', 'class', undefined, 2, { ability: [{ ability: 'lesser_heal', costPct: -0.08 }, { ability: 'heal', costPct: -0.08 }, { ability: 'flash_heal', costPct: -0.08 }] }, 'v', 'Meditation', 'Reduces healing spell costs by 8% per rank.', 1, 1, { pointsGate: 2 }),
-  passive('pri_shadow_affinity', 'class', undefined, 3, { ability: [{ ability: 'shadow_word_pain', costPct: -0.05 }, { ability: 'mind_blast', costPct: -0.05 }] }, '*', 'Shadow Affinity', 'Reduces Shadow spell costs by 5% per rank.', 1, 2, { requires: ['pri_spirit_tap'] }),
-  choice('pri_inner_calling', 'class', undefined, '@', 'Inner Calling', 'Choose one priest emphasis.', 2, 1, [
-    { id: 'pri_calling_disc', name: 'Inner Focus', icon: '#', description: 'Power Word: Shield absorbs 18% more.', effect: { ability: [{ ability: 'power_word_shield', dmgPct: 0.18 }] } },
-    { id: 'pri_calling_holy', name: 'Divine Fury', icon: '+', description: 'Increases healing by 8%.', effect: { global: { healPct: 0.08 } } },
-    { id: 'pri_calling_shadow', name: 'Darkness', icon: '*', description: 'Increases spell damage by 8%.', effect: { global: { spellDmgPct: 0.08 } } },
-  ], { pointsGate: 5 }),
-  active('pri_desperate_prayer', 'class', undefined, { grant: { ability: 'flash_heal' } }, '+', 'Desperate Prayer', 'Grants early access to Flash Heal.', 3, 0, { pointsGate: 8, requires: ['pri_imp_fortitude'] }),
-  passive('pri_enlightenment', 'class', undefined, 2, { stats: { int: 3, spi: 3 } }, '*', 'Enlightenment', 'Increases Intellect and Spirit by 3 per rank.', 3, 2, { pointsGate: 8, requires: ['pri_inner_calling'] }),
-];
-
-const PRIEST_SPECS: SpecDef[] = [
-  spec('discipline', 'priest', 'Discipline', 'healer', '#', 'A mitigator who shields allies and heals through controlled efficiency.', 'power_word_shield', 'Focused Will', 'Increases healing and maximum health.', { global: { healPct: 0.08 }, stats: { maxHpPct: 0.08 } }),
-  spec('holy', 'priest', 'Holy', 'healer', '+', 'A direct healer with strong throughput and restorative prayers.', 'flash_heal', 'Spiritual Healing', 'Increases all healing done by 14%.', { global: { healPct: 0.14 } }),
-  spec('shadow', 'priest', 'Shadow', 'dps', '*', 'A damage caster built around Shadow damage over time and mind spells.', 'mind_flay', 'Shadowform', 'Increases spell damage by 12% and armor by 8%.', { global: { spellDmgPct: 0.12 }, stats: { armorPct: 0.08 } }),
-];
-
-const PRIEST_SPEC_NODES: TalentNode[] = [
-  passive('disc_unbreakable_will', 'spec', 'discipline', 3, { stats: { sta: 2, spi: 1 } }, '#', 'Unbreakable Will', 'Increases Stamina by 2 and Spirit by 1 per rank.', 0, 0),
-  passive('disc_twin_disciplines', 'spec', 'discipline', 3, { ability: [{ ability: 'power_word_shield', dmgPct: 0.08 }] }, '#', 'Twin Disciplines', 'Increases Power Word: Shield absorption by 8% per rank.', 0, 2),
-  passive('disc_imp_shield', 'spec', 'discipline', 2, { ability: [{ ability: 'power_word_shield', cooldownPct: -0.15, costPct: -0.08 }] }, '#', 'Improved Power Word: Shield', 'Improves shield cooldown and cost per rank.', 1, 0, { pointsGate: 2, requires: ['disc_unbreakable_will'] }),
-  passive('disc_mental_agility', 'spec', 'discipline', 2, { ability: [{ ability: 'renew', costPct: -0.10 }, { ability: 'power_word_shield', costPct: -0.10 }] }, 'v', 'Mental Agility', 'Reduces instant support spell costs by 10% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('disc_choice', 'spec', 'discipline', '@', 'Discipline Focus', 'Choose one Discipline refinement.', 2, 1, [
-    { id: 'disc_choice_barrier', name: 'Borrowed Time', icon: '#', description: 'Shielding spells are stronger.', effect: { ability: [{ ability: 'power_word_shield', dmgPct: 0.25 }] } },
-    { id: 'disc_choice_focus', name: 'Inner Focus', icon: '*', description: 'Healing spells cost 15% less.', effect: { ability: [{ ability: 'lesser_heal', costPct: -0.15 }, { ability: 'heal', costPct: -0.15 }, { ability: 'flash_heal', costPct: -0.15 }] } },
-    { id: 'disc_choice_power', name: 'Power Infusion', icon: '+', description: 'Increases healing and spell damage by 6%.', effect: { global: { healPct: 0.06, spellDmgPct: 0.06 } } },
-  ], { pointsGate: 5 }),
-  passive('disc_penance', 'spec', 'discipline', 2, { global: { healPct: 0.05 }, ability: [{ ability: 'smite', dmgPct: 0.08 }] }, '+', 'Penance', 'Improves healing and Smite pressure per rank.', 3, 1, { pointsGate: 8, requires: ['disc_choice'] }),
-
-  passive('holy_healing_focus', 'spec', 'holy', 3, { ability: [{ ability: 'lesser_heal', dmgPct: 0.06 }, { ability: 'heal', dmgPct: 0.06 }] }, '+', 'Healing Focus', 'Increases direct healing by 6% per rank.', 0, 0),
-  passive('holy_renewal', 'spec', 'holy', 3, { ability: [{ ability: 'renew', dmgPct: 0.08 }] }, '+', 'Improved Renew', 'Increases Renew healing by 8% per rank.', 0, 2),
-  passive('holy_divine_fury', 'spec', 'holy', 2, { ability: [{ ability: 'heal', castPct: -0.10 }, { ability: 'smite', castPct: -0.05 }] }, '>', 'Divine Fury', 'Makes Heal and Smite faster per rank.', 1, 0, { pointsGate: 2, requires: ['holy_healing_focus'] }),
-  passive('holy_inspiration', 'spec', 'holy', 2, { stats: { armorPct: 0.05 }, global: { healPct: 0.03 } }, '#', 'Inspiration', 'Increases armor and healing per rank.', 1, 2, { pointsGate: 2 }),
-  choice('holy_priest_choice', 'spec', 'holy', '@', 'Holy Word', 'Choose one Holy refinement.', 2, 1, [
-    { id: 'holy_priest_choice_spirit', name: 'Spiritual Guidance', icon: '*', description: 'Increases Spirit by 10.', effect: { stats: { spi: 10 } } },
-    { id: 'holy_priest_choice_nova', name: 'Holy Reach', icon: '+', description: 'Smite and Holy heals are 8% stronger.', effect: { global: { healPct: 0.08 }, ability: [{ ability: 'smite', dmgPct: 0.08 }] } },
-    { id: 'holy_priest_choice_prayer', name: 'Healing Prayers', icon: 'v', description: 'Healing spells cost 12% less.', effect: { ability: [{ ability: 'lesser_heal', costPct: -0.12 }, { ability: 'heal', costPct: -0.12 }, { ability: 'flash_heal', costPct: -0.12 }] } },
-  ], { pointsGate: 5 }),
-  passive('holy_spiritual_healing', 'spec', 'holy', 2, { global: { healPct: 0.07 }, stats: { crit: 0.01 } }, '+', 'Spiritual Healing', 'Increases healing and crit per rank.', 3, 1, { pointsGate: 8, requires: ['holy_priest_choice'] }),
-
-  passive('shadow_blackout', 'spec', 'shadow', 3, { ability: [{ ability: 'mind_blast', dmgPct: 0.06 }] }, '*', 'Blackout', 'Increases Mind Blast damage by 6% per rank.', 0, 0),
-  passive('shadow_word_pain', 'spec', 'shadow', 3, { ability: [{ ability: 'shadow_word_pain', dmgPct: 0.08 }] }, '*', 'Improved Shadow Word: Pain', 'Increases Shadow Word: Pain damage by 8% per rank.', 0, 2),
-  passive('shadow_mind_flay', 'spec', 'shadow', 2, { ability: [{ ability: 'mind_flay', dmgPct: 0.12, costPct: -0.08 }] }, '*', 'Improved Mind Flay', 'Improves Mind Flay damage and cost per rank.', 1, 0, { pointsGate: 2, requires: ['shadow_blackout'] }),
-  passive('shadow_focus', 'spec', 'shadow', 2, { global: { spellDmgPct: 0.04 } }, 'x', 'Shadow Focus', 'Increases spell damage by 4% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('shadow_choice', 'spec', 'shadow', '@', 'Dark Arts', 'Choose one Shadow refinement.', 2, 1, [
-    { id: 'shadow_choice_vampiric', name: 'Vampiric Embrace', icon: '+', description: 'Increases maximum health and spell damage.', effect: { stats: { maxHpPct: 0.08 }, global: { spellDmgPct: 0.04 } } },
-    { id: 'shadow_choice_silence', name: 'Silence', icon: 'O', description: 'Mind Blast cooldown is reduced by 20%.', effect: { ability: [{ ability: 'mind_blast', cooldownPct: -0.20 }] } },
-    { id: 'shadow_choice_darkness', name: 'Darkness', icon: '*', description: 'Increases spell damage by 10%.', effect: { global: { spellDmgPct: 0.10 } } },
-  ], { pointsGate: 5 }),
-  passive('shadow_shadowform', 'spec', 'shadow', 2, { global: { spellDmgPct: 0.07 }, stats: { armorPct: 0.05 } }, '*', 'Shadowform', 'Increases spell damage and armor per rank.', 3, 1, { pointsGate: 8, requires: ['shadow_choice'] }),
-];
-
-const SHAMAN_CLASS: TalentNode[] = [
-  passive('sha_convection', 'class', undefined, 3, { ability: [{ ability: 'lightning_bolt', costPct: -0.05 }, { ability: 'earth_shock', costPct: -0.05 }] }, 'v', 'Convection', 'Reduces Lightning Bolt and Earth Shock costs by 5% per rank.', 0, 0),
-  passive('sha_ancestral_knowledge', 'class', undefined, 3, { stats: { int: 2 } }, '*', 'Ancestral Knowledge', 'Increases Intellect by 2 per rank.', 0, 2),
-  passive('sha_shielding', 'class', undefined, 2, { ability: [{ ability: 'lightning_shield', dmgPct: 0.15 }], stats: { armorPct: 0.03 } }, '#', 'Improved Lightning Shield', 'Strengthens Lightning Shield and armor per rank.', 1, 0, { requires: ['sha_convection'] }),
-  passive('sha_thundering_strikes', 'class', undefined, 2, { stats: { crit: 0.015 } }, 'x', 'Thundering Strikes', 'Increases critical strike chance by 1.5% per rank.', 1, 1, { pointsGate: 2 }),
-  passive('sha_tidal_focus', 'class', undefined, 3, { ability: [{ ability: 'healing_wave', costPct: -0.05 }] }, '+', 'Tidal Focus', 'Reduces Healing Wave cost by 5% per rank.', 1, 2, { requires: ['sha_ancestral_knowledge'] }),
-  choice('sha_elemental_calling', 'class', undefined, '@', 'Elemental Calling', 'Choose one shaman emphasis.', 2, 1, [
-    { id: 'sha_calling_elemental', name: 'Elemental Fury', icon: '*', description: 'Increases spell damage by 8%.', effect: { global: { spellDmgPct: 0.08 } } },
-    { id: 'sha_calling_enhance', name: 'Flurry', icon: 'x', description: 'Increases melee ability damage by 8%.', effect: { global: { meleeDmgPct: 0.08 } } },
-    { id: 'sha_calling_restoration', name: 'Healing Grace', icon: '+', description: 'Increases healing by 8%.', effect: { global: { healPct: 0.08 } } },
-  ], { pointsGate: 5 }),
-  active('sha_ghost_wolf', 'class', undefined, { grant: { ability: 'ghost_wolf' } }, '>', 'Improved Ghost Wolf', 'Grants early access to Ghost Wolf.', 3, 0, { pointsGate: 8, requires: ['sha_shielding'] }),
-  passive('sha_natures_guidance', 'class', undefined, 2, { stats: { int: 3, sta: 3 } }, '+', 'Nature Guidance', 'Increases Intellect and Stamina by 3 per rank.', 3, 2, { pointsGate: 8, requires: ['sha_elemental_calling'] }),
-];
-
-const SHAMAN_SPECS: SpecDef[] = [
-  spec('elemental', 'shaman', 'Elemental', 'dps', '*', 'A ranged caster who calls lightning, flame, and frost.', 'lightning_bolt', 'Elemental Fury', 'Increases spell damage and critical strike chance.', { global: { spellDmgPct: 0.10 }, stats: { crit: 0.02 } }),
-  spec('enhancement', 'shaman', 'Enhancement', 'dps', 'x', 'A weapon fighter who channels the storm through melee swings.', 'stormstrike', 'Stormcaller', 'Increases melee ability damage and attack power.', { global: { meleeDmgPct: 0.10 }, stats: { ap: 10 } }),
-  spec('restoration', 'shaman', 'Restoration', 'healer', '+', 'A healer using ancestral waves and efficient nature magic.', 'healing_wave', 'Purification', 'Increases healing done by 14%.', { global: { healPct: 0.14 } }),
-];
-
-const SHAMAN_SPEC_NODES: TalentNode[] = [
-  passive('ele_concussion', 'spec', 'elemental', 3, { ability: [{ ability: 'lightning_bolt', dmgPct: 0.06 }, { ability: 'earth_shock', dmgPct: 0.06 }] }, '*', 'Concussion', 'Increases Lightning Bolt and Earth Shock damage by 6% per rank.', 0, 0),
-  passive('ele_call_flame', 'spec', 'elemental', 3, { ability: [{ ability: 'flame_shock', dmgPct: 0.08 }] }, 'x', 'Call of Flame', 'Increases Flame Shock damage by 8% per rank.', 0, 2),
-  passive('ele_reverberation', 'spec', 'elemental', 2, { ability: [{ ability: 'earth_shock', cooldownPct: -0.12 }, { ability: 'frost_shock', cooldownPct: -0.12 }] }, '>', 'Reverberation', 'Reduces Shock cooldowns by 12% per rank.', 1, 0, { pointsGate: 2, requires: ['ele_concussion'] }),
-  passive('ele_elemental_focus', 'spec', 'elemental', 2, { ability: [{ ability: 'lightning_bolt', costPct: -0.10 }, { ability: 'flame_shock', costPct: -0.10 }] }, 'v', 'Elemental Focus', 'Reduces offensive spell costs by 10% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('ele_choice', 'spec', 'elemental', '@', 'Elemental Mastery', 'Choose one Elemental refinement.', 2, 1, [
-    { id: 'ele_choice_mastery', name: 'Elemental Mastery', icon: '*', description: 'Increases spell damage by 10%.', effect: { global: { spellDmgPct: 0.10 } } },
-    { id: 'ele_choice_devastation', name: 'Elemental Devastation', icon: 'x', description: 'Increases critical strike by 5%.', effect: { stats: { crit: 0.05 } } },
-    { id: 'ele_choice_storm', name: 'Storm Reach', icon: '>', description: 'Lightning Bolt casts 20% faster.', effect: { ability: [{ ability: 'lightning_bolt', castPct: -0.20 }] } },
-  ], { pointsGate: 5 }),
-  passive('ele_lightning_mastery', 'spec', 'elemental', 2, { ability: [{ ability: 'lightning_bolt', castPct: -0.08, dmgPct: 0.10 }] }, '*', 'Lightning Mastery', 'Improves Lightning Bolt cast and damage per rank.', 3, 1, { pointsGate: 8, requires: ['ele_choice'] }),
-
-  passive('enh_ancestral_weapons', 'spec', 'enhancement', 3, { stats: { ap: 8 } }, 'x', 'Ancestral Weapons', 'Increases attack power by 8 per rank.', 0, 0),
-  passive('enh_shield_spec', 'spec', 'enhancement', 3, { stats: { armorPct: 0.04, dodge: 0.005 } }, '#', 'Shield Specialization', 'Increases armor and dodge per rank.', 0, 2),
-  passive('enh_imp_rockbiter', 'spec', 'enhancement', 2, { ability: [{ ability: 'rockbiter_weapon', dmgPct: 0.20 }] }, 'x', 'Improved Rockbiter', 'Increases Rockbiter Weapon damage by 20% per rank.', 1, 0, { pointsGate: 2, requires: ['enh_ancestral_weapons'] }),
-  passive('enh_flurry', 'spec', 'enhancement', 2, { stats: { crit: 0.02 } }, '>', 'Flurry', 'Increases critical strike chance by 2% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('enh_choice', 'spec', 'enhancement', '@', 'Storm Path', 'Choose one Enhancement refinement.', 2, 1, [
-    { id: 'enh_choice_stormstrike', name: 'Stormstrike', icon: 'x', description: 'Stormstrike deals 25% more damage.', effect: { ability: [{ ability: 'stormstrike', dmgPct: 0.25 }] } },
-    { id: 'enh_choice_toughness', name: 'Toughness', icon: '#', description: 'Increases armor and stamina.', effect: { stats: { armorPct: 0.12, sta: 4 } } },
-    { id: 'enh_choice_weapon', name: 'Weapon Mastery', icon: 'x', description: 'Increases melee damage by 10%.', effect: { global: { meleeDmgPct: 0.10 } } },
-  ], { pointsGate: 5 }),
-  passive('enh_spirit_weapons', 'spec', 'enhancement', 2, { ability: [{ ability: 'stormstrike', cooldownPct: -0.12, costPct: -0.08 }], global: { meleeDmgPct: 0.04 } }, 'x', 'Spirit Weapons', 'Improves Stormstrike and melee damage per rank.', 3, 1, { pointsGate: 8, requires: ['enh_choice'] }),
-
-  passive('rest_tidal_focus', 'spec', 'restoration', 3, { ability: [{ ability: 'healing_wave', costPct: -0.06 }] }, 'v', 'Tidal Focus', 'Reduces Healing Wave cost by 6% per rank.', 0, 0),
-  passive('rest_imp_healing_wave', 'spec', 'restoration', 3, { ability: [{ ability: 'healing_wave', castPct: -0.05, dmgPct: 0.05 }] }, '+', 'Improved Healing Wave', 'Makes Healing Wave faster and stronger per rank.', 0, 2),
-  passive('rest_ancestral_healing', 'spec', 'restoration', 2, { stats: { armorPct: 0.05 }, global: { healPct: 0.03 } }, '#', 'Ancestral Healing', 'Increases armor and healing per rank.', 1, 0, { pointsGate: 2, requires: ['rest_tidal_focus'] }),
-  passive('rest_healing_grace', 'spec', 'restoration', 2, { global: { healPct: 0.04 }, stats: { spi: 2 } }, '+', 'Healing Grace', 'Increases healing and Spirit per rank.', 1, 2, { pointsGate: 2 }),
-  choice('rest_choice', 'spec', 'restoration', '@', 'Nature Blessing', 'Choose one Restoration refinement.', 2, 1, [
-    { id: 'rest_choice_swiftness', name: 'Nature Swiftness', icon: '>', description: 'Healing Wave casts 25% faster.', effect: { ability: [{ ability: 'healing_wave', castPct: -0.25 }] } },
-    { id: 'rest_choice_mana', name: 'Mana Tide', icon: 'v', description: 'Healing Wave costs 18% less.', effect: { ability: [{ ability: 'healing_wave', costPct: -0.18 }] } },
-    { id: 'rest_choice_purification', name: 'Purification', icon: '+', description: 'Increases healing by 10%.', effect: { global: { healPct: 0.10 } } },
-  ], { pointsGate: 5 }),
-  passive('rest_chain_focus', 'spec', 'restoration', 2, { global: { healPct: 0.07 }, stats: { int: 2 } }, '+', 'Ancestral Guidance', 'Increases healing and Intellect per rank.', 3, 1, { pointsGate: 8, requires: ['rest_choice'] }),
-];
 
 const WARLOCK_CLASS: TalentNode[] = [
   passive('wlk_suppression', 'class', undefined, 3, { ability: [{ ability: 'corruption', costPct: -0.05 }, { ability: 'curse_of_agony', costPct: -0.05 }] }, 'v', 'Suppression', 'Reduces Affliction spell costs by 5% per rank.', 0, 0),
@@ -248,7 +136,5 @@ const DRUID_SPEC_NODES: TalentNode[] = [
   passive('rest_tree_life', 'spec', 'restoration', 2, { global: { healPct: 0.07 }, stats: { spi: 3 } }, '+', 'Tree of Life', 'Increases healing and Spirit per rank.', 3, 1, { pointsGate: 8, requires: ['rest_druid_choice'] }),
 ];
 
-export const PRIEST_TALENTS: ClassTalents = { class: 'priest', nodes: [...PRIEST_CLASS, ...PRIEST_SPEC_NODES], specs: PRIEST_SPECS };
-export const SHAMAN_TALENTS: ClassTalents = { class: 'shaman', nodes: [...SHAMAN_CLASS, ...SHAMAN_SPEC_NODES], specs: SHAMAN_SPECS };
 export const WARLOCK_TALENTS: ClassTalents = { class: 'warlock', nodes: [...WARLOCK_CLASS, ...WARLOCK_SPEC_NODES], specs: WARLOCK_SPECS };
 export const DRUID_TALENTS: ClassTalents = { class: 'druid', nodes: [...DRUID_CLASS, ...DRUID_SPEC_NODES], specs: DRUID_SPECS };

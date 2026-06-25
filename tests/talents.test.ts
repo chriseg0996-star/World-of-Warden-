@@ -43,7 +43,7 @@ describe('talent tree validation (load-time)', () => {
     for (const cls of ALL_CLASSES) {
       const ct = talentsFor(cls);
       expect(ct, cls).toBeTruthy();
-      const minSpecs = (cls === 'warrior' || cls === 'mage' || cls === 'rogue' || cls === 'hunter' || cls === 'paladin') ? 2 : 3;
+      const minSpecs = (cls === 'warrior' || cls === 'mage' || cls === 'rogue' || cls === 'hunter' || cls === 'paladin' || cls === 'priest' || cls === 'shaman') ? 2 : 3;
       expect(ct!.specs.length, cls).toBeGreaterThanOrEqual(minSpecs);
       expect(ct!.nodes.filter((n) => n.tree === 'class').length, cls).toBeGreaterThanOrEqual(4);
       for (const s of ct!.specs) {
@@ -227,8 +227,8 @@ describe('precomputed modifiers', () => {
 
   it('applies ability modifiers to shields, buffs, and imbues, not only damage spells', () => {
     const shield = abilitiesKnownAt('priest', 10, computeTalentModifiers('priest',
-      alloc({ spec: 'discipline', ranks: { disc_twin_disciplines: 1 } }))).find((k) => k.def.id === 'power_word_shield')!;
-    expect(effOf(shield).amount).toBe(56); // 48 * (1 + 8% mastery + 8% talent)
+      alloc({ spec: 'holy', ranks: { holy_twin_disciplines: 1 } }))).find((k) => k.def.id === 'power_word_shield')!;
+    expect(effOf(shield).amount).toBe(59); // 48 * (1 + 14% mastery + 8% talent)
 
     const fort = abilitiesKnownAt('priest', 20, computeTalentModifiers('priest',
       alloc({ ranks: { pri_imp_fortitude: 2 } }))).find((k) => k.def.id === 'power_word_fortitude')!;
