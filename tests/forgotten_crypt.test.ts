@@ -151,6 +151,64 @@ function fightMobRogue(sim: Sim, mobId: number, maxTicks = 20 * 400): 'killed' |
   return 'timeout';
 }
 
+/** Marksmanship hunter rotation for solo viability checks. */
+function fightMobHunter(sim: Sim, mobId: number, maxTicks = 20 * 500): 'killed' | 'player_dead' | 'timeout' {
+  const mob = sim.entities.get(mobId)!;
+  const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + 22);
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
+  if (sim.known.some((k) => k.def.id === 'aspect_of_the_hawk') && !hasAura(p, 'aspect_of_the_hawk')) sim.castAbility('aspect_of_the_hawk');
+  sim.startAutoAttack();
+  for (let i = 0; i < maxTicks; i++) {
+    const m = sim.entities.get(mobId);
+    if (p.dead) return 'player_dead';
+    if (!m || m.dead) return 'killed';
+    faceTarget(sim, m);
+    const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
+    if (p.gcdRemaining <= 0 && !p.castingAbility) {
+      if (dist < 8 && sim.known.some((k) => k.def.id === 'mongoose_bite')) sim.castAbility('mongoose_bite');
+      else if (!hasAura(m, 'serpent_sting') && sim.known.some((k) => k.def.id === 'serpent_sting')) sim.castAbility('serpent_sting');
+      else if ((p.resource ?? 0) >= 25 && sim.known.some((k) => k.def.id === 'arcane_shot')) sim.castAbility('arcane_shot');
+    }
+    sim.tick();
+  }
+  return 'timeout';
+}
+
+/** Retribution paladin rotation for solo viability checks. */
+function fightMobPaladin(sim: Sim, mobId: number, maxTicks = 20 * 500): 'killed' | 'player_dead' | 'timeout' {
+  const mob = sim.entities.get(mobId)!;
+  const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + 3);
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
+  sim.startAutoAttack();
+  if (sim.known.some((k) => k.def.id === 'seal_of_righteousness') && !(p.auras ?? []).some((a) => a.kind === 'imbue')) {
+    sim.castAbility('seal_of_righteousness');
+  }
+  for (let i = 0; i < maxTicks; i++) {
+    const m = sim.entities.get(mobId);
+    if (p.dead) return 'player_dead';
+    if (!m || m.dead) return 'killed';
+    faceTarget(sim, m);
+    const hpPct = p.hp / p.maxHp;
+    if (p.gcdRemaining <= 0 && !p.castingAbility) {
+      const hostiles = [...sim.entities.values()].filter((e) => {
+        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id) return false;
+        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
+        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
+      });
+      if (hpPct < 0.55 && sim.known.some((k) => k.def.id === 'holy_light')) sim.castAbility('holy_light');
+      else if (hostiles.length > 1 && sim.known.some((k) => k.def.id === 'consecration')) sim.castAbility('consecration');
+      else if (!(p.auras ?? []).some((a) => a.kind === 'imbue') && sim.known.some((k) => k.def.id === 'seal_of_righteousness')) sim.castAbility('seal_of_righteousness');
+      else if ((p.resource ?? 0) >= 30 && sim.known.some((k) => k.def.id === 'judgement')) sim.castAbility('judgement');
+    }
+    sim.tick();
+  }
+  return 'timeout';
+}
+
 describe('Forgotten Crypt dungeon slice', () => {
   it('dungeon door at the Fallen Chapel enters hollow_crypt on proximity', () => {
     const sim = makeSim(5);
@@ -283,6 +341,49 @@ describe('Forgotten Crypt dungeon slice', () => {
     const guardian = nearestMob(sim, 'bone_guardian', origin)!;
     expect(fightMobRogue(sim, guardian.id)).toBe('killed');
     expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 8 marksmanship hunter can solo the Bone Guardian after clearing trash', () => {
+    const sim = makeSim(8, 'hunter');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'marksmanship',
+      ranks: { mm_imp_arcane_shot: 1, mm_lethal_shots: 1, mm_aimed_focus: 1 },
+    });
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    clearCryptExcept(sim, 'bone_guardian');
+    const guardian = nearestMob(sim, 'bone_guardian', origin)!;
+    expect(fightMobHunter(sim, guardian.id)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 10 retribution paladin with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10, 'paladin');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'retribution',
+      ranks: {
+        ret_conviction: 1,
+        ret_seal_command: 2,
+        ret_imp_judgement: 2,
+        ret_zeal: 1,
+      },
+    });
+    sim.inventory.push({ itemId: 'crypt_blade', qty: 1 }, { itemId: 'bone_shield', qty: 1 });
+    sim.equipItem('crypt_blade');
+    sim.equipItem('bone_shield');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMobPaladin(sim, warden.id, 20 * 600)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
   });
 
   it('scales elite and boss levels within template bands', () => {

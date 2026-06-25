@@ -2,7 +2,8 @@
 // and fight their way to the Crypt Warden with simple raid AI
 // (focus fire + two healers). Verifies party instancing, elite combat,
 // boss mechanics and group xp over the real server.
-// Requires the server running with ALLOW_DEV_COMMANDS=1.
+// Requires the server running with ALLOW_DEV_COMMANDS=1 and Postgres (npm run db:up).
+// For a headless Vitest equivalent without Docker, see tests/crypt_raid.test.ts.
 import WebSocket from 'ws';
 
 const BASE = process.env.SERVER_URL ?? 'http://localhost:8787';
