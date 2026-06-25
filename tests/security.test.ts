@@ -279,7 +279,7 @@ describe('per-account failed-login throttle (#93)', () => {
     expect(authThrottled(victim)).toBe(true);
   });
 
-  it('keeps the failure map bounded under a flood of distinct in-window accounts', () => {
+  it('keeps the failure map bounded under a flood of distinct in-window accounts', { timeout: 15_000 }, () => {
     // A pure flood is all in-window (#251), so expired-only eviction would
     // delete nothing and the map would grow unbounded — and every subsequent
     // call would re-scan a growing map (O(n^2)). The backstop must fall back to

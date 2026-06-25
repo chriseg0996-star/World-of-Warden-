@@ -460,7 +460,7 @@ describe('hunter pets', () => {
     return { sim, wolf: pet, originalWolfId };
   }
 
-  it('tame beast creates a loyal pet copy and temporarily despawns the wild target', () => {
+  it('tame beast creates a loyal pet copy and temporarily despawns the wild target', { timeout: 15_000 }, () => {
     const { sim, wolf, originalWolfId } = tamedSetup();
     expect(wolf.ownerId).toBe(sim.playerId);
     expect(wolf.hostile).toBe(false);

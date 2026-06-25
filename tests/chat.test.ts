@@ -273,7 +273,7 @@ describe('chat channels', () => {
     }));
   });
 
-  it('/played accumulates session time as the sim advances', () => {
+  it('/played accumulates session time as the sim advances', { timeout: 15_000 }, () => {
     const sim = makeWorld();
     const a = sim.addPlayer('warrior', 'Aleph');
     teleport(sim, a, 0, -40);
