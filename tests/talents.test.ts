@@ -43,7 +43,7 @@ describe('talent tree validation (load-time)', () => {
     for (const cls of ALL_CLASSES) {
       const ct = talentsFor(cls);
       expect(ct, cls).toBeTruthy();
-      const minSpecs = (cls === 'warrior' || cls === 'mage' || cls === 'rogue') ? 2 : 3;
+      const minSpecs = (cls === 'warrior' || cls === 'mage' || cls === 'rogue' || cls === 'hunter' || cls === 'paladin') ? 2 : 3;
       expect(ct!.specs.length, cls).toBeGreaterThanOrEqual(minSpecs);
       expect(ct!.nodes.filter((n) => n.tree === 'class').length, cls).toBeGreaterThanOrEqual(4);
       for (const s of ct!.specs) {

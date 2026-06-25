@@ -1,8 +1,6 @@
 // ---------------------------------------------------------------------------
-// Classic-inspired talent content for the eight non-warrior classes. The tree
-// scale matches the level-20 micro-MMO cap: a shared class tree plus one compact
-// spec tree per class specialization, using the same passive/active/choice node
-// language as the warrior vertical slice.
+// Classic-inspired talent content for priest, shaman, warlock, and druid.
+// Warrior, mage, rogue, hunter, and paladin live in dedicated files.
 // ---------------------------------------------------------------------------
 
 import type { PlayerClass } from '../types';
@@ -25,118 +23,6 @@ function choice(id: string, tree: TalentTree, specId: string | undefined, icon: 
 function spec(id: string, cls: PlayerClass, name: string, role: Role, icon: string, description: string, signature: string, masteryName: string, masteryDescription: string, effect: TalentEffect): SpecDef {
   return { id, class: cls, name, role, icon, description, signature, mastery: { name: masteryName, description: masteryDescription, effect } };
 }
-
-const PALADIN_CLASS: TalentNode[] = [
-  passive('pal_divine_strength', 'class', undefined, 3, { stats: { str: 2 } }, '+', 'Divine Strength', 'Increases your Strength by 2 per rank.', 0, 0),
-  passive('pal_spiritual_focus', 'class', undefined, 3, { stats: { spi: 2 }, global: { healPct: 0.02 } }, '*', 'Spiritual Focus', 'Increases Spirit by 2 and healing done by 2% per rank.', 0, 2),
-  passive('pal_imp_devotion_aura', 'class', undefined, 2, { ability: [{ ability: 'devotion_aura', dmgPct: 0.20 }], stats: { armorPct: 0.03 } }, '#', 'Improved Devotion Aura', 'Increases your armor by 3% per rank and strengthens Devotion Aura.', 1, 0, { requires: ['pal_divine_strength'] }),
-  passive('pal_benediction', 'class', undefined, 2, { ability: [{ ability: 'seal_of_righteousness', costPct: -0.08 }, { ability: 'judgement', costPct: -0.08 }] }, 'v', 'Benediction', 'Reduces the mana cost of Seal of Righteousness and Judgement by 8% per rank.', 1, 1, { pointsGate: 2 }),
-  passive('pal_precision', 'class', undefined, 3, { stats: { crit: 0.01 } }, 'x', 'Conviction', 'Increases your critical strike chance by 1% per rank.', 1, 2, { requires: ['pal_spiritual_focus'] }),
-  choice('pal_holy_calling', 'class', undefined, '@', 'Holy Calling', 'Choose one paladin emphasis.', 2, 1, [
-    { id: 'pal_calling_light', name: 'Healing Light', icon: '+', description: 'Increases healing done by 6%.', effect: { global: { healPct: 0.06 } } },
-    { id: 'pal_calling_guardian', name: 'Guardian Favor', icon: '#', description: 'Increases armor by 8% and dodge by 2%.', effect: { stats: { armorPct: 0.08, dodge: 0.02 } } },
-    { id: 'pal_calling_crusader', name: 'Crusader Zeal', icon: 'x', description: 'Increases melee ability damage by 6%.', effect: { global: { meleeDmgPct: 0.06 } } },
-  ], { pointsGate: 5 }),
-  active('pal_divine_favor', 'class', undefined, { grant: { ability: 'divine_protection' } }, 'O', 'Divine Favor', 'Grants early access to Divine Protection.', 3, 0, { pointsGate: 8, requires: ['pal_imp_devotion_aura'] }),
-  passive('pal_sanctified_light', 'class', undefined, 2, { stats: { int: 3, maxHpPct: 0.04 } }, '*', 'Sanctified Light', 'Increases Intellect by 3 and maximum health by 4% per rank.', 3, 2, { pointsGate: 8, requires: ['pal_holy_calling'] }),
-];
-
-const PALADIN_SPECS: SpecDef[] = [
-  spec('holy', 'paladin', 'Holy', 'healer', '+', 'A devoted healer who turns the Light into steady single-target recovery.', 'flash_of_light', 'Illumination', 'Increases all healing done by 12%.', { global: { healPct: 0.12 } }),
-  spec('protection', 'paladin', 'Protection', 'tank', '#', 'A shield-bearing defender who converts Holy power into threat and mitigation.', 'righteous_fury', 'Holy Shielding', 'Increases threat by 25% and armor by 10%.', { global: { threatPct: 0.25 }, stats: { armorPct: 0.10 } }),
-  spec('retribution', 'paladin', 'Retribution', 'dps', 'x', 'A holy warrior who judges enemies with weapon strikes and radiant burst.', 'judgement', 'Vengeance', 'Increases melee and spell ability damage by 6%.', { global: { meleeDmgPct: 0.06, spellDmgPct: 0.06 } }),
-];
-
-const PALADIN_SPEC_NODES: TalentNode[] = [
-  passive('holy_imp_holy_light', 'spec', 'holy', 3, { ability: [{ ability: 'holy_light', dmgPct: 0.08 }] }, '+', 'Improved Holy Light', 'Increases Holy Light healing by 8% per rank.', 0, 0),
-  passive('holy_divine_intellect', 'spec', 'holy', 3, { stats: { int: 3 } }, '*', 'Divine Intellect', 'Increases Intellect by 3 per rank.', 0, 2),
-  passive('holy_flash_focus', 'spec', 'holy', 2, { ability: [{ ability: 'flash_of_light', castPct: -0.10, costPct: -0.08 }] }, '>', 'Flash Focus', 'Makes Flash of Light faster and cheaper by 10%/8% per rank.', 1, 0, { pointsGate: 2, requires: ['holy_imp_holy_light'] }),
-  passive('holy_lay_blessing', 'spec', 'holy', 2, { ability: [{ ability: 'lay_on_hands', cooldownPct: -0.20 }] }, 'O', 'Improved Lay on Hands', 'Reduces Lay on Hands cooldown by 20% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('holy_choice', 'spec', 'holy', '@', 'Beacon Discipline', 'Choose one Holy refinement.', 2, 1, [
-    { id: 'holy_choice_grace', name: 'Holy Grace', icon: '+', description: 'Increases healing by 8%.', effect: { global: { healPct: 0.08 } } },
-    { id: 'holy_choice_judgement', name: 'Judgement of Light', icon: 'x', description: 'Judgement deals 20% more damage.', effect: { ability: [{ ability: 'judgement', dmgPct: 0.20 }] } },
-    { id: 'holy_choice_devotion', name: 'Devoted Soul', icon: '#', description: 'Increases stamina by 8%.', effect: { stats: { staPct: 0.08 } } },
-  ], { pointsGate: 5 }),
-  passive('holy_light_mastery', 'spec', 'holy', 2, { global: { healPct: 0.06 }, stats: { crit: 0.01 } }, '*', 'Light Mastery', 'Increases healing by 6% and critical strike by 1% per rank.', 3, 1, { pointsGate: 8, requires: ['holy_choice'] }),
-
-  passive('prot_redoubt', 'spec', 'protection', 3, { stats: { armorPct: 0.05 } }, '#', 'Redoubt', 'Increases armor by 5% per rank.', 0, 0),
-  passive('prot_anticipation', 'spec', 'protection', 3, { stats: { dodge: 0.01 } }, 'o', 'Anticipation', 'Increases dodge chance by 1% per rank.', 0, 2),
-  passive('prot_imp_righteous_fury', 'spec', 'protection', 2, { global: { threatPct: 0.10 }, ability: [{ ability: 'righteous_fury', costPct: -0.25 }] }, '!', 'Improved Righteous Fury', 'Increases threat by 10% and reduces Righteous Fury cost by 25% per rank.', 1, 0, { pointsGate: 2, requires: ['prot_redoubt'] }),
-  passive('prot_guardians_favor', 'spec', 'protection', 2, { ability: [{ ability: 'divine_protection', cooldownPct: -0.15 }, { ability: 'hammer_of_justice', cooldownPct: -0.10 }] }, 'O', 'Guardian Favor', 'Reduces defensive cooldowns by 10-15% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('prot_choice', 'spec', 'protection', '@', 'Sanctuary', 'Choose one Protection refinement.', 2, 1, [
-    { id: 'prot_choice_sanctuary', name: 'Blessing of Sanctuary', icon: '#', description: 'Increases armor by 12%.', effect: { stats: { armorPct: 0.12 } } },
-    { id: 'prot_choice_reckoning', name: 'Reckoning', icon: 'x', description: 'Increases melee damage by 8%.', effect: { global: { meleeDmgPct: 0.08 } } },
-    { id: 'prot_choice_ardent', name: 'Ardent Defender', icon: '+', description: 'Increases maximum health by 12%.', effect: { stats: { maxHpPct: 0.12 } } },
-  ], { pointsGate: 5 }),
-  passive('prot_holy_shield', 'spec', 'protection', 2, { ability: [{ ability: 'consecration', dmgPct: 0.12 }], global: { threatPct: 0.08 } }, '#', 'Holy Shield', 'Increases Consecration damage by 12% and threat by 8% per rank.', 3, 1, { pointsGate: 8, requires: ['prot_choice'] }),
-
-  passive('ret_benediction', 'spec', 'retribution', 3, { ability: [{ ability: 'seal_of_righteousness', costPct: -0.08 }, { ability: 'judgement', costPct: -0.08 }] }, 'v', 'Benediction', 'Reduces core offensive costs by 8% per rank.', 0, 0),
-  passive('ret_conviction', 'spec', 'retribution', 3, { stats: { crit: 0.01 } }, 'x', 'Conviction', 'Increases critical strike chance by 1% per rank.', 0, 2),
-  passive('ret_imp_judgement', 'spec', 'retribution', 2, { ability: [{ ability: 'judgement', cooldownPct: -0.15, dmgPct: 0.10 }] }, '!', 'Improved Judgement', 'Reduces Judgement cooldown by 15% and increases damage by 10% per rank.', 1, 0, { pointsGate: 2, requires: ['ret_benediction'] }),
-  passive('ret_seal_command', 'spec', 'retribution', 2, { ability: [{ ability: 'seal_of_righteousness', dmgPct: 0.20 }] }, 'x', 'Seal Command', 'Increases Seal of Righteousness damage by 20% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('ret_choice', 'spec', 'retribution', '@', 'Crusader Path', 'Choose one Retribution refinement.', 2, 1, [
-    { id: 'ret_choice_sanctity', name: 'Sanctity Aura', icon: '*', description: 'Increases spell damage by 8%.', effect: { global: { spellDmgPct: 0.08 } } },
-    { id: 'ret_choice_pursuit', name: 'Pursuit of Justice', icon: '>', description: 'Increases dodge by 3% and attack power by 10%.', effect: { stats: { dodge: 0.03, apPct: 0.10 } } },
-    { id: 'ret_choice_vengeance', name: 'Vengeance', icon: 'x', description: 'Increases critical strike chance by 4%.', effect: { stats: { crit: 0.04 } } },
-  ], { pointsGate: 5 }),
-  passive('ret_crusader_strikes', 'spec', 'retribution', 2, { global: { meleeDmgPct: 0.06, spellDmgPct: 0.04 }, ability: [{ ability: 'exorcism', cooldownPct: -0.10 }] }, 'x', 'Crusader Strikes', 'Increases offensive damage and reduces Exorcism cooldown per rank.', 3, 1, { pointsGate: 8, requires: ['ret_choice'] }),
-];
-
-const HUNTER_CLASS: TalentNode[] = [
-  passive('hun_endurance_training', 'class', undefined, 3, { stats: { sta: 2 } }, '+', 'Endurance Training', 'Increases Stamina by 2 per rank.', 0, 0),
-  passive('hun_lethal_shots', 'class', undefined, 3, { stats: { crit: 0.01 } }, 'x', 'Lethal Shots', 'Increases critical strike chance by 1% per rank.', 0, 2),
-  passive('hun_imp_hawk', 'class', undefined, 2, { ability: [{ ability: 'aspect_of_the_hawk', dmgPct: 0.20 }], stats: { ap: 8 } }, '^', 'Improved Aspect of the Hawk', 'Increases attack power by 8 and strengthens Aspect of the Hawk per rank.', 1, 0, { requires: ['hun_endurance_training'] }),
-  passive('hun_efficiency', 'class', undefined, 2, { ability: [{ ability: 'arcane_shot', costPct: -0.08 }, { ability: 'serpent_sting', costPct: -0.08 }] }, 'v', 'Efficiency', 'Reduces shot and sting costs by 8% per rank.', 1, 1, { pointsGate: 2 }),
-  passive('hun_deflection', 'class', undefined, 3, { stats: { dodge: 0.01 } }, 'o', 'Deflection', 'Increases dodge chance by 1% per rank.', 1, 2, { requires: ['hun_lethal_shots'] }),
-  choice('hun_pathfinder', 'class', undefined, '@', 'Pathfinder', 'Choose one hunter emphasis.', 2, 1, [
-    { id: 'hun_path_beast', name: 'Pack Leader', icon: '+', description: 'Increases maximum health by 8%.', effect: { stats: { maxHpPct: 0.08 } } },
-    { id: 'hun_path_marksman', name: 'Hawk Eye', icon: 'x', description: 'Increases ranged attack power by 12%.', effect: { stats: { apPct: 0.12 } } },
-    { id: 'hun_path_survivor', name: 'Trailblazer', icon: 'o', description: 'Increases dodge by 5%.', effect: { stats: { dodge: 0.05 } } },
-  ], { pointsGate: 5 }),
-  active('hun_rapid_instincts', 'class', undefined, { grant: { ability: 'rapid_fire' } }, '>', 'Rapid Instincts', 'Grants early access to Rapid Fire.', 3, 0, { pointsGate: 8, requires: ['hun_imp_hawk'] }),
-  passive('hun_survivalist', 'class', undefined, 2, { stats: { agi: 3, sta: 3 } }, '+', 'Survivalist', 'Increases Agility and Stamina by 3 per rank.', 3, 2, { pointsGate: 8, requires: ['hun_pathfinder'] }),
-];
-
-const HUNTER_SPECS: SpecDef[] = [
-  spec('beast_mastery', 'hunter', 'Beast Mastery', 'dps', '+', 'A wild commander who fights beside a durable companion.', 'tame_beast', 'Kindred Spirits', 'Increases maximum health and attack power by 8%.', { stats: { maxHpPct: 0.08, apPct: 0.08 } }),
-  spec('marksmanship', 'hunter', 'Marksmanship', 'dps', 'x', 'A precise archer built around ranged burst and efficient shots.', 'aimed_shot', 'Trueshot Training', 'Increases attack power by 12% and critical strike by 2%.', { stats: { apPct: 0.12, crit: 0.02 } }),
-  spec('survival', 'hunter', 'Survival', 'dps', 'o', 'A skirmisher who controls distance and survives close pressure.', 'wing_clip', 'Lightning Reflexes', 'Increases Agility by 10% and dodge by 2%.', { stats: { agi: 4, dodge: 0.02 } }),
-];
-
-const HUNTER_SPEC_NODES: TalentNode[] = [
-  passive('bm_thick_hide', 'spec', 'beast_mastery', 3, { stats: { armorPct: 0.04, sta: 1 } }, '#', 'Thick Hide', 'Increases armor by 4% and Stamina by 1 per rank.', 0, 0),
-  passive('bm_unleashed_fury', 'spec', 'beast_mastery', 3, { stats: { ap: 8 } }, 'x', 'Unleashed Fury', 'Increases attack power by 8 per rank.', 0, 2),
-  passive('bm_imp_mend', 'spec', 'beast_mastery', 2, { ability: [{ ability: 'tame_beast', castPct: -0.15 }, { ability: 'dismiss_pet', cooldownPct: -0.20 }] }, '+', 'Improved Mend Pet', 'Improves pet handling speed and recovery per rank.', 1, 0, { pointsGate: 2, requires: ['bm_thick_hide'] }),
-  passive('bm_ferocity', 'spec', 'beast_mastery', 2, { stats: { crit: 0.015 } }, 'x', 'Ferocity', 'Increases critical strike chance by 1.5% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('bm_choice', 'spec', 'beast_mastery', '@', 'Bestial Bond', 'Choose one Beast Mastery refinement.', 2, 1, [
-    { id: 'bm_choice_wrath', name: 'Bestial Wrath', icon: 'x', description: 'Increases melee and ranged damage by 8%.', effect: { global: { meleeDmgPct: 0.08 } } },
-    { id: 'bm_choice_intimidation', name: 'Intimidation', icon: '!', description: 'Concussive Shot cooldown is reduced by 25%.', effect: { ability: [{ ability: 'concussive_shot', cooldownPct: -0.25 }] } },
-    { id: 'bm_choice_frenzy', name: 'Frenzy', icon: '>', description: 'Increases attack power by 14%.', effect: { stats: { apPct: 0.14 } } },
-  ], { pointsGate: 5 }),
-  passive('bm_focused_fire', 'spec', 'beast_mastery', 2, { ability: [{ ability: 'rapid_fire', cooldownPct: -0.15 }], stats: { crit: 0.01 } }, '>', 'Focused Fire', 'Reduces Rapid Fire cooldown and increases crit per rank.', 3, 1, { pointsGate: 8, requires: ['bm_choice'] }),
-
-  passive('mm_imp_arcane_shot', 'spec', 'marksmanship', 3, { ability: [{ ability: 'arcane_shot', dmgPct: 0.08 }] }, '*', 'Improved Arcane Shot', 'Increases Arcane Shot damage by 8% per rank.', 0, 0),
-  passive('mm_lethal_shots', 'spec', 'marksmanship', 3, { stats: { crit: 0.01 } }, 'x', 'Lethal Shots', 'Increases critical strike chance by 1% per rank.', 0, 2),
-  passive('mm_aimed_focus', 'spec', 'marksmanship', 2, { ability: [{ ability: 'aimed_shot', castPct: -0.10, dmgPct: 0.08 }] }, '>', 'Aimed Focus', 'Makes Aimed Shot faster and stronger per rank.', 1, 0, { pointsGate: 2, requires: ['mm_imp_arcane_shot'] }),
-  passive('mm_barrage', 'spec', 'marksmanship', 2, { ability: [{ ability: 'arcane_shot', cooldownPct: -0.10 }, { ability: 'concussive_shot', dmgPct: 0.15 }] }, '*', 'Barrage', 'Improves instant shots per rank.', 1, 2, { pointsGate: 2 }),
-  choice('mm_choice', 'spec', 'marksmanship', '@', 'Trueshot', 'Choose one Marksmanship refinement.', 2, 1, [
-    { id: 'mm_choice_aura', name: 'Trueshot Aura', icon: '^', description: 'Increases attack power by 16%.', effect: { stats: { apPct: 0.16 } } },
-    { id: 'mm_choice_mortal', name: 'Mortal Shots', icon: 'x', description: 'Increases critical strike by 4%.', effect: { stats: { crit: 0.04 } } },
-    { id: 'mm_choice_hawk', name: 'Hawk Eye', icon: '>', description: 'Aimed Shot costs 20% less mana.', effect: { ability: [{ ability: 'aimed_shot', costPct: -0.20 }] } },
-  ], { pointsGate: 5 }),
-  passive('mm_marksman_mastery', 'spec', 'marksmanship', 2, { ability: [{ ability: 'aimed_shot', cooldownPct: -0.12, dmgPct: 0.10 }] }, 'x', 'Marksman Mastery', 'Improves Aimed Shot cooldown and damage per rank.', 3, 1, { pointsGate: 8, requires: ['mm_choice'] }),
-
-  passive('surv_humanoid_slaying', 'spec', 'survival', 3, { global: { meleeDmgPct: 0.02 }, stats: { agi: 1 } }, 'x', 'Monster Slaying', 'Increases physical damage by 2% and Agility by 1 per rank.', 0, 0),
-  passive('surv_savage_strikes', 'spec', 'survival', 3, { stats: { crit: 0.01 }, ability: [{ ability: 'raptor_strike', dmgPct: 0.05 }] }, 'x', 'Savage Strikes', 'Increases crit and Raptor Strike damage per rank.', 0, 2),
-  passive('surv_imp_wing_clip', 'spec', 'survival', 2, { ability: [{ ability: 'wing_clip', costPct: -0.20, dmgPct: 0.10 }] }, 'v', 'Improved Wing Clip', 'Makes Wing Clip cheaper and stronger per rank.', 1, 0, { pointsGate: 2, requires: ['surv_humanoid_slaying'] }),
-  passive('surv_deterrence', 'spec', 'survival', 2, { stats: { dodge: 0.025 } }, 'o', 'Deterrence', 'Increases dodge by 2.5% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('surv_choice', 'spec', 'survival', '@', 'Survival Tactics', 'Choose one Survival refinement.', 2, 1, [
-    { id: 'surv_choice_counter', name: 'Counterattack', icon: 'x', description: 'Mongoose Bite deals 30% more damage.', effect: { ability: [{ ability: 'mongoose_bite', dmgPct: 0.30 }] } },
-    { id: 'surv_choice_killer', name: 'Killer Instinct', icon: 'x', description: 'Increases critical strike by 4%.', effect: { stats: { crit: 0.04 } } },
-    { id: 'surv_choice_surefooted', name: 'Surefooted', icon: 'o', description: 'Increases Agility and dodge.', effect: { stats: { agi: 5, dodge: 0.03 } } },
-  ], { pointsGate: 5 }),
-  passive('surv_lightning_reflexes', 'spec', 'survival', 2, { stats: { agi: 5, dodge: 0.01 } }, '>', 'Lightning Reflexes', 'Increases Agility by 5 and dodge by 1% per rank.', 3, 1, { pointsGate: 8, requires: ['surv_choice'] }),
-];
 
 const PRIEST_CLASS: TalentNode[] = [
   passive('pri_wand_specialization', 'class', undefined, 3, { stats: { int: 1, spi: 1 } }, '/', 'Wand Specialization', 'Increases Intellect and Spirit by 1 per rank.', 0, 0),
@@ -362,8 +248,6 @@ const DRUID_SPEC_NODES: TalentNode[] = [
   passive('rest_tree_life', 'spec', 'restoration', 2, { global: { healPct: 0.07 }, stats: { spi: 3 } }, '+', 'Tree of Life', 'Increases healing and Spirit per rank.', 3, 1, { pointsGate: 8, requires: ['rest_druid_choice'] }),
 ];
 
-export const PALADIN_TALENTS: ClassTalents = { class: 'paladin', nodes: [...PALADIN_CLASS, ...PALADIN_SPEC_NODES], specs: PALADIN_SPECS };
-export const HUNTER_TALENTS: ClassTalents = { class: 'hunter', nodes: [...HUNTER_CLASS, ...HUNTER_SPEC_NODES], specs: HUNTER_SPECS };
 export const PRIEST_TALENTS: ClassTalents = { class: 'priest', nodes: [...PRIEST_CLASS, ...PRIEST_SPEC_NODES], specs: PRIEST_SPECS };
 export const SHAMAN_TALENTS: ClassTalents = { class: 'shaman', nodes: [...SHAMAN_CLASS, ...SHAMAN_SPEC_NODES], specs: SHAMAN_SPECS };
 export const WARLOCK_TALENTS: ClassTalents = { class: 'warlock', nodes: [...WARLOCK_CLASS, ...WARLOCK_SPEC_NODES], specs: WARLOCK_SPECS };
