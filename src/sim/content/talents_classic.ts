@@ -138,62 +138,6 @@ const HUNTER_SPEC_NODES: TalentNode[] = [
   passive('surv_lightning_reflexes', 'spec', 'survival', 2, { stats: { agi: 5, dodge: 0.01 } }, '>', 'Lightning Reflexes', 'Increases Agility by 5 and dodge by 1% per rank.', 3, 1, { pointsGate: 8, requires: ['surv_choice'] }),
 ];
 
-const MAGE_CLASS: TalentNode[] = [
-  passive('mag_arcane_focus', 'class', undefined, 3, { ability: [{ ability: 'arcane_missiles', costPct: -0.06 }], stats: { int: 1 } }, '*', 'Arcane Focus', 'Reduces Arcane Missiles cost by 6% and adds Intellect per rank.', 0, 0),
-  passive('mag_elemental_precision', 'class', undefined, 3, { ability: [{ ability: 'fireball', costPct: -0.04 }, { ability: 'frostbolt', costPct: -0.04 }] }, 'v', 'Elemental Precision', 'Reduces Fireball and Frostbolt costs by 4% per rank.', 0, 2),
-  passive('mag_wand_specialization', 'class', undefined, 2, { stats: { ap: 6, int: 2 } }, '/', 'Wand Specialization', 'Increases combat readiness with Intellect and attack power per rank.', 1, 0, { requires: ['mag_arcane_focus'] }),
-  passive('mag_flame_throwing', 'class', undefined, 2, { ability: [{ ability: 'fire_blast', dmgPct: 0.12 }, { ability: 'scorch', dmgPct: 0.12 }] }, '*', 'Flame Throwing', 'Increases Fire Blast and Scorch damage by 12% per rank.', 1, 1, { pointsGate: 2 }),
-  passive('mag_ice_shards', 'class', undefined, 3, { stats: { crit: 0.01 } }, 'x', 'Ice Shards', 'Increases critical strike chance by 1% per rank.', 1, 2, { requires: ['mag_elemental_precision'] }),
-  choice('mag_school_focus', 'class', undefined, '@', 'School Focus', 'Choose one mage school emphasis.', 2, 1, [
-    { id: 'mag_school_arcane', name: 'Arcane Mind', icon: '*', description: 'Increases Intellect by 8%.', effect: { stats: { int: 8 } } },
-    { id: 'mag_school_fire', name: 'Ignite', icon: 'x', description: 'Increases spell damage by 6%.', effect: { global: { spellDmgPct: 0.06 } } },
-    { id: 'mag_school_frost', name: 'Permafrost', icon: '#', description: 'Increases armor by 10% and dodge by 2%.', effect: { stats: { armorPct: 0.10, dodge: 0.02 } } },
-  ], { pointsGate: 5 }),
-  active('mag_cold_snap', 'class', undefined, { grant: { ability: 'frost_nova' } }, '#', 'Cold Snap', 'Grants early access to Frost Nova.', 3, 0, { pointsGate: 8, requires: ['mag_wand_specialization'] }),
-  passive('mag_clearcasting', 'class', undefined, 2, { ability: [{ ability: 'fireball', costPct: -0.08 }, { ability: 'frostbolt', costPct: -0.08 }, { ability: 'arcane_missiles', costPct: -0.08 }] }, 'v', 'Clearcasting', 'Reduces core spell costs by 8% per rank.', 3, 2, { pointsGate: 8, requires: ['mag_school_focus'] }),
-];
-
-const MAGE_SPECS: SpecDef[] = [
-  spec('arcane', 'mage', 'Arcane', 'dps', '*', 'A precision caster using mana efficiency and focused arcane barrages.', 'arcane_missiles', 'Arcane Instability', 'Increases spell damage by 8% and Intellect by 4.', { global: { spellDmgPct: 0.08 }, stats: { int: 4 } }),
-  spec('fire', 'mage', 'Fire', 'dps', 'x', 'A volatile caster built around fast, high-damage Fire spells.', 'scorch', 'Ignite', 'Increases spell damage and critical strike chance.', { global: { spellDmgPct: 0.08 }, stats: { crit: 0.02 } }),
-  spec('frost', 'mage', 'Frost', 'dps', '#', 'A controlling caster who trades peak burst for survival and slows.', 'ice_barrier', 'Shatter', 'Increases spell damage and defensive armor.', { global: { spellDmgPct: 0.06 }, stats: { armorPct: 0.10 } }),
-];
-
-const MAGE_SPEC_NODES: TalentNode[] = [
-  passive('arc_imp_missiles', 'spec', 'arcane', 3, { ability: [{ ability: 'arcane_missiles', dmgPct: 0.08 }] }, '*', 'Improved Arcane Missiles', 'Increases Arcane Missiles damage by 8% per rank.', 0, 0),
-  passive('arc_arcane_concentration', 'spec', 'arcane', 3, { ability: [{ ability: 'arcane_missiles', costPct: -0.06 }, { ability: 'polymorph', costPct: -0.06 }] }, 'v', 'Arcane Concentration', 'Reduces Arcane spell costs by 6% per rank.', 0, 2),
-  passive('arc_imp_polymorph', 'spec', 'arcane', 2, { ability: [{ ability: 'polymorph', castPct: -0.20 }] }, 'O', 'Improved Polymorph', 'Reduces Polymorph cast time by 20% per rank.', 1, 0, { pointsGate: 2, requires: ['arc_imp_missiles'] }),
-  passive('arc_arcane_power', 'spec', 'arcane', 2, { global: { spellDmgPct: 0.05 }, stats: { int: 2 } }, '*', 'Arcane Power', 'Increases spell damage by 5% and Intellect by 2 per rank.', 1, 2, { pointsGate: 2 }),
-  choice('arc_choice', 'spec', 'arcane', '@', 'Arcane Thesis', 'Choose one Arcane refinement.', 2, 1, [
-    { id: 'arc_choice_presence', name: 'Presence of Mind', icon: '>', description: 'Reduces Fireball and Frostbolt cast time by 20%.', effect: { ability: [{ ability: 'fireball', castPct: -0.20 }, { ability: 'frostbolt', castPct: -0.20 }] } },
-    { id: 'arc_choice_mind', name: 'Arcane Mind', icon: '*', description: 'Increases Intellect by 10.', effect: { stats: { int: 10 } } },
-    { id: 'arc_choice_resilience', name: 'Arcane Resilience', icon: '#', description: 'Increases armor by 15%.', effect: { stats: { armorPct: 0.15 } } },
-  ], { pointsGate: 5 }),
-  passive('arc_netherwind', 'spec', 'arcane', 2, { ability: [{ ability: 'arcane_missiles', castPct: -0.10, dmgPct: 0.10 }] }, '*', 'Netherwind Focus', 'Improves Arcane Missiles cast flow and damage per rank.', 3, 1, { pointsGate: 8, requires: ['arc_choice'] }),
-
-  passive('fire_imp_fireball', 'spec', 'fire', 3, { ability: [{ ability: 'fireball', castPct: -0.04, dmgPct: 0.05 }] }, 'x', 'Improved Fireball', 'Makes Fireball faster and stronger per rank.', 0, 0),
-  passive('fire_impact', 'spec', 'fire', 3, { stats: { crit: 0.01 } }, 'x', 'Impact', 'Increases critical strike chance by 1% per rank.', 0, 2),
-  passive('fire_imp_blast', 'spec', 'fire', 2, { ability: [{ ability: 'fire_blast', cooldownPct: -0.15, dmgPct: 0.08 }] }, '*', 'Improved Fire Blast', 'Reduces Fire Blast cooldown and increases damage per rank.', 1, 0, { pointsGate: 2, requires: ['fire_imp_fireball'] }),
-  passive('fire_incinerate', 'spec', 'fire', 2, { ability: [{ ability: 'scorch', dmgPct: 0.15 }] }, 'x', 'Incinerate', 'Increases Scorch damage by 15% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('fire_choice', 'spec', 'fire', '@', 'Combustion', 'Choose one Fire refinement.', 2, 1, [
-    { id: 'fire_choice_combustion', name: 'Combustion', icon: 'x', description: 'Increases spell damage and critical chance.', effect: { global: { spellDmgPct: 0.06 }, stats: { crit: 0.03 } } },
-    { id: 'fire_choice_blastwave', name: 'Blast Wave', icon: '*', description: 'Arcane Explosion deals 25% more damage.', effect: { ability: [{ ability: 'arcane_explosion', dmgPct: 0.25 }] } },
-    { id: 'fire_choice_flame', name: 'Critical Mass', icon: 'x', description: 'Increases critical strike by 5%.', effect: { stats: { crit: 0.05 } } },
-  ], { pointsGate: 5 }),
-  passive('fire_pyromancer', 'spec', 'fire', 2, { global: { spellDmgPct: 0.06 }, ability: [{ ability: 'fireball', dmgPct: 0.06 }] }, 'x', 'Pyromancer', 'Increases Fire spell pressure per rank.', 3, 1, { pointsGate: 8, requires: ['fire_choice'] }),
-
-  passive('frost_imp_frostbolt', 'spec', 'frost', 3, { ability: [{ ability: 'frostbolt', castPct: -0.04, dmgPct: 0.05 }] }, '#', 'Improved Frostbolt', 'Makes Frostbolt faster and stronger per rank.', 0, 0),
-  passive('frost_permafrost', 'spec', 'frost', 3, { stats: { armorPct: 0.04 } }, '#', 'Permafrost', 'Increases armor by 4% per rank.', 0, 2),
-  passive('frost_imp_nova', 'spec', 'frost', 2, { ability: [{ ability: 'frost_nova', cooldownPct: -0.15, dmgPct: 0.10 }] }, 'O', 'Improved Frost Nova', 'Reduces Frost Nova cooldown and increases damage per rank.', 1, 0, { pointsGate: 2, requires: ['frost_imp_frostbolt'] }),
-  passive('frost_shatter', 'spec', 'frost', 2, { stats: { crit: 0.02 } }, 'x', 'Shatter', 'Increases critical strike chance by 2% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('frost_choice', 'spec', 'frost', '@', 'Icecraft', 'Choose one Frost refinement.', 2, 1, [
-    { id: 'frost_choice_barrier', name: 'Ice Barrier', icon: '#', description: 'Ice Barrier absorbs 25% more.', effect: { ability: [{ ability: 'ice_barrier', dmgPct: 0.25 }] } },
-    { id: 'frost_choice_snap', name: 'Cold Snap', icon: 'O', description: 'Frost Nova cooldown is reduced by 25%.', effect: { ability: [{ ability: 'frost_nova', cooldownPct: -0.25 }] } },
-    { id: 'frost_choice_warding', name: 'Frost Warding', icon: '#', description: 'Increases maximum health by 10%.', effect: { stats: { maxHpPct: 0.10 } } },
-  ], { pointsGate: 5 }),
-  passive('frost_winter_chill', 'spec', 'frost', 2, { ability: [{ ability: 'frostbolt', dmgPct: 0.10 }], stats: { crit: 0.01 } }, '#', 'Winter Chill', 'Improves Frostbolt damage and crit per rank.', 3, 1, { pointsGate: 8, requires: ['frost_choice'] }),
-];
-
 const ROGUE_CLASS: TalentNode[] = [
   passive('rog_malice', 'class', undefined, 3, { stats: { crit: 0.01 } }, 'x', 'Malice', 'Increases critical strike chance by 1% per rank.', 0, 0),
   passive('rog_lightning_reflexes', 'class', undefined, 3, { stats: { dodge: 0.01, agi: 1 } }, 'o', 'Lightning Reflexes', 'Increases dodge and Agility per rank.', 0, 2),
@@ -476,7 +420,6 @@ const DRUID_SPEC_NODES: TalentNode[] = [
 
 export const PALADIN_TALENTS: ClassTalents = { class: 'paladin', nodes: [...PALADIN_CLASS, ...PALADIN_SPEC_NODES], specs: PALADIN_SPECS };
 export const HUNTER_TALENTS: ClassTalents = { class: 'hunter', nodes: [...HUNTER_CLASS, ...HUNTER_SPEC_NODES], specs: HUNTER_SPECS };
-export const MAGE_TALENTS: ClassTalents = { class: 'mage', nodes: [...MAGE_CLASS, ...MAGE_SPEC_NODES], specs: MAGE_SPECS };
 export const ROGUE_TALENTS: ClassTalents = { class: 'rogue', nodes: [...ROGUE_CLASS, ...ROGUE_SPEC_NODES], specs: ROGUE_SPECS };
 export const PRIEST_TALENTS: ClassTalents = { class: 'priest', nodes: [...PRIEST_CLASS, ...PRIEST_SPEC_NODES], specs: PRIEST_SPECS };
 export const SHAMAN_TALENTS: ClassTalents = { class: 'shaman', nodes: [...SHAMAN_CLASS, ...SHAMAN_SPEC_NODES], specs: SHAMAN_SPECS };

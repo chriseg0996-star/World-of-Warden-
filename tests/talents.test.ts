@@ -43,7 +43,7 @@ describe('talent tree validation (load-time)', () => {
     for (const cls of ALL_CLASSES) {
       const ct = talentsFor(cls);
       expect(ct, cls).toBeTruthy();
-      const minSpecs = cls === 'warrior' ? 2 : 3;
+      const minSpecs = (cls === 'warrior' || cls === 'mage') ? 2 : 3;
       expect(ct!.specs.length, cls).toBeGreaterThanOrEqual(minSpecs);
       expect(ct!.nodes.filter((n) => n.tree === 'class').length, cls).toBeGreaterThanOrEqual(4);
       for (const s of ct!.specs) {
@@ -70,7 +70,7 @@ describe('talent tree validation (load-time)', () => {
   });
 
   it('derives painted icons for the release v0.7 class talent trees', () => {
-    const affected = ['shaman', 'hunter', 'druid', 'paladin', 'rogue', 'mage', 'warlock'] as const;
+    const affected = ['warrior', 'mage', 'shaman', 'hunter', 'druid', 'paladin', 'rogue', 'warlock'] as const;
     for (const cls of affected) {
       const ct = talentsFor(cls)!;
       for (const node of ct.nodes) {

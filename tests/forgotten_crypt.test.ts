@@ -2,6 +2,7 @@
 // elite/boss kills, loot, and quest chain gating.
 import { describe, expect, it } from 'vitest';
 import { MOBS, instanceOrigin } from '../src/sim/data';
+import { emptyAllocation } from '../src/sim/content/talents';
 import type { Entity } from '../src/sim/types';
 import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
@@ -37,16 +38,51 @@ function killMob(sim: Sim, mobId: number, pid?: number) {
   sim.tick();
 }
 
-describe('Forgotten Crypt dungeon slice', () => {
-  it('leaveDungeon returns the player to the Forgotten Crypt door', () => {
-    const sim = makeSim(5);
-    sim.enterCrypt();
-    expect(sim.player.pos.x).toBeGreaterThan(600);
-    sim.leaveCrypt();
-    expect(sim.player.pos.x).toBeLessThan(200);
-    expect(Math.hypot(sim.player.pos.x - 80, sim.player.pos.z - 86)).toBeLessThan(6);
-  });
+function faceTarget(sim: Sim, target: Entity) {
+  const p = sim.player;
+  p.facing = Math.atan2(target.pos.x - p.pos.x, target.pos.z - p.pos.z);
+}
 
+function hasAura(e: Entity, auraId: string) {
+  return (e.auras ?? []).some((a) => a.id === auraId);
+}
+
+/** Simple warrior rotation for solo viability checks (deterministic seed 42). */
+function clearCryptExcept(sim: Sim, keepTemplateId: string) {
+  for (const e of [...sim.entities.values()]) {
+    if (e.kind !== 'mob' || e.dead || e.templateId === keepTemplateId) continue;
+    killMob(sim, e.id);
+  }
+}
+
+function fightMob(sim: Sim, mobId: number, maxTicks = 20 * 300): 'killed' | 'player_dead' | 'timeout' {
+  const mob = sim.entities.get(mobId)!;
+  const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + 3);
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
+  if (sim.known.some((k) => k.def.id === 'charge')) sim.castAbility('charge');
+  sim.startAutoAttack();
+  for (let i = 0; i < maxTicks; i++) {
+    const m = sim.entities.get(mobId);
+    if (p.dead) return 'player_dead';
+    if (!m || m.dead) return 'killed';
+    faceTarget(sim, m);
+    if (p.gcdRemaining <= 0 && !p.castingAbility) {
+      const hostiles = [...sim.entities.values()].filter((e) => e.kind === 'mob' && !e.dead && e.aggroTargetId === p.id);
+      if (!hasAura(p, 'battle_shout')) sim.castAbility('battle_shout');
+      else if (hostiles.length > 1 && sim.known.some((k) => k.def.id === 'thunder_clap')) sim.castAbility('thunder_clap');
+      else if (!hasAura(m, 'rend') && sim.known.some((k) => k.def.id === 'rend')) sim.castAbility('rend');
+      else if ((p.resource ?? 0) >= 15 && sim.known.some((k) => k.def.id === 'mortal_strike')) sim.castAbility('mortal_strike');
+      else if ((p.resource ?? 0) >= 15) sim.castAbility('heroic_strike');
+      else if ((p.resource ?? 0) < 10 && sim.known.some((k) => k.def.id === 'bloodrage')) sim.castAbility('bloodrage');
+    }
+    sim.tick();
+  }
+  return 'timeout';
+}
+
+describe('Forgotten Crypt dungeon slice', () => {
   it('dungeon door at the Fallen Chapel enters hollow_crypt on proximity', () => {
     const sim = makeSim(5);
     const door = [...sim.entities.values()].find(
@@ -57,6 +93,31 @@ describe('Forgotten Crypt dungeon slice', () => {
     sim.tick();
     expect(sim.player.pos.x).toBeGreaterThan(600);
     expect(sim.instanceSlotAt(sim.player.pos)).not.toBeNull();
+  });
+
+  it('leaveDungeon returns the player to the Forgotten Crypt door', () => {
+    const sim = makeSim(5);
+    sim.enterCrypt();
+    expect(sim.player.pos.x).toBeGreaterThan(600);
+    sim.leaveCrypt();
+    expect(sim.player.pos.x).toBeLessThan(200);
+    expect(Math.hypot(sim.player.pos.x - 80, sim.player.pos.z - 86)).toBeLessThan(6);
+  });
+
+  it('level 8 offense warrior can solo the Bone Guardian after clearing trash', () => {
+    const sim = makeSim(8);
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'offense',
+      ranks: { off_brutality: 1, off_lethal_blows: 1, off_deep_wounds: 1 },
+    });
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    clearCryptExcept(sim, 'bone_guardian');
+    const guardian = nearestMob(sim, 'bone_guardian', origin)!;
+    expect(fightMob(sim, guardian.id)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
   });
 
   it('scales elite and boss levels within template bands', () => {

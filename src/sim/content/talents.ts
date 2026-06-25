@@ -12,8 +12,9 @@
 
 import { MAX_LEVEL, type PlayerClass } from '../types';
 import { WARRIOR_TALENTS } from './talents_warrior';
+import { MAGE_TALENTS } from './talents_mage';
 import {
-  DRUID_TALENTS, HUNTER_TALENTS, MAGE_TALENTS, PALADIN_TALENTS, PRIEST_TALENTS,
+  DRUID_TALENTS, HUNTER_TALENTS, PALADIN_TALENTS, PRIEST_TALENTS,
   ROGUE_TALENTS, SHAMAN_TALENTS, WARLOCK_TALENTS,
 } from './talents_classic';
 
