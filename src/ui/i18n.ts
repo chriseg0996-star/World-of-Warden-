@@ -8003,7 +8003,7 @@ const phase11En = {
     options: {
       ...phase2.en.hud.options,
       mouseCamera: "Mouse Camera",
-      keybindHelpMouseCamera: "Mouse Camera off: A/D turns, drag to orbit (classic). On: camera-relative WASD, A/D strafes. Click a key cell to rebind; Esc cancels.",
+      keybindHelpMouseCamera: "Mouse Camera off: A/D turns you with the camera; hold right mouse to look around. On: camera-relative WASD, A/D strafes. Click a key cell to rebind; Esc cancels.",
     },
       markers: {
         names: { star: "Star", circle: "Circle", diamond: "Diamond", triangle: "Triangle", moon: "Moon", square: "Square", cross: "Cross", skull: "Skull" },
@@ -8143,7 +8143,7 @@ const phase11 = {
       options: {
         ...phase2.es.hud.options,
         mouseCamera: "Cámara con ratón",
-        keybindHelpMouseCamera: "Cámara con ratón desactivada: A/D gira, arrastra para orbitar (clásico). Activada: WASD relativo a la cámara, A/D desplaza. Haz clic en una celda de tecla para reasignar; Esc cancela.",
+        keybindHelpMouseCamera: "Cámara con ratón desactivada: A/D gira tú y la cámara; mantén el botón derecho para mirar alrededor. Activada: WASD relativo a la cámara, A/D desplaza lateralmente. Haz clic en una celda de tecla para reasignar; Esc cancela.",
       },
       markers: {
         names: { star: "Estrella", circle: "Círculo", diamond: "Diamante", triangle: "Triángulo", moon: "Luna", square: "Cuadrado", cross: "Cruz", skull: "Calavera" },
@@ -8281,7 +8281,7 @@ const phase11 = {
       options: {
         ...phase2.fr_FR.hud.options,
         mouseCamera: "Caméra à la souris",
-        keybindHelpMouseCamera: "Caméra à la souris désactivée : A/D fait tourner, glisser pour orbiter (classique). Activée : WASD relatif à la caméra, A/D mitraille. Cliquez sur une case de touche pour réassigner ; Échap annule.",
+        keybindHelpMouseCamera: "Caméra à la souris désactivée : A/D fait tourner vous et la caméra ; maintenez le clic droit pour regarder autour. Activée : WASD relatif à la caméra, A/D mitraille. Cliquez sur une case de touche pour réassigner ; Échap annule.",
       },
       markers: {
         names: { star: "Étoile", circle: "Cercle", diamond: "Losange", triangle: "Triangle", moon: "Lune", square: "Carré", cross: "Croix", skull: "Crâne" },
@@ -8420,7 +8420,7 @@ const phase11 = {
       options: {
         ...phase2.it_IT.hud.options,
         mouseCamera: "Telecamera con mouse",
-        keybindHelpMouseCamera: "Telecamera con mouse disattivata: A/D ruota, trascina per orbitare (classico). Attivata: WASD relativo alla telecamera, A/D fa spostare lateralmente. Clicca una cella tasto per riassegnare; Esc annulla.",
+        keybindHelpMouseCamera: "Telecamera con mouse disattivata: A/D ruota te e la telecamera; tieni premuto il tasto destro per guardarti intorno. Attivata: WASD relativo alla telecamera, A/D fa spostare lateralmente. Clicca una cella tasto per riassegnare; Esc annulla.",
       },
       markers: {
         names: { star: "Stella", circle: "Cerchio", diamond: "Rombo", triangle: "Triangolo", moon: "Luna", square: "Quadrato", cross: "Croce", skull: "Teschio" },
@@ -8557,7 +8557,7 @@ const phase11 = {
       options: {
         ...phase2.de_DE.hud.options,
         mouseCamera: "Mauskamera",
-        keybindHelpMouseCamera: "Mauskamera aus: A/D dreht, Ziehen umkreist (klassisch). An: WASD relativ zur Kamera, A/D strafen. Klicke eine Tastenzelle zum Neubelegen; Esc bricht ab.",
+        keybindHelpMouseCamera: "Mauskamera aus: A/D dreht dich und die Kamera; rechte Maustaste halten zum Umschauen. An: WASD relativ zur Kamera, A/D strafen. Klicke eine Tastenzelle zum Neubelegen; Esc bricht ab.",
       },
       markers: {
         names: { star: "Stern", circle: "Kreis", diamond: "Diamant", triangle: "Dreieck", moon: "Mond", square: "Quadrat", cross: "Kreuz", skull: "Totenkopf" },
@@ -8694,7 +8694,7 @@ const phase11 = {
       options: {
         ...phase2.zh_CN.hud.options,
         mouseCamera: "鼠标镜头",
-        keybindHelpMouseCamera: "鼠标镜头关闭：A/D 转向，拖动环绕（经典）。开启：WASD 按镜头方向移动，A/D 平移。点击按键格可重新绑定；Esc 取消。",
+        keybindHelpMouseCamera: "鼠标镜头关闭：A/D 同时转向你与镜头；按住右键环顾四周。开启：WASD 按镜头方向移动，A/D 平移。点击按键格可重新绑定；Esc 取消。",
       },
       markers: {
         names: { star: "星形", circle: "圆形", diamond: "菱形", triangle: "三角", moon: "月亮", square: "方形", cross: "十字", skull: "骷髅" },
@@ -8831,7 +8831,7 @@ const phase11 = {
       options: {
         ...phase2.zh_TW.hud.options,
         mouseCamera: "滑鼠鏡頭",
-        keybindHelpMouseCamera: "滑鼠鏡頭關閉：A/D 轉向，拖曳環繞（經典）。開啟：WASD 依鏡頭方向移動，A/D 平移。點擊按鍵格可重新綁定；Esc 取消。",
+        keybindHelpMouseCamera: "滑鼠鏡頭關閉：A/D 同時轉向你與鏡頭；按住右鍵環顧四周。開啟：WASD 依鏡頭方向移動，A/D 平移。點擊按鍵格可重新綁定；Esc 取消。",
       },
       markers: {
         names: { star: "星形", circle: "圓形", diamond: "菱形", triangle: "三角", moon: "月亮", square: "方形", cross: "十字", skull: "骷髏" },
@@ -8968,7 +8968,7 @@ const phase11 = {
       options: {
         ...phase2.ko_KR.hud.options,
         mouseCamera: "마우스 카메라",
-        keybindHelpMouseCamera: "마우스 카메라 끔: A/D로 회전, 드래그로 궤도 이동(클래식). 켬: 카메라 기준 WASD, A/D는 좌우 이동. 키 셀을 클릭해 재지정하고 Esc로 취소합니다.",
+        keybindHelpMouseCamera: "마우스 카메라 끔: A/D로 캐릭터와 카메라가 함께 회전합니다. 오른쪽 마우스를 누른 채 주변을 둘러보세요. 켬: 카메라 기준 WASD, A/D는 좌우 이동. 키 셀을 클릭해 재지정하고 Esc로 취소합니다.",
       },
       markers: {
         names: { star: "별", circle: "원", diamond: "다이아몬드", triangle: "삼각형", moon: "달", square: "사각형", cross: "십자", skull: "해골" },
@@ -9105,7 +9105,7 @@ const phase11 = {
       options: {
         ...phase2.ja_JP.hud.options,
         mouseCamera: "マウスカメラ",
-        keybindHelpMouseCamera: "マウスカメラオフ: A/Dで旋回、ドラッグで周回（クラシック）。オン: カメラ基準のWASD、A/Dで横移動。キー欄をクリックして割り当て変更、Escでキャンセル。",
+        keybindHelpMouseCamera: "マウスカメラオフ: A/Dでキャラクターとカメラが一緒に旋回します。右クリックを押したまま見回してください。オン: カメラ基準のWASD、A/Dで横移動。キー欄をクリックして割り当て変更、Escでキャンセル。",
       },
       markers: {
         names: { star: "星", circle: "丸", diamond: "ダイヤ", triangle: "三角", moon: "月", square: "四角", cross: "十字", skull: "ドクロ" },
@@ -9242,7 +9242,7 @@ const phase11 = {
       options: {
         ...phase2.pt_BR.hud.options,
         mouseCamera: "Câmera pelo mouse",
-        keybindHelpMouseCamera: "Câmera pelo mouse desligada: A/D gira, arraste para orbitar (clássico). Ligada: WASD relativo à câmera, A/D desloca de lado. Clique em uma célula de tecla para reatribuir; Esc cancela.",
+        keybindHelpMouseCamera: "Câmera pelo mouse desligada: A/D gira você e a câmera; segure o botão direito para olhar ao redor. Ligada: WASD relativo à câmera, A/D desloca de lado. Clique em uma célula de tecla para reatribuir; Esc cancela.",
       },
       markers: {
         names: { star: "Estrela", circle: "Círculo", diamond: "Diamante", triangle: "Triângulo", moon: "Lua", square: "Quadrado", cross: "Cruz", skull: "Crânio" },
@@ -9379,7 +9379,7 @@ const phase11 = {
       options: {
         ...phase2.ru_RU.hud.options,
         mouseCamera: "Камера мышью",
-        keybindHelpMouseCamera: "Камера мышью выкл.: A/D поворачивает, перетаскивание облетает (классика). Вкл.: WASD относительно камеры, A/D стрейф. Щелкните ячейку клавиши для переназначения; Esc отменяет.",
+        keybindHelpMouseCamera: "Камера мышью выкл.: A/D поворачивает вас и камеру вместе; удерживайте правую кнопку, чтобы осмотреться. Вкл.: WASD относительно камеры, A/D стрейф. Щелкните ячейку клавиши для переназначения; Esc отменяет.",
       },
       markers: {
         names: { star: "Звезда", circle: "Круг", diamond: "Ромб", triangle: "Треугольник", moon: "Луна", square: "Квадрат", cross: "Крест", skull: "Череп" },

@@ -1,7 +1,6 @@
-// Default (Mouse Camera off): classic-MMO-style — WASD + A/D keyboard turn, Q/E strafe,
-// left-drag orbits, right-drag mouselooks, both buttons run forward.
-// Optional Mouse Camera (on): OSRS-style — WASD is camera-relative, A/D strafe,
-// mouse drag rotates the orbit (no pointer lock), no keyboard turn.
+// Default (Mouse Camera off): WoW-style — A/D turns you and the camera together,
+// Q/E strafe, right-drag mouselooks (left click targets/interacts), both buttons
+// run forward. Optional Mouse Camera (on): OSRS-style camera-relative WASD.
 // Shared: space jump, wheel zoom, Tab target, rebindable action bar, R autorun.
 
 import { Keybinds, actionKind } from './keybinds';
@@ -15,6 +14,7 @@ const TOUCH_LOOK_YAW_RATE = 3.2;
 const TOUCH_LOOK_PITCH_RATE = 2.2;
 const CAMERA_DRAG_START_DISTANCE = 18;
 const CAMERA_DRAG_START_MS = 140;
+const WOW_LOOK_DRAG_START_DISTANCE = 2;
 
 type FullscreenDocument = Document & {
   webkitFullscreenElement?: Element | null;
@@ -78,6 +78,8 @@ export class Input {
   private downX = 0;
   private downY = 0;
   private downAt = 0;
+  private dragClientX = 0;
+  private dragClientY = 0;
   // one-shot key capture for the rebind UI: the next keydown is delivered here
   // (Escape cancels with null) instead of being dispatched as an action
   private captureCb: ((code: string | null) => void) | null = null;
@@ -162,7 +164,8 @@ export class Input {
 
   /** True while a mouse button is held for camera drag. */
   isDragging(): boolean {
-    return this.leftDown || this.rightDown;
+    if (this.mouseCameraEnabled) return (this.leftDown || this.rightDown) && this.cameraDragActive;
+    return this.rightDown && this.cameraDragActive;
   }
 
   isCameraDragActive(): boolean {
@@ -324,7 +327,8 @@ export class Input {
   }
 
   private updateCursor(): void {
-    this.canvas.style.cursor = cursorForHover(this.hoverKind, this.cameraDragActive || document.pointerLockElement === this.canvas);
+    const looking = this.isMouselookActive() || (this.rightDown && this.cameraDragActive);
+    this.canvas.style.cursor = looking ? 'none' : cursorForHover(this.hoverKind, false);
   }
 
   private isBrowserFullscreen(): boolean {
@@ -406,6 +410,8 @@ export class Input {
     this.downButton = e.button;
     this.downX = e.clientX;
     this.downY = e.clientY;
+    this.dragClientX = e.clientX;
+    this.dragClientY = e.clientY;
     this.downAt = performance.now();
     this.dragDistance = 0;
     this.cameraDragActive = false;
@@ -433,9 +439,7 @@ export class Input {
       pointerLocked: document.pointerLockElement === this.canvas,
       pressDurationMs: performance.now() - this.downAt,
     });
-    if (!this.mouseCameraEnabled && !this.leftDown && !this.rightDown && document.pointerLockElement) {
-      document.exitPointerLock();
-    }
+    if (document.pointerLockElement) document.exitPointerLock();
     if (pick) this.cb.onClickPick(pick.x, pick.y, pick.button);
     if (!this.leftDown && !this.rightDown) this.cameraDragActive = false;
     this.downButton = -1;
@@ -443,35 +447,54 @@ export class Input {
     this.updateCursor();
   }
 
+  private lookDragThreshold(): { distance: number; ms: number } {
+    if (this.mouseCameraEnabled) return { distance: CAMERA_DRAG_START_DISTANCE, ms: CAMERA_DRAG_START_MS };
+    return { distance: WOW_LOOK_DRAG_START_DISTANCE, ms: 0 };
+  }
+
+  private pointerLookDelta(e: MouseEvent): { mx: number; my: number } {
+    let mx = e.movementX ?? 0;
+    let my = e.movementY ?? 0;
+    if (mx === 0 && my === 0) {
+      mx = e.clientX - this.dragClientX;
+      my = e.clientY - this.dragClientY;
+    }
+    this.dragClientX = e.clientX;
+    this.dragClientY = e.clientY;
+    return { mx, my };
+  }
+
+  private applyLookDelta(mx: number, my: number): void {
+    if (mx === 0 && my === 0) return;
+    this.camYaw -= mx * this.lookSensitivity;
+    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + my * this.lookSensitivity));
+    this.noteIntent('look');
+  }
+
   private onMouseMove(e: MouseEvent): void {
     if (e.target === this.canvas) {
       this.hoverX = e.clientX;
       this.hoverY = e.clientY;
     }
-    if (!this.leftDown && !this.rightDown) return;
-    const mx = e.movementX ?? 0, my = e.movementY ?? 0;
+    const lookHeld = this.mouseCameraEnabled ? (this.leftDown || this.rightDown) : this.rightDown;
+    if (!lookHeld) return;
+    const { mx, my } = this.pointerLookDelta(e);
     if (mx === 0 && my === 0) return;
     const heldMs = this.pressDurationMs();
     if (this.downButton === this.clickMoveMouseButton && heldMs <= DEFAULT_CLICK_PICK_MAX_MS) return;
     this.dragDistance += Math.abs(mx) + Math.abs(my);
+    const threshold = this.lookDragThreshold();
     if (!this.cameraDragActive) {
-      if (this.dragDistance < CAMERA_DRAG_START_DISTANCE && heldMs < CAMERA_DRAG_START_MS) return;
+      if (this.dragDistance < threshold.distance && heldMs < threshold.ms) return;
       this.cameraDragActive = true;
       this.noteIntent('look');
       this.updateCursor();
-      return;
     }
-    // Engage pointer lock only once the press turns into an actual camera drag —
-    // one banner per drag, none for a plain click (#116). In fullscreen, Chrome
-    // shows an unavoidable "press and hold esc" prompt for pointer lock, so keep
-    // fullscreen camera drags as regular mouse drags.
-    if (!this.mouseCameraEnabled && !this.pointerLockRequestedForDrag && !this.isBrowserFullscreen()) {
+    if (this.mouseCameraEnabled && !this.pointerLockRequestedForDrag && !this.isBrowserFullscreen()) {
       this.pointerLockRequestedForDrag = true;
       this.canvas.requestPointerLock?.();
     }
-    this.camYaw -= mx * this.lookSensitivity;
-    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + my * this.lookSensitivity));
-    if (mx !== 0 || my !== 0) this.noteIntent('look');
+    this.applyLookDelta(mx, my);
   }
 
   private noteIntent(kind: 'move' | 'look' | 'zoom'): void {

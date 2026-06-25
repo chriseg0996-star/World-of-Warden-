@@ -7,6 +7,8 @@ export interface CameraFollowInput {
   moving: boolean;
   clickMoving?: boolean;
   orbiting: boolean;
+  /** WoW-style: camera yaw tracks character facing instantly when not mouselooking. */
+  snapFollow?: boolean;
 }
 
 export interface CameraFollowResult {
@@ -57,7 +59,7 @@ export function updateFollowCameraYaw(input: CameraFollowInput): CameraFollowRes
     if (input.orbiting) return { camYaw, lastInterpFacing: input.interpFacing };
     let targetYaw = camYaw;
     if (input.lastInterpFacing !== null && !input.clickMoving) targetYaw += wrapAngle(input.interpFacing - input.lastInterpFacing);
-    if (input.moving && !input.orbiting) {
+    if (!input.snapFollow && input.moving && !input.orbiting) {
       const delta = wrapAngle(input.interpFacing - targetYaw);
       const clickMoveScale = input.clickMoving ? clickMoveSettleScale(Math.abs(delta)) : 1;
       const rate = input.clickMoving ? CLICK_MOVE_SETTLE_RATE * clickMoveScale : SETTLE_RATE;
@@ -65,7 +67,9 @@ export function updateFollowCameraYaw(input: CameraFollowInput): CameraFollowRes
       const step = delta * (1 - Math.exp(-Math.max(0, input.frameDt) * rate));
       targetYaw += clamp(step, -maxStep, maxStep);
     }
-    camYaw = stepAngleToward(camYaw, targetYaw, maxAutoYawStep(input.frameDt));
+    camYaw = input.snapFollow
+      ? targetYaw
+      : stepAngleToward(camYaw, targetYaw, maxAutoYawStep(input.frameDt));
   }
   return { camYaw, lastInterpFacing: input.interpFacing };
 }

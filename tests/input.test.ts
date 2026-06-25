@@ -110,16 +110,27 @@ describe('Input pointer lock', () => {
     expect(canvas.requestPointerLock).not.toHaveBeenCalled();
   });
 
-  it('requests pointer lock after mouse movement becomes an active drag', () => {
+  it('requests pointer lock once a mouse-camera drag begins', () => {
+    const { canvas, canvasListeners, windowListeners, input } = makeInput();
+    input.setMouseCameraEnabled(true);
+
+    canvasListeners.get('mousedown')!({ button: 2, clientX: 100, clientY: 100 });
+    windowListeners.get('mousemove')!({ movementX: 10, movementY: 5, clientX: 110, clientY: 105 });
+    expect(canvas.requestPointerLock).not.toHaveBeenCalled();
+    windowListeners.get('mousemove')!({ movementX: 4, movementY: 0, clientX: 114, clientY: 105 });
+
+    expect(canvas.requestPointerLock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not request pointer lock for right-drag look in default WoW-style mode', () => {
     const { canvas, canvasListeners, windowListeners } = makeInput();
 
     canvasListeners.get('mousedown')!({ button: 2, clientX: 100, clientY: 100 });
-    windowListeners.get('mousemove')!({ movementX: 10, movementY: 5 });
-    windowListeners.get('mousemove')!({ movementX: 4, movementY: 0 });
-    expect(canvas.requestPointerLock).not.toHaveBeenCalled();
-    windowListeners.get('mousemove')!({ movementX: 1, movementY: 0 });
+    windowListeners.get('mousemove')!({ movementX: 10, movementY: 5, clientX: 110, clientY: 105 });
+    windowListeners.get('mousemove')!({ movementX: 4, movementY: 0, clientX: 114, clientY: 105 });
+    windowListeners.get('mousemove')!({ movementX: 1, movementY: 0, clientX: 115, clientY: 105 });
 
-    expect(canvas.requestPointerLock).toHaveBeenCalledTimes(1);
+    expect(canvas.requestPointerLock).not.toHaveBeenCalled();
   });
 
   it('uses normal mouse dragging instead of pointer lock while browser fullscreen is active', () => {
@@ -152,38 +163,34 @@ describe('Input pointer lock', () => {
     expect(cb.onClickPick).toHaveBeenCalledWith(120, 160, 0);
   });
 
-  it('starts camera drag by distance but discards the threshold-crossing movement', () => {
+  it('starts right-drag look immediately in WoW-style mode without pointer lock', () => {
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
     const { canvas, input, canvasListeners, windowListeners } = makeInput();
     const yaw = input.camYaw;
 
     canvasListeners.get('mousedown')!({ button: 2, clientX: 100, clientY: 100, preventDefault: vi.fn() });
-    windowListeners.get('mousemove')!({ movementX: 10, movementY: 5 });
-    windowListeners.get('mousemove')!({ movementX: 4, movementY: 0 });
+    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0, clientX: 102, clientY: 100 });
     expect(input.isCameraDragActive()).toBe(true);
-    expect(input.camYaw).toBe(yaw);
     expect(canvas.requestPointerLock).not.toHaveBeenCalled();
-
-    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0 });
-    expect(canvas.requestPointerLock).toHaveBeenCalledTimes(1);
     expect(input.camYaw).toBeCloseTo(yaw - 2 * 0.0045);
   });
 
-  it('starts camera drag by hold duration even with small pointer movement', () => {
+  it('starts camera drag by hold duration in mouse-camera mode even with small pointer movement', () => {
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
     const { input, canvasListeners, windowListeners } = makeInput();
+    input.setMouseCameraEnabled(true);
     const yaw = input.camYaw;
 
     canvasListeners.get('mousedown')!({ button: 2, clientX: 100, clientY: 100, preventDefault: vi.fn() });
     now += 150;
-    windowListeners.get('mousemove')!({ movementX: 1, movementY: 0 });
+    windowListeners.get('mousemove')!({ movementX: 1, movementY: 0, clientX: 101, clientY: 100 });
     expect(input.isCameraDragActive()).toBe(true);
-    expect(input.camYaw).toBe(yaw);
+    expect(input.camYaw).toBeCloseTo(yaw - 1 * 0.0045);
 
-    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0 });
-    expect(input.camYaw).toBeCloseTo(yaw - 2 * 0.0045);
+    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0, clientX: 103, clientY: 100 });
+    expect(input.camYaw).toBeCloseTo(yaw - 3 * 0.0045);
   });
 
   it('does not camera-drag with the mouse button bound to click-to-move', () => {
@@ -204,41 +211,48 @@ describe('Input pointer lock', () => {
     expect(cb.onClickPick).toHaveBeenCalledWith(120, 160, 0);
   });
 
-  it('allows the click-to-move mouse button to camera-drag after the click timer expires', () => {
+  it('allows the click-to-move mouse button to camera-drag after the click timer expires in mouse-camera mode', () => {
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
     const { canvas, input, cb, canvasListeners, windowListeners } = makeInput();
+    input.setMouseCameraEnabled(true);
     input.setClickMoveMouseButton(2);
     const yaw = input.camYaw;
 
     canvasListeners.get('mousedown')!({ button: 2, clientX: 100, clientY: 100, preventDefault: vi.fn() });
     now += 281;
-    windowListeners.get('mousemove')!({ movementX: 1, movementY: 0 });
+    windowListeners.get('mousemove')!({ movementX: 1, movementY: 0, clientX: 101, clientY: 100 });
     expect(input.isCameraDragActive()).toBe(true);
-    expect(input.camYaw).toBe(yaw);
-    expect(canvas.requestPointerLock).not.toHaveBeenCalled();
-
-    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0 });
+    expect(input.camYaw).toBeCloseTo(yaw - 1 * 0.0045);
     expect(canvas.requestPointerLock).toHaveBeenCalledTimes(1);
-    expect(input.camYaw).toBeCloseTo(yaw - 2 * 0.0045);
+
+    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0, clientX: 103, clientY: 100 });
+    expect(input.camYaw).toBeCloseTo(yaw - 3 * 0.0045);
 
     windowListeners.get('mouseup')!({ button: 2, clientX: 103, clientY: 100, target: canvas });
     expect(cb.onClickPick).not.toHaveBeenCalled();
   });
 
-  it('keeps camera drag available on the unbound mouse button', () => {
+  it('keeps camera drag available on the unbound mouse button without pointer lock in WoW-style mode', () => {
     const { canvas, input, canvasListeners, windowListeners } = makeInput();
     input.setClickMoveMouseButton(0);
     const yaw = input.camYaw;
 
     canvasListeners.get('mousedown')!({ button: 2, clientX: 100, clientY: 100, preventDefault: vi.fn() });
-    windowListeners.get('mousemove')!({ movementX: 19, movementY: 0 });
+    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0, clientX: 102, clientY: 100 });
     expect(input.isCameraDragActive()).toBe(true);
-    expect(input.camYaw).toBe(yaw);
-    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0 });
-
-    expect(canvas.requestPointerLock).toHaveBeenCalledTimes(1);
+    expect(canvas.requestPointerLock).not.toHaveBeenCalled();
     expect(input.camYaw).toBeCloseTo(yaw - 2 * 0.0045);
+  });
+
+  it('does not orbit the camera on left-drag in WoW-style mode', () => {
+    const { input, canvasListeners, windowListeners } = makeInput();
+    const yaw = input.camYaw;
+
+    canvasListeners.get('mousedown')!({ button: 0, clientX: 100, clientY: 100, preventDefault: vi.fn() });
+    windowListeners.get('mousemove')!({ movementX: 40, movementY: 0, clientX: 140, clientY: 100 });
+    expect(input.isCameraDragActive()).toBe(false);
+    expect(input.camYaw).toBe(yaw);
   });
 });
 
@@ -295,29 +309,24 @@ describe('Input Escape handling', () => {
 });
 
 describe('Input movement is not cancelled by a camera drag', () => {
-  // Discord regression: walking with W (or any held key) then right/left-drag to
-  // look around and releasing the button stopped movement, because exiting
-  // pointer lock cleared the held keyboard keys.
-  function walkAndDrag(button: number, windowListeners: Map<string, (e: any) => void>, canvasListeners: Map<string, (e: any) => void>, documentListeners: Map<string, (e: any) => void>) {
-    windowListeners.get('keydown')!({ code: 'KeyW', repeat: false });        // hold forward
-    canvasListeners.get('mousedown')!({ button });                           // press camera button
-    windowListeners.get('mousemove')!({ movementX: 19, movementY: 0 });      // drag activates
-    windowListeners.get('mousemove')!({ movementX: 1, movementY: 0 });       // drag → pointer lock
-    (globalThis as any).document.pointerLockElement = (globalThis as any).document; // lock engaged
-    windowListeners.get('mouseup')!({ button });                             // release → exitPointerLock
-    (globalThis as any).document.pointerLockElement = null;                  // lock ends
-    documentListeners.get('pointerlockchange')!({});                         // browser fires change
-  }
-
-  it('keeps walking forward after a right-drag ends', () => {
-    const { input, windowListeners, canvasListeners, documentListeners } = makeInput();
-    walkAndDrag(2, windowListeners, canvasListeners, documentListeners);
+  // Discord regression: walking with W (or any held key) then right-drag to
+  // look around and releasing the button stopped movement when pointer lock
+  // cleared held keyboard keys.
+  it('keeps walking forward after a right-drag ends without pointer lock', () => {
+    const { input, windowListeners, canvasListeners } = makeInput();
+    windowListeners.get('keydown')!({ code: 'KeyW', repeat: false });
+    canvasListeners.get('mousedown')!({ button: 2 });
+    windowListeners.get('mousemove')!({ movementX: 2, movementY: 0, clientX: 102, clientY: 100 });
+    windowListeners.get('mouseup')!({ button: 2 });
     expect(input.readMoveInput().forward).toBe(true);
   });
 
-  it('keeps walking forward after a left-drag ends', () => {
-    const { input, windowListeners, canvasListeners, documentListeners } = makeInput();
-    walkAndDrag(0, windowListeners, canvasListeners, documentListeners);
+  it('keeps walking forward after a left-click ends without treating it as camera drag', () => {
+    const { input, windowListeners, canvasListeners } = makeInput();
+    windowListeners.get('keydown')!({ code: 'KeyW', repeat: false });
+    canvasListeners.get('mousedown')!({ button: 0 });
+    windowListeners.get('mousemove')!({ movementX: 19, movementY: 0, clientX: 119, clientY: 100 });
+    windowListeners.get('mouseup')!({ button: 0 });
     expect(input.readMoveInput().forward).toBe(true);
   });
 

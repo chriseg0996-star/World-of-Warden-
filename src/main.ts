@@ -800,7 +800,8 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       mouselook: input.isMouselookActive(),
       moving: mi.forward || mi.strafeLeft || mi.strafeRight || clickMoving,
       clickMoving,
-      orbiting: input.leftDown && input.isCameraDragActive(),
+      orbiting: false,
+      snapFollow: !input.isMouseCameraMode(),
     });
     input.camYaw = next.camYaw;
     lastInterpFacing = next.lastInterpFacing; // track through mouselook too — no snap on release

@@ -208,7 +208,7 @@ zone map.
 | Input | Action |
 |---|---|
 | `W`/`S` | run / backpedal — `A`/`D` turn (strafe while right mouse held), `Q`/`E` strafe |
-| right-drag / left-drag | mouselook / orbit camera &nbsp;·&nbsp; wheel zooms · `Space` jumps |
+| right-drag | hold to look around (WoW-style) &nbsp;·&nbsp; left-click targets &nbsp;·&nbsp; both buttons run forward &nbsp;·&nbsp; wheel zooms · `Space` jumps |
 | `Tab` | cycle nearest enemies · left-click target · right-click attack/loot/talk |
 | `1`–`9`, `0`, `-`, `=` | action bar |
 | `F` | interact (loot corpse / pick up object / talk) |
