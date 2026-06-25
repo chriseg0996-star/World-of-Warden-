@@ -90,9 +90,12 @@ function fightMobWarrior(sim: Sim, mobId: number, maxTicks = 20 * 300): 'killed'
 function fightMobMage(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + 20);
+  teleport(sim, mob.pos.x, mob.pos.z + 22);
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
+  if (sim.known.some((k) => k.def.id === 'frost_armor') && !hasAura(p, 'frost_armor')) sim.castAbility('frost_armor');
+  if (sim.known.some((k) => k.def.id === 'arcane_intellect') && !hasAura(p, 'arcane_intellect')) sim.castAbility('arcane_intellect');
+  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
@@ -105,10 +108,10 @@ function fightMobMage(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 
         if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
         return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
       });
-      if ((hostiles.length > 0 || dist < 10) && sim.known.some((k) => k.def.id === 'frost_nova')) sim.castAbility('frost_nova');
-      else if (dist < 12) teleport(sim, m.pos.x, m.pos.z + 20);
-      else if (dist < 14 && sim.known.some((k) => k.def.id === 'fire_blast')) sim.castAbility('fire_blast');
-      else if (sim.known.some((k) => k.def.id === 'fireball') && (p.resource ?? 0) >= 35) sim.castAbility('fireball');
+      if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'frost_nova') && dist < 12) sim.castAbility('frost_nova');
+      else if (dist < 10 && sim.known.some((k) => k.def.id === 'frost_nova') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('frost_nova');
+      else if (dist < 10 && sim.known.some((k) => k.def.id === 'fire_blast')) sim.castAbility('fire_blast');
+      else if (sim.known.some((k) => k.def.id === 'fireball') && (p.resource ?? 0) >= 45) sim.castAbility('fireball');
       else if (sim.known.some((k) => k.def.id === 'frostbolt') && (p.resource ?? 0) >= 35) sim.castAbility('frostbolt');
     }
     sim.tick();
@@ -123,8 +126,8 @@ function fightMobRogue(sim: Sim, mobId: number, maxTicks = 20 * 400): 'killed' |
   teleport(sim, mob.pos.x, mob.pos.z + 3);
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
-  if (sim.known.some((k) => k.def.id === 'evasion') && !hasAura(p, 'evasion')) sim.castAbility('evasion');
   sim.startAutoAttack();
+  if (sim.known.some((k) => k.def.id === 'sinister_strike')) sim.castAbility('sinister_strike');
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return 'player_dead';
@@ -132,9 +135,15 @@ function fightMobRogue(sim: Sim, mobId: number, maxTicks = 20 * 400): 'killed' |
     faceTarget(sim, m);
     if (p.gcdRemaining <= 0 && !p.castingAbility) {
       const hpPct = p.hp / p.maxHp;
-      if (hpPct < 0.5 && sim.known.some((k) => k.def.id === 'evasion') && !hasAura(p, 'evasion')) sim.castAbility('evasion');
-      else if ((p.comboPoints ?? 0) >= 4 && (p.resource ?? 0) >= 35 && sim.known.some((k) => k.def.id === 'eviscerate')) sim.castAbility('eviscerate');
-      else if ((p.comboPoints ?? 0) >= 5 && sim.known.some((k) => k.def.id === 'slice_and_dice') && !hasAura(p, 'slice_and_dice')) sim.castAbility('slice_and_dice');
+      const hostiles = [...sim.entities.values()].filter((e) => {
+        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id) return false;
+        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
+        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
+      });
+      if (hostiles.length > 1 && sim.known.some((k) => k.def.id === 'evasion') && !hasAura(p, 'evasion') && hpPct < 0.9) sim.castAbility('evasion');
+      else if (hpPct < 0.75 && sim.known.some((k) => k.def.id === 'evasion') && !hasAura(p, 'evasion')) sim.castAbility('evasion');
+      else if ((p.comboPoints ?? 0) >= 3 && sim.known.some((k) => k.def.id === 'slice_and_dice') && !hasAura(p, 'slice_and_dice')) sim.castAbility('slice_and_dice');
+      else if ((p.comboPoints ?? 0) >= 3 && (p.resource ?? 0) >= 35 && sim.known.some((k) => k.def.id === 'eviscerate')) sim.castAbility('eviscerate');
       else if ((p.resource ?? 0) >= 45 && sim.known.some((k) => k.def.id === 'sinister_strike')) sim.castAbility('sinister_strike');
     }
     sim.tick();
@@ -207,7 +216,7 @@ describe('Forgotten Crypt dungeon slice', () => {
     expect(sim.player.hp).toBeGreaterThan(0);
   });
 
-  it('level 10 fire mage with dungeon gear can burn down the Bone Guardian in the crypt', () => {
+  it('level 10 fire mage with dungeon gear can solo the Bone Guardian after clearing trash', () => {
     const sim = makeSim(10, 'mage');
     sim.applyTalents({
       ...emptyAllocation(),
@@ -227,11 +236,37 @@ describe('Forgotten Crypt dungeon slice', () => {
     const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
     clearCryptExcept(sim, 'bone_guardian');
     const guardian = nearestMob(sim, 'bone_guardian', origin)!;
-    const startHp = guardian.hp;
     sim.player.hp = sim.player.maxHp;
     sim.player.resource = sim.player.maxResource;
-    fightMobMage(sim, guardian.id, 20 * 200);
-    expect(guardian.hp).toBeLessThan(startHp - 80);
+    expect(fightMobMage(sim, guardian.id)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 10 assassination rogue with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10, 'rogue');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'assassination',
+      ranks: {
+        ass_deadliness: 1,
+        ass_ruthlessness: 1,
+        ass_lethality: 2,
+        ass_finishing_moves: 2,
+      },
+    });
+    sim.inventory.push({ itemId: 'crypt_blade', qty: 1 }, { itemId: 'bone_shield', qty: 1 });
+    sim.equipItem('crypt_blade');
+    sim.equipItem('bone_shield');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMobRogue(sim, warden.id, 20 * 500)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
   });
 
   it('level 8 assassination rogue can solo the Bone Guardian after clearing trash', () => {

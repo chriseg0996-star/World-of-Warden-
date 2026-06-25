@@ -44,7 +44,7 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
   },
   bone_guardian: {
     id: 'bone_guardian', name: 'Bone Guardian', minLevel: 7, maxLevel: 9, family: 'undead', elite: true,
-    hpBase: 95, hpPerLevel: 22, dmgBase: 9, dmgPerLevel: 2.4, attackSpeed: 2.4,
+    hpBase: 38, hpPerLevel: 8, dmgBase: 8, dmgPerLevel: 2.2, attackSpeed: 2.4,
     armorPerLevel: 22, moveSpeed: 6.5, aggroRadius: 14,
     loot: [
       { copper: 350, chance: 1 },
@@ -68,10 +68,10 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
   crypt_warden: {
     id: 'crypt_warden', name: 'The Crypt Warden', minLevel: 8, maxLevel: 10, family: 'undead',
     elite: true, boss: true,
-    hpBase: 180, hpPerLevel: 24, dmgBase: 9, dmgPerLevel: 2.2, attackSpeed: 2.5,
+    hpBase: 100, hpPerLevel: 18, dmgBase: 9, dmgPerLevel: 2.2, attackSpeed: 2.5,
     armorPerLevel: 22, moveSpeed: 7, aggroRadius: 16,
     cleave: { radius: 8, mult: 0.35, name: 'Cleave' },
-    summonAdds: { mobId: 'skeleton_warrior_add', count: 1, atHpPct: [0.35] },
+    summonAdds: { mobId: 'skeleton_warrior_add', count: 1, atHpPct: [0.20] },
     stomp: { radius: 10, every: 20, duration: 1.0, min: 12, max: 18, name: 'Ground Slam' },
     loot: [
       { copper: 2200, chance: 1 },
@@ -87,7 +87,7 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
   // Summoned by the Crypt Warden — no loot.
   skeleton_warrior_add: {
     id: 'skeleton_warrior_add', name: 'Skeleton Warrior', minLevel: 8, maxLevel: 8, family: 'undead',
-    hpBase: 28, hpPerLevel: 10, dmgBase: 5, dmgPerLevel: 1.5, attackSpeed: 2.2,
+    hpBase: 18, hpPerLevel: 8, dmgBase: 3, dmgPerLevel: 1.2, attackSpeed: 2.2,
     armorPerLevel: 10, moveSpeed: 6.5, aggroRadius: 10,
     loot: [],
     scale: 1.0, color: 0xc8cfc8,

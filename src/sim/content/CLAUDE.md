@@ -15,9 +15,8 @@ module and spreads it into the flat tables the engine reads (`ITEMS`, `MOBS`,
 - `classes.ts` — `CLASSES` (per-class base/per-level stats, kit) + `ABILITIES`
   (defs with `ranks[]`) + `abilitiesKnownAt()` (resolves kit + rank + talent mods).
 - `talents.ts` — the talent framework (types, validation, precompute, build strings).
-- `talents_warrior.ts` / `talents_classic.ts` — the authored trees: warrior lives in
-  `talents_warrior.ts`, the other 8 (paladin…druid) in `talents_classic.ts`. Copy
-  `talents_warrior.ts` as the template for any new tree.
+- `talents_warrior.ts` … `talents_druid.ts` — one module per class with two-spec trees.
+  Copy `talents_warrior.ts` as the template for any new tree.
 - `zone1.ts`/`zone2.ts`/`zone3.ts` — one zone each. `zone1` items live in
   `items.ts` (`BASE_ITEMS`); `zone2`/`zone3` export their own `ZONE{N}_ITEMS`.
 - `dungeons.ts` — `DUNGEON_MOBS` + spawn lists + `DUNGEON_DEFS`.
@@ -63,7 +62,8 @@ cross-reference it; do not invent costs/levels/damage.
   with `specId`/`row`/`col`/`requires`/`pointsGate`, `kind: passive|active|choice`,
   + `SpecDef`s with `signature`/`mastery`), then register it in `TALENTS` in talents.ts.
   **All 9 classes are already registered** (warrior in `talents_warrior.ts`, the other
-  8 in `talents_classic.ts`). `validateTalentTree` runs at import and **throws on a
+  per-class modules (`talents_warrior.ts` … `talents_druid.ts`, two specs each).
+  `validateTalentTree` runs at import and **throws on a
   malformed tree** (dup ids, bad prereqs, cycles, unreachable gates) — a broken tree
   won't load.
 - Build strings (`exportBuild`/`importBuild`, base64), loadouts (`SavedLoadout`,
