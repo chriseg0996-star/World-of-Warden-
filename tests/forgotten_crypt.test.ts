@@ -38,6 +38,18 @@ function killMob(sim: Sim, mobId: number, pid?: number) {
 }
 
 describe('Forgotten Crypt dungeon slice', () => {
+  it('dungeon door at the Fallen Chapel enters hollow_crypt on proximity', () => {
+    const sim = makeSim(5);
+    const door = [...sim.entities.values()].find(
+      (e) => e.kind === 'object' && e.templateId === 'dungeon_door' && e.dungeonId === 'hollow_crypt',
+    );
+    expect(door).toBeTruthy();
+    teleport(sim, door!.pos.x, door!.pos.z);
+    sim.tick();
+    expect(sim.player.pos.x).toBeGreaterThan(600);
+    expect(sim.instanceSlotAt(sim.player.pos)).not.toBeNull();
+  });
+
   it('credits Enter the Crypt when the player enters hollow_crypt', () => {
     const sim = makeSim(5);
     teleport(sim, -14, -10);

@@ -43,7 +43,7 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     scale: 1.15, color: 0x566573,
   },
   bone_guardian: {
-    id: 'bone_guardian', name: 'Bone Guardian', minLevel: 9, maxLevel: 9, family: 'undead', elite: true,
+    id: 'bone_guardian', name: 'Bone Guardian', minLevel: 7, maxLevel: 9, family: 'undead', elite: true,
     hpBase: 95, hpPerLevel: 22, dmgBase: 9, dmgPerLevel: 2.4, attackSpeed: 2.4,
     armorPerLevel: 22, moveSpeed: 6.5, aggroRadius: 14,
     loot: [
@@ -66,7 +66,7 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     scale: 1.05, color: 0x6c3483,
   },
   crypt_warden: {
-    id: 'crypt_warden', name: 'The Crypt Warden', minLevel: 10, maxLevel: 10, family: 'undead',
+    id: 'crypt_warden', name: 'The Crypt Warden', minLevel: 8, maxLevel: 10, family: 'undead',
     elite: true, boss: true,
     hpBase: 220, hpPerLevel: 30, dmgBase: 11, dmgPerLevel: 2.5, attackSpeed: 2.5,
     armorPerLevel: 24, moveSpeed: 7, aggroRadius: 16,

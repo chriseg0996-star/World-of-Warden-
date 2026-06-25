@@ -498,7 +498,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
   q_fc_enter: {
     id: 'q_fc_enter', name: 'Enter the Crypt',
     giverNpcId: 'brother_aldric', turnInNpcId: 'brother_aldric',
-    text: 'The Forgotten Crypt stirs again — cultists and risen dead pour from its depths. Descend through the burial halls and report what you find, $N. Do not tarry in the entrance; push into the catacombs.',
+    text: 'The Forgotten Crypt stirs again — cultists and risen dead pour from its depths. Ride east to the Fallen Chapel and descend through the burial halls, $N. Do not tarry in the entrance; push into the catacombs.',
     completionText: 'You breathed the crypt air and lived to tell of it. The Vale is fortunate you are not numbered among its dead.',
     objectives: [{ type: 'explore', dungeonId: 'hollow_crypt', count: 1, label: 'Enter the Forgotten Crypt' }],
     xpReward: 450, copperReward: 200, itemRewards: {},
