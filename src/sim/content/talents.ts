@@ -13,9 +13,10 @@
 import { MAX_LEVEL, type PlayerClass } from '../types';
 import { WARRIOR_TALENTS } from './talents_warrior';
 import { MAGE_TALENTS } from './talents_mage';
+import { ROGUE_TALENTS } from './talents_rogue';
 import {
   DRUID_TALENTS, HUNTER_TALENTS, PALADIN_TALENTS, PRIEST_TALENTS,
-  ROGUE_TALENTS, SHAMAN_TALENTS, WARLOCK_TALENTS,
+  SHAMAN_TALENTS, WARLOCK_TALENTS,
 } from './talents_classic';
 
 export type TalentTree = 'class' | 'spec';

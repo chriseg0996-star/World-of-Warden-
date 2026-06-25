@@ -138,62 +138,6 @@ const HUNTER_SPEC_NODES: TalentNode[] = [
   passive('surv_lightning_reflexes', 'spec', 'survival', 2, { stats: { agi: 5, dodge: 0.01 } }, '>', 'Lightning Reflexes', 'Increases Agility by 5 and dodge by 1% per rank.', 3, 1, { pointsGate: 8, requires: ['surv_choice'] }),
 ];
 
-const ROGUE_CLASS: TalentNode[] = [
-  passive('rog_malice', 'class', undefined, 3, { stats: { crit: 0.01 } }, 'x', 'Malice', 'Increases critical strike chance by 1% per rank.', 0, 0),
-  passive('rog_lightning_reflexes', 'class', undefined, 3, { stats: { dodge: 0.01, agi: 1 } }, 'o', 'Lightning Reflexes', 'Increases dodge and Agility per rank.', 0, 2),
-  passive('rog_imp_sinister', 'class', undefined, 2, { ability: [{ ability: 'sinister_strike', costPct: -0.08 }] }, 'v', 'Improved Sinister Strike', 'Reduces Sinister Strike cost by 8% per rank.', 1, 0, { requires: ['rog_malice'] }),
-  passive('rog_camouflage', 'class', undefined, 2, { ability: [{ ability: 'stealth', cooldownPct: -0.20 }], stats: { agi: 2 } }, '>', 'Camouflage', 'Improves Stealth recovery and Agility per rank.', 1, 1, { pointsGate: 2 }),
-  passive('rog_deflection', 'class', undefined, 3, { stats: { dodge: 0.01 } }, 'o', 'Deflection', 'Increases dodge by 1% per rank.', 1, 2, { requires: ['rog_lightning_reflexes'] }),
-  choice('rog_dirty_tricks', 'class', undefined, '@', 'Dirty Tricks', 'Choose one rogue emphasis.', 2, 1, [
-    { id: 'rog_trick_poison', name: 'Vile Poisons', icon: 'x', description: 'Increases finisher damage by 8%.', effect: { ability: [{ ability: 'eviscerate', dmgPct: 0.08 }] } },
-    { id: 'rog_trick_blade', name: 'Blade Flurry', icon: '/', description: 'Increases melee ability damage by 8%.', effect: { global: { meleeDmgPct: 0.08 } } },
-    { id: 'rog_trick_shadow', name: 'Heightened Senses', icon: 'o', description: 'Increases dodge by 5%.', effect: { stats: { dodge: 0.05 } } },
-  ], { pointsGate: 5 }),
-  active('rog_preparation', 'class', undefined, { grant: { ability: 'sprint' } }, '>', 'Preparation', 'Grants early access to Sprint.', 3, 0, { pointsGate: 8, requires: ['rog_imp_sinister'] }),
-  passive('rog_vigor', 'class', undefined, 2, { stats: { agi: 4, ap: 6 } }, '+', 'Vigor', 'Increases Agility and attack power per rank.', 3, 2, { pointsGate: 8, requires: ['rog_dirty_tricks'] }),
-];
-
-const ROGUE_SPECS: SpecDef[] = [
-  spec('assassination', 'rogue', 'Assassination', 'dps', 'x', 'A burst specialist using critical strikes and finishers.', 'eviscerate', 'Murderous Intent', 'Increases critical strike and finisher damage.', { stats: { crit: 0.03 }, ability: [{ ability: 'eviscerate', dmgPct: 0.08 }] }),
-  spec('combat', 'rogue', 'Combat', 'dps', '/', 'A sustained fighter focused on direct weapon strikes.', 'adrenaline_rush', 'Combat Potency', 'Increases melee ability damage by 10%.', { global: { meleeDmgPct: 0.10 } }),
-  spec('subtlety', 'rogue', 'Subtlety', 'dps', '>', 'A stealth attacker built around openers, control, and avoidance.', 'ambush', 'Master of Deception', 'Increases Agility and critical strike chance.', { stats: { agi: 4, crit: 0.02 } }),
-];
-
-const ROGUE_SPEC_NODES: TalentNode[] = [
-  passive('ass_imp_eviscerate', 'spec', 'assassination', 3, { ability: [{ ability: 'eviscerate', dmgPct: 0.08 }] }, 'x', 'Improved Eviscerate', 'Increases Eviscerate damage by 8% per rank.', 0, 0),
-  passive('ass_remorseless', 'spec', 'assassination', 3, { stats: { crit: 0.01 } }, 'x', 'Remorseless Attacks', 'Increases critical strike chance by 1% per rank.', 0, 2),
-  passive('ass_murder', 'spec', 'assassination', 2, { global: { meleeDmgPct: 0.04 } }, 'x', 'Murder', 'Increases melee ability damage by 4% per rank.', 1, 0, { pointsGate: 2, requires: ['ass_imp_eviscerate'] }),
-  passive('ass_laceration', 'spec', 'assassination', 2, { ability: [{ ability: 'slice_and_dice', costPct: -0.12 }, { ability: 'kidney_shot', costPct: -0.12 }] }, 'v', 'Relentless Strikes', 'Reduces finisher costs by 12% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('ass_choice', 'spec', 'assassination', '@', 'Cold Blood', 'Choose one Assassination refinement.', 2, 1, [
-    { id: 'ass_choice_cold', name: 'Cold Blood', icon: 'x', description: 'Increases critical strike by 5%.', effect: { stats: { crit: 0.05 } } },
-    { id: 'ass_choice_seal', name: 'Seal Fate', icon: '+', description: 'Increases Agility by 8.', effect: { stats: { agi: 8 } } },
-    { id: 'ass_choice_vile', name: 'Vile Precision', icon: 'x', description: 'Eviscerate deals 18% more damage.', effect: { ability: [{ ability: 'eviscerate', dmgPct: 0.18 }] } },
-  ], { pointsGate: 5 }),
-  passive('ass_vigor', 'spec', 'assassination', 2, { ability: [{ ability: 'eviscerate', costPct: -0.10, dmgPct: 0.08 }] }, 'x', 'Assassin Vigor', 'Improves Eviscerate cost and damage per rank.', 3, 1, { pointsGate: 8, requires: ['ass_choice'] }),
-
-  passive('combat_imp_gouge', 'spec', 'combat', 3, { ability: [{ ability: 'gouge', cooldownPct: -0.08, dmgPct: 0.08 }] }, 'o', 'Improved Gouge', 'Improves Gouge cooldown and damage per rank.', 0, 0),
-  passive('combat_precision', 'spec', 'combat', 3, { stats: { ap: 8 } }, '/', 'Precision', 'Increases attack power by 8 per rank.', 0, 2),
-  passive('combat_imp_sprint', 'spec', 'combat', 2, { ability: [{ ability: 'sprint', cooldownPct: -0.20 }] }, '>', 'Improved Sprint', 'Reduces Sprint cooldown by 20% per rank.', 1, 0, { pointsGate: 2, requires: ['combat_imp_gouge'] }),
-  passive('combat_dual_wield', 'spec', 'combat', 2, { ability: [{ ability: 'sinister_strike', dmgPct: 0.10 }] }, '/', 'Weapon Expertise', 'Increases Sinister Strike damage by 10% per rank.', 1, 2, { pointsGate: 2 }),
-  choice('combat_choice', 'spec', 'combat', '@', 'Combat Style', 'Choose one Combat refinement.', 2, 1, [
-    { id: 'combat_choice_flurry', name: 'Blade Flurry', icon: '/', description: 'Increases melee ability damage by 10%.', effect: { global: { meleeDmgPct: 0.10 } } },
-    { id: 'combat_choice_riposte', name: 'Riposte', icon: 'o', description: 'Increases dodge and attack power.', effect: { stats: { dodge: 0.03, ap: 12 } } },
-    { id: 'combat_choice_adrenaline', name: 'Adrenaline Rush', icon: '>', description: 'Reduces Adrenaline Rush cooldown by 25%.', effect: { ability: [{ ability: 'adrenaline_rush', cooldownPct: -0.25 }] } },
-  ], { pointsGate: 5 }),
-  passive('combat_weapon_mastery', 'spec', 'combat', 2, { stats: { apPct: 0.08 }, ability: [{ ability: 'sinister_strike', costPct: -0.06 }] }, '/', 'Weapon Mastery', 'Improves attack power and Sinister Strike cost per rank.', 3, 1, { pointsGate: 8, requires: ['combat_choice'] }),
-
-  passive('sub_master_deception', 'spec', 'subtlety', 3, { ability: [{ ability: 'stealth', cooldownPct: -0.10 }], stats: { agi: 1 } }, '>', 'Master of Deception', 'Improves Stealth recovery and Agility per rank.', 0, 0),
-  passive('sub_opportunity', 'spec', 'subtlety', 3, { ability: [{ ability: 'backstab', dmgPct: 0.08 }, { ability: 'ambush', dmgPct: 0.08 }] }, 'x', 'Opportunity', 'Increases Backstab and Ambush damage by 8% per rank.', 0, 2),
-  passive('sub_elusiveness', 'spec', 'subtlety', 2, { ability: [{ ability: 'evasion', cooldownPct: -0.15 }] }, 'o', 'Elusiveness', 'Reduces Evasion cooldown by 15% per rank.', 1, 0, { pointsGate: 2, requires: ['sub_master_deception'] }),
-  passive('sub_imp_ambush', 'spec', 'subtlety', 2, { ability: [{ ability: 'ambush', costPct: -0.10, dmgPct: 0.12 }] }, 'x', 'Improved Ambush', 'Improves Ambush cost and damage per rank.', 1, 2, { pointsGate: 2 }),
-  choice('sub_choice', 'spec', 'subtlety', '@', 'Shadow Arts', 'Choose one Subtlety refinement.', 2, 1, [
-    { id: 'sub_choice_hemo', name: 'Hemorrhage', icon: 'x', description: 'Backstab deals 22% more damage.', effect: { ability: [{ ability: 'backstab', dmgPct: 0.22 }] } },
-    { id: 'sub_choice_prep', name: 'Preparation', icon: '>', description: 'Sprint and Evasion cooldowns are reduced.', effect: { ability: [{ ability: 'sprint', cooldownPct: -0.20 }, { ability: 'evasion', cooldownPct: -0.20 }] } },
-    { id: 'sub_choice_senses', name: 'Heightened Senses', icon: 'o', description: 'Increases dodge by 5%.', effect: { stats: { dodge: 0.05 } } },
-  ], { pointsGate: 5 }),
-  passive('sub_shadowstep', 'spec', 'subtlety', 2, { stats: { agi: 4, crit: 0.01 }, ability: [{ ability: 'ambush', cooldownPct: -0.10 }] }, '>', 'Shadowstep', 'Improves Agility, crit, and Ambush flow per rank.', 3, 1, { pointsGate: 8, requires: ['sub_choice'] }),
-];
-
 const PRIEST_CLASS: TalentNode[] = [
   passive('pri_wand_specialization', 'class', undefined, 3, { stats: { int: 1, spi: 1 } }, '/', 'Wand Specialization', 'Increases Intellect and Spirit by 1 per rank.', 0, 0),
   passive('pri_spirit_tap', 'class', undefined, 3, { stats: { spi: 3 } }, '*', 'Spirit Tap', 'Increases Spirit by 3 per rank.', 0, 2),
@@ -420,7 +364,6 @@ const DRUID_SPEC_NODES: TalentNode[] = [
 
 export const PALADIN_TALENTS: ClassTalents = { class: 'paladin', nodes: [...PALADIN_CLASS, ...PALADIN_SPEC_NODES], specs: PALADIN_SPECS };
 export const HUNTER_TALENTS: ClassTalents = { class: 'hunter', nodes: [...HUNTER_CLASS, ...HUNTER_SPEC_NODES], specs: HUNTER_SPECS };
-export const ROGUE_TALENTS: ClassTalents = { class: 'rogue', nodes: [...ROGUE_CLASS, ...ROGUE_SPEC_NODES], specs: ROGUE_SPECS };
 export const PRIEST_TALENTS: ClassTalents = { class: 'priest', nodes: [...PRIEST_CLASS, ...PRIEST_SPEC_NODES], specs: PRIEST_SPECS };
 export const SHAMAN_TALENTS: ClassTalents = { class: 'shaman', nodes: [...SHAMAN_CLASS, ...SHAMAN_SPEC_NODES], specs: SHAMAN_SPECS };
 export const WARLOCK_TALENTS: ClassTalents = { class: 'warlock', nodes: [...WARLOCK_CLASS, ...WARLOCK_SPEC_NODES], specs: WARLOCK_SPECS };
