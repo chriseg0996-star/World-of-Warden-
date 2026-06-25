@@ -18,10 +18,8 @@ import { HUNTER_TALENTS } from './talents_hunter';
 import { PALADIN_TALENTS } from './talents_paladin';
 import { PRIEST_TALENTS } from './talents_priest';
 import { SHAMAN_TALENTS } from './talents_shaman';
-import {
-  DRUID_TALENTS,
-  WARLOCK_TALENTS,
-} from './talents_classic';
+import { WARLOCK_TALENTS } from './talents_warlock';
+import { DRUID_TALENTS } from './talents_druid';
 
 export type TalentTree = 'class' | 'spec';
 export type TalentKind = 'passive' | 'active' | 'choice';
