@@ -209,6 +209,160 @@ function fightMobPaladin(sim: Sim, mobId: number, maxTicks = 20 * 500): 'killed'
   return 'timeout';
 }
 
+/** Shadow priest rotation for solo viability checks. */
+function fightMobPriest(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
+  const mob = sim.entities.get(mobId)!;
+  const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + 22);
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
+  if (sim.known.some((k) => k.def.id === 'power_word_fortitude') && !hasAura(p, 'power_word_fortitude')) {
+    sim.targetEntity(p.id);
+    sim.castAbility('power_word_fortitude');
+    sim.targetEntity(mobId);
+  }
+  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
+  for (let i = 0; i < maxTicks; i++) {
+    const m = sim.entities.get(mobId);
+    if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
+    if (!m || m.dead) return 'killed';
+    faceTarget(sim, m);
+    const hpPct = p.hp / p.maxHp;
+    if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
+      if (hpPct < 0.5 && sim.known.some((k) => k.def.id === 'power_word_shield') && !p.auras?.some((a) => a.kind === 'absorb')) {
+        sim.targetEntity(p.id);
+        sim.castAbility('power_word_shield');
+        sim.targetEntity(mobId);
+      } else if (hpPct < 0.45 && sim.known.some((k) => k.def.id === 'lesser_heal')) {
+        sim.targetEntity(p.id);
+        sim.castAbility('lesser_heal');
+        sim.targetEntity(mobId);
+      } else if (!hasAura(m, 'shadow_word_pain') && sim.known.some((k) => k.def.id === 'shadow_word_pain')) sim.castAbility('shadow_word_pain');
+      else if (sim.known.some((k) => k.def.id === 'mind_blast') && (p.resource ?? 0) >= 50) sim.castAbility('mind_blast');
+      else if ((p.resource ?? 0) >= 20 && sim.known.some((k) => k.def.id === 'smite')) sim.castAbility('smite');
+    }
+    sim.tick();
+  }
+  return 'timeout';
+}
+
+function pullDist(mob: Entity) {
+  return mob.templateId === 'crypt_warden' ? 8 : 22;
+}
+
+/** Affliction warlock rotation for solo viability checks. */
+function fightMobWarlock(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed' | 'player_dead' | 'timeout' {
+  const mob = sim.entities.get(mobId)!;
+  const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  sim.targetEntity(mobId);
+  if (sim.known.some((k) => k.def.id === 'demon_skin') && !hasAura(p, 'demon_skin')) sim.castAbility('demon_skin');
+  if (sim.known.some((k) => k.def.id === 'curse_of_agony') && !hasAura(mob, 'curse_of_agony')) sim.castAbility('curse_of_agony');
+  for (let i = 0; i < 120 && (p.castingAbility || p.channeling); i++) sim.tick();
+  for (let i = 0; i < maxTicks; i++) {
+    const m = sim.entities.get(mobId);
+    if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
+    if (!m || m.dead) return 'killed';
+    faceTarget(sim, m);
+    const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
+    const manaPct = (p.resource ?? 0) / Math.max(1, p.maxResource ?? 1);
+    const hpPct = p.hp / p.maxHp;
+    if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
+      const hostiles = [...sim.entities.values()].filter((e) => {
+        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
+        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
+        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
+      });
+      if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'fear') && dist <= 20) sim.castAbility('fear');
+      else if (manaPct < 0.3 && hpPct > 0.4 && sim.known.some((k) => k.def.id === 'life_tap')) sim.castAbility('life_tap');
+      else if (hpPct < 0.75 && dist <= 20 && sim.known.some((k) => k.def.id === 'drain_life') && (p.resource ?? 0) >= 35) sim.castAbility('drain_life');
+      else if (!hasAura(m, 'immolate') && sim.known.some((k) => k.def.id === 'immolate') && (p.resource ?? 0) >= 25) sim.castAbility('immolate');
+      else if (!hasAura(m, 'corruption') && sim.known.some((k) => k.def.id === 'corruption') && (p.resource ?? 0) >= 35) sim.castAbility('corruption');
+      else if (!hasAura(m, 'curse_of_agony') && sim.known.some((k) => k.def.id === 'curse_of_agony') && (p.resource ?? 0) >= 25) sim.castAbility('curse_of_agony');
+      else if ((p.resource ?? 0) >= 25 && sim.known.some((k) => k.def.id === 'shadow_bolt')) sim.castAbility('shadow_bolt');
+    }
+    sim.tick();
+  }
+  return 'timeout';
+}
+
+/** Balance druid rotation for solo viability checks. */
+function fightMobDruidBalance(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
+  const mob = sim.entities.get(mobId)!;
+  const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
+  if (sim.known.some((k) => k.def.id === 'mark_of_the_wild') && !hasAura(p, 'mark_of_the_wild')) {
+    sim.targetEntity(p.id);
+    sim.castAbility('mark_of_the_wild');
+    sim.targetEntity(mobId);
+  }
+  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
+  for (let i = 0; i < maxTicks; i++) {
+    const m = sim.entities.get(mobId);
+    if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
+    if (!m || m.dead) return 'killed';
+    faceTarget(sim, m);
+    const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
+    const hpPct = p.hp / p.maxHp;
+    if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
+      const hostiles = [...sim.entities.values()].filter((e) => {
+        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
+        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
+        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
+      });
+      if (hpPct < 0.45 && sim.known.some((k) => k.def.id === 'healing_touch')) {
+        sim.targetEntity(p.id);
+        sim.castAbility('healing_touch');
+        sim.targetEntity(mobId);
+      } else if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'entangling_roots') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('entangling_roots');
+      else if (dist < 12 && sim.known.some((k) => k.def.id === 'entangling_roots') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('entangling_roots');
+      else if (!hasAura(m, 'moonfire') && sim.known.some((k) => k.def.id === 'moonfire') && (p.resource ?? 0) >= 25) sim.castAbility('moonfire');
+      else if ((p.resource ?? 0) >= 20 && sim.known.some((k) => k.def.id === 'wrath')) sim.castAbility('wrath');
+    }
+    sim.tick();
+  }
+  return 'timeout';
+}
+
+/** Elemental shaman rotation for solo viability checks. */
+function fightMobShaman(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed' | 'player_dead' | 'timeout' {
+  const mob = sim.entities.get(mobId)!;
+  const p = sim.player;
+  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
+  if (sim.known.some((k) => k.def.id === 'rockbiter_weapon') && !hasAura(p, 'rockbiter_weapon')) sim.castAbility('rockbiter_weapon');
+  if (sim.known.some((k) => k.def.id === 'lightning_shield') && !hasAura(p, 'lightning_shield')) sim.castAbility('lightning_shield');
+  for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
+  for (let i = 0; i < maxTicks; i++) {
+    const m = sim.entities.get(mobId);
+    if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
+    if (!m || m.dead) return 'killed';
+    faceTarget(sim, m);
+    const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
+    const hpPct = p.hp / p.maxHp;
+    if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
+      const hostiles = [...sim.entities.values()].filter((e) => {
+        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
+        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
+        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
+      });
+      if (hpPct < 0.55 && sim.known.some((k) => k.def.id === 'healing_wave')) {
+        sim.targetEntity(p.id);
+        sim.castAbility('healing_wave');
+        sim.targetEntity(mobId);
+      } else if (hostiles.length > 1 && sim.known.some((k) => k.def.id === 'earth_shock')) sim.castAbility('earth_shock');
+      else if (!hasAura(m, 'flame_shock') && sim.known.some((k) => k.def.id === 'flame_shock') && (p.resource ?? 0) >= 35) sim.castAbility('flame_shock');
+      else if (sim.known.some((k) => k.def.id === 'earth_shock') && (p.resource ?? 0) >= 30) sim.castAbility('earth_shock');
+      else if ((p.resource ?? 0) >= 15 && sim.known.some((k) => k.def.id === 'lightning_bolt')) sim.castAbility('lightning_bolt');
+    }
+    sim.tick();
+  }
+  return 'timeout';
+}
+
 describe('Forgotten Crypt dungeon slice', () => {
   it('dungeon door at the Fallen Chapel enters hollow_crypt on proximity', () => {
     const sim = makeSim(5);
@@ -384,6 +538,70 @@ describe('Forgotten Crypt dungeon slice', () => {
     expect(fightMobPaladin(sim, warden.id, 20 * 600)).toBe('killed');
     expect(sim.player.dead).toBe(false);
     expect(sim.player.hp).toBeGreaterThan(0);
+  });
+
+  it('level 8 shadow priest can solo the Bone Guardian after clearing trash', () => {
+    const sim = makeSim(8, 'priest');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'shadow',
+      ranks: { shadow_blackout: 1, shadow_word_pain: 1, shadow_focus: 1 },
+    });
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    clearCryptExcept(sim, 'bone_guardian');
+    const guardian = nearestMob(sim, 'bone_guardian', origin)!;
+    expect(fightMobPriest(sim, guardian.id)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 8 balance druid can solo the Bone Guardian after clearing trash', () => {
+    const sim = makeSim(8, 'druid');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'balance',
+      ranks: { bal_imp_wrath: 1, bal_imp_moonfire: 1, bal_vengeance: 1 },
+    });
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    clearCryptExcept(sim, 'bone_guardian');
+    const guardian = nearestMob(sim, 'bone_guardian', origin)!;
+    expect(fightMobDruidBalance(sim, guardian.id)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 8 affliction warlock can solo the Bone Guardian after clearing trash', () => {
+    const sim = makeSim(8, 'warlock');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'affliction',
+      ranks: { aff_imp_corruption: 1, aff_imp_agony: 1, aff_fel_concentration: 1 },
+    });
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    clearCryptExcept(sim, 'bone_guardian');
+    const guardian = nearestMob(sim, 'bone_guardian', origin)!;
+    expect(fightMobWarlock(sim, guardian.id)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 8 elemental shaman can solo the Bone Guardian after clearing trash', () => {
+    const sim = makeSim(8, 'shaman');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'elemental',
+      ranks: { ele_concussion: 1, ele_call_flame: 1, ele_elemental_focus: 1 },
+    });
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    clearCryptExcept(sim, 'bone_guardian');
+    const guardian = nearestMob(sim, 'bone_guardian', origin)!;
+    expect(fightMobShaman(sim, guardian.id)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
   });
 
   it('scales elite and boss levels within template bands', () => {

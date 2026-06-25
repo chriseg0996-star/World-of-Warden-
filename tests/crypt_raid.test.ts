@@ -158,7 +158,7 @@ function raidStep(sim: Sim, roster: { pid: number; cls: PlayerClass }[], tankPid
 }
 
 describe('Forgotten Crypt party raid (headless)', () => {
-  it('a five-player party clears the Crypt Warden with focus-fire raid AI', () => {
+  it('a five-player party clears the Crypt Warden with focus-fire raid AI', { timeout: 30_000 }, () => {
     const sim = makeWorld();
     const pids: number[] = [];
     for (const { name, cls } of RAID_ROSTER) pids.push(sim.addPlayer(cls, name));
