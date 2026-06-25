@@ -38,6 +38,15 @@ function killMob(sim: Sim, mobId: number, pid?: number) {
 }
 
 describe('Forgotten Crypt dungeon slice', () => {
+  it('leaveDungeon returns the player to the Forgotten Crypt door', () => {
+    const sim = makeSim(5);
+    sim.enterCrypt();
+    expect(sim.player.pos.x).toBeGreaterThan(600);
+    sim.leaveCrypt();
+    expect(sim.player.pos.x).toBeLessThan(200);
+    expect(Math.hypot(sim.player.pos.x - 80, sim.player.pos.z - 86)).toBeLessThan(6);
+  });
+
   it('dungeon door at the Fallen Chapel enters hollow_crypt on proximity', () => {
     const sim = makeSim(5);
     const door = [...sim.entities.values()].find(
@@ -48,6 +57,20 @@ describe('Forgotten Crypt dungeon slice', () => {
     sim.tick();
     expect(sim.player.pos.x).toBeGreaterThan(600);
     expect(sim.instanceSlotAt(sim.player.pos)).not.toBeNull();
+  });
+
+  it('scales elite and boss levels within template bands', () => {
+    const sim = makeSim(8);
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const slot = sim.instanceSlotAt(sim.player.pos)!;
+    const origin = instanceOrigin(0, slot);
+    const guardian = nearestMob(sim, 'bone_guardian', origin)!;
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    expect(guardian.level).toBeGreaterThanOrEqual(MOBS.bone_guardian.minLevel);
+    expect(guardian.level).toBeLessThanOrEqual(MOBS.bone_guardian.maxLevel);
+    expect(warden.level).toBeGreaterThanOrEqual(MOBS.crypt_warden.minLevel);
+    expect(warden.level).toBeLessThanOrEqual(MOBS.crypt_warden.maxLevel);
   });
 
   it('credits Enter the Crypt when the player enters hollow_crypt', () => {
