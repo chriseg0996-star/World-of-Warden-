@@ -260,10 +260,11 @@ const CRYPT_SPAWN_LIST: DungeonSpawn[] = [
   { mobId: 'cult_adept', x: 2, z: 72 },
   { mobId: 'skeleton_warrior', x: -6, z: 78 },
   { mobId: 'bone_guardian', x: 0, z: 82 },
-  // Ritual chamber
-  { mobId: 'crypt_warden', x: 0, z: 98 },
-  { mobId: 'skeleton_warrior', x: -5, z: 95 },
-  { mobId: 'skeleton_warrior', x: 5, z: 95 },
+  // Ritual chamber — boss sits forward of the dais so the aisle behind stays
+  // open for line of sight (casters pull from ~18 yd without hugging the back wall).
+  { mobId: 'crypt_warden', x: 0, z: 88 },
+  { mobId: 'skeleton_warrior', x: -5, z: 86 },
+  { mobId: 'skeleton_warrior', x: 5, z: 86 },
 ];
 
 // Sunken Bastion: same 13-spawn pacing as the crypt — packs of 2 elites,

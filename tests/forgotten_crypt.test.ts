@@ -48,11 +48,47 @@ function hasAura(e: Entity, auraId: string) {
 }
 
 function pullDist(mob: Entity) {
-  return mob.templateId === 'crypt_warden' ? 8 : 22;
+  // Ritual chamber back wall blocks LOS beyond ~16 yd north of the boss.
+  return mob.templateId === 'crypt_warden' ? 16 : 22;
 }
 
 function prepDist(mob: Entity) {
-  return mob.templateId === 'crypt_warden' ? 18 : pullDist(mob);
+  return mob.templateId === 'crypt_warden' ? 17 : pullDist(mob);
+}
+
+/** Fixed pull point north of the warden spawn — avoids drifting past the back wall when kiting. */
+function wardenPullPos(mob: Entity) {
+  return { x: mob.spawnPos.x, z: mob.spawnPos.z + pullDist(mob) };
+}
+
+function wardenPrepPos(mob: Entity) {
+  return { x: mob.spawnPos.x, z: mob.spawnPos.z + prepDist(mob) };
+}
+
+function teleportPrep(sim: Sim, mob: Entity) {
+  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
+}
+
+function teleportPull(sim: Sim, mob: Entity) {
+  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+}
+
+function teleportWardenPrep(sim: Sim, mob: Entity) {
+  const p = wardenPrepPos(mob);
+  teleport(sim, p.x, p.z);
+}
+
+function teleportWardenPull(sim: Sim, mob: Entity) {
+  const p = wardenPullPos(mob);
+  teleport(sim, p.x, p.z);
+}
+
+/** Step back to the anchored pull line when inside the Crypt Warden stomp (10 yd). */
+function kiteCryptWarden(sim: Sim, mob: Entity, dist: number) {
+  if (mob.templateId !== 'crypt_warden' || dist > 10) return;
+  const pull = wardenPullPos(mob);
+  teleport(sim, pull.x, pull.z);
+  faceTarget(sim, mob);
 }
 
 function hostilesOn(sim: Sim, p: Entity, mobId: number) {
@@ -106,34 +142,52 @@ function fightMobWarrior(sim: Sim, mobId: number, maxTicks = 20 * 300): 'killed'
 function fightMobMage(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
+  if (mob.templateId === 'crypt_warden') {
+    teleportPrep(sim, mob);
+    faceTarget(sim, mob);
+    sim.targetEntity(p.id);
+    if (sim.known.some((k) => k.def.id === 'frost_armor') && !hasAura(p, 'frost_armor')) sim.castAbility('frost_armor');
+    if (sim.known.some((k) => k.def.id === 'arcane_intellect') && !hasAura(p, 'arcane_intellect')) sim.castAbility('arcane_intellect');
+    for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
+    teleportPull(sim, mob);
+    faceTarget(sim, mob);
+    sim.targetEntity(mobId);
+    for (let i = 0; i < maxTicks; i++) {
+      const m = sim.entities.get(mobId);
+      if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
+      if (!m || m.dead) return 'killed';
+      faceTarget(sim, m);
+      const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
+      if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
+        if (sim.known.some((k) => k.def.id === 'fireball') && (p.resource ?? 0) >= 45) sim.castAbility('fireball');
+      }
+      sim.tick();
+    }
+    return 'timeout';
+  }
+  teleportPrep(sim, mob);
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
   if (sim.known.some((k) => k.def.id === 'frost_armor') && !hasAura(p, 'frost_armor')) sim.castAbility('frost_armor');
   if (sim.known.some((k) => k.def.id === 'arcane_intellect') && !hasAura(p, 'arcane_intellect')) sim.castAbility('arcane_intellect');
   for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
-  if (mob.templateId === 'crypt_warden') {
-    teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
-    faceTarget(sim, mob);
-    sim.targetEntity(mobId);
-    if (sim.known.some((k) => k.def.id === 'fire_blast')) sim.castAbility('fire_blast');
-  }
+  teleportPull(sim, mob);
+  faceTarget(sim, mob);
+  sim.targetEntity(mobId);
   for (let i = 0; i < maxTicks; i++) {
     const m = sim.entities.get(mobId);
     if (p.dead) return m && m.dead ? 'killed' : 'player_dead';
     if (!m || m.dead) return 'killed';
     faceTarget(sim, m);
     const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
+    if (!p.castingAbility && !p.channeling) kiteCryptWarden(sim, m, dist);
     if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
-      const hostiles = [...sim.entities.values()].filter((e) => {
-        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
-        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
-        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
-      });
-      if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'frost_nova') && dist < 12) sim.castAbility('frost_nova');
-      else if (hostiles.length > 0 && m.hp / m.maxHp < 0.35 && sim.known.some((k) => k.def.id === 'fire_blast') && dist < 12) sim.castAbility('fire_blast');
-      else if (dist < 10 && sim.known.some((k) => k.def.id === 'frost_nova') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('frost_nova');
-      else if (dist < 10 && sim.known.some((k) => k.def.id === 'fire_blast')) sim.castAbility('fire_blast');
+      const hostiles = hostilesOn(sim, p, mobId);
+      if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'frost_nova') && dist <= 12) sim.castAbility('frost_nova');
+      else if (hostiles.length > 0 && m.hp / m.maxHp < 0.35 && sim.known.some((k) => k.def.id === 'fire_blast') && dist <= 12) sim.castAbility('fire_blast');
+      else if (sim.known.some((k) => k.def.id === 'fire_blast') && !p.cooldowns.has('fire_blast') && (p.resource ?? 0) >= 20) sim.castAbility('fire_blast');
+      else if (dist <= 10 && sim.known.some((k) => k.def.id === 'frost_nova') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('frost_nova');
+      else if (dist <= 10 && sim.known.some((k) => k.def.id === 'fire_blast')) sim.castAbility('fire_blast');
       else if (sim.known.some((k) => k.def.id === 'fireball') && (p.resource ?? 0) >= 45) sim.castAbility('fireball');
       else if (sim.known.some((k) => k.def.id === 'frostbolt') && (p.resource ?? 0) >= 35) sim.castAbility('frostbolt');
     }
@@ -236,13 +290,13 @@ function fightMobPaladin(sim: Sim, mobId: number, maxTicks = 20 * 500): 'killed'
 function fightMobPriest(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
+  teleportPrep(sim, mob);
   faceTarget(sim, mob);
   sim.targetEntity(p.id);
   if (sim.known.some((k) => k.def.id === 'power_word_fortitude') && !hasAura(p, 'power_word_fortitude')) sim.castAbility('power_word_fortitude');
   if (sim.known.some((k) => k.def.id === 'renew') && !hasAura(p, 'renew')) sim.castAbility('renew');
   for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
-  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  teleportPull(sim, mob);
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
   for (let i = 0; i < maxTicks; i++) {
@@ -278,12 +332,11 @@ function fightMobPriest(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' 
 function fightMobWarlock(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  const opener = prepDist(mob);
-  teleport(sim, mob.pos.x, mob.pos.z + opener);
+  teleportPrep(sim, mob);
   faceTarget(sim, mob);
   if (sim.known.some((k) => k.def.id === 'demon_skin') && !hasAura(p, 'demon_skin')) sim.castAbility('demon_skin');
   for (let i = 0; i < 40 && (p.castingAbility || p.channeling); i++) sim.tick();
-  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  teleportPull(sim, mob);
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
   for (let i = 0; i < maxTicks; i++) {
@@ -320,13 +373,15 @@ function fightMobWarlock(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed'
 function fightMobDruidBalance(sim: Sim, mobId: number, maxTicks = 20 * 600): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
+  const prep = mob.templateId === 'crypt_warden' ? teleportWardenPrep : teleportPrep;
+  const pull = mob.templateId === 'crypt_warden' ? teleportWardenPull : teleportPull;
+  prep(sim, mob);
   faceTarget(sim, mob);
   sim.targetEntity(p.id);
   if (sim.known.some((k) => k.def.id === 'mark_of_the_wild') && !hasAura(p, 'mark_of_the_wild')) sim.castAbility('mark_of_the_wild');
   if (sim.known.some((k) => k.def.id === 'rejuvenation') && !hasAura(p, 'rejuvenation')) sim.castAbility('rejuvenation');
   for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
-  teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+  pull(sim, mob);
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
   for (let i = 0; i < maxTicks; i++) {
@@ -336,18 +391,19 @@ function fightMobDruidBalance(sim: Sim, mobId: number, maxTicks = 20 * 600): 'ki
     faceTarget(sim, m);
     const dist = Math.hypot(m.pos.x - p.pos.x, m.pos.z - p.pos.z);
     const hpPct = p.hp / p.maxHp;
+    if (!p.castingAbility && !p.channeling) kiteCryptWarden(sim, m, dist);
     if (p.gcdRemaining <= 0 && !p.castingAbility && !p.channeling) {
-      const hostiles = [...sim.entities.values()].filter((e) => {
-        if (e.kind !== 'mob' || e.dead || e.aggroTargetId !== p.id || e.id === mobId) return false;
-        if (e.spawnPos.x <= DUNGEON_X_THRESHOLD) return false;
-        return Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) <= 25;
-      });
-      if (hpPct < 0.45 && sim.known.some((k) => k.def.id === 'healing_touch')) {
+      const hostiles = hostilesOn(sim, p, mobId);
+      if (hpPct < 0.55 && sim.known.some((k) => k.def.id === 'healing_touch')) {
         sim.targetEntity(p.id);
         sim.castAbility('healing_touch');
         sim.targetEntity(mobId);
+      } else if (hpPct < 0.7 && sim.known.some((k) => k.def.id === 'rejuvenation') && !hasAura(p, 'rejuvenation')) {
+        sim.targetEntity(p.id);
+        sim.castAbility('rejuvenation');
+        sim.targetEntity(mobId);
       } else if (hostiles.length > 0 && sim.known.some((k) => k.def.id === 'entangling_roots') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('entangling_roots');
-      else if (dist < 12 && sim.known.some((k) => k.def.id === 'entangling_roots') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('entangling_roots');
+      else if (dist <= 10 && sim.known.some((k) => k.def.id === 'entangling_roots') && !(m.auras ?? []).some((a) => a.kind === 'root')) sim.castAbility('entangling_roots');
       else if (!hasAura(m, 'moonfire') && sim.known.some((k) => k.def.id === 'moonfire') && (p.resource ?? 0) >= 25) sim.castAbility('moonfire');
       else if ((p.resource ?? 0) >= 20 && sim.known.some((k) => k.def.id === 'wrath')) sim.castAbility('wrath');
     }
@@ -360,14 +416,14 @@ function fightMobDruidBalance(sim: Sim, mobId: number, maxTicks = 20 * 600): 'ki
 function fightMobShaman(sim: Sim, mobId: number, maxTicks = 20 * 700): 'killed' | 'player_dead' | 'timeout' {
   const mob = sim.entities.get(mobId)!;
   const p = sim.player;
-  teleport(sim, mob.pos.x, mob.pos.z + prepDist(mob));
+  teleportPrep(sim, mob);
   faceTarget(sim, mob);
   sim.targetEntity(mobId);
   if (sim.known.some((k) => k.def.id === 'rockbiter_weapon') && !hasAura(p, 'rockbiter_weapon')) sim.castAbility('rockbiter_weapon');
   if (sim.known.some((k) => k.def.id === 'lightning_shield') && !hasAura(p, 'lightning_shield')) sim.castAbility('lightning_shield');
   for (let i = 0; i < 80 && (p.castingAbility || p.channeling); i++) sim.tick();
   if (mob.templateId === 'crypt_warden') {
-    teleport(sim, mob.pos.x, mob.pos.z + pullDist(mob));
+    teleportPull(sim, mob);
     faceTarget(sim, mob);
     sim.targetEntity(mobId);
   }
@@ -633,6 +689,142 @@ describe('Forgotten Crypt dungeon slice', () => {
     const guardian = nearestMob(sim, 'bone_guardian', origin)!;
     expect(fightMobShaman(sim, guardian.id)).toBe('killed');
     expect(sim.player.dead).toBe(false);
+  });
+
+  it('level 10 fire mage with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10, 'mage');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'fire',
+      ranks: {
+        mag_improved_fireball: 2,
+        fire_pyromancy: 1,
+        fire_critical_mass: 1,
+        fire_burning_soul: 2,
+      },
+    });
+    sim.inventory.push({ itemId: 'cultist_robes', qty: 1 }, { itemId: 'bone_shield', qty: 1 }, { itemId: 'ancient_ring', qty: 1 });
+    sim.equipItem('cultist_robes');
+    sim.equipItem('bone_shield');
+    sim.equipItem('ancient_ring');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMobMage(sim, warden.id, 20 * 700)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
+  });
+
+  it('level 10 shadow priest with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10, 'priest');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'shadow',
+      ranks: {
+        shadow_blackout: 1,
+        shadow_word_pain: 2,
+        shadow_focus: 2,
+        shadow_darkness: 1,
+      },
+    });
+    sim.inventory.push({ itemId: 'cultist_robes', qty: 1 }, { itemId: 'bone_shield', qty: 1 });
+    sim.equipItem('cultist_robes');
+    sim.equipItem('bone_shield');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMobPriest(sim, warden.id, 20 * 700)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
+  });
+
+  it('level 10 affliction warlock with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10, 'warlock');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'affliction',
+      ranks: {
+        aff_imp_corruption: 1,
+        aff_imp_agony: 1,
+        aff_fel_concentration: 2,
+        aff_amplify_curse: 1,
+      },
+    });
+    sim.inventory.push({ itemId: 'cultist_robes', qty: 1 }, { itemId: 'bone_shield', qty: 1 });
+    sim.equipItem('cultist_robes');
+    sim.equipItem('bone_shield');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMobWarlock(sim, warden.id, 20 * 700)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
+  });
+
+  it('level 10 elemental shaman with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10, 'shaman');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'elemental',
+      ranks: {
+        ele_concussion: 1,
+        ele_call_flame: 1,
+        ele_elemental_focus: 2,
+        ele_lightning_mastery: 1,
+      },
+    });
+    sim.inventory.push({ itemId: 'cultist_robes', qty: 1 }, { itemId: 'bone_shield', qty: 1 });
+    sim.equipItem('cultist_robes');
+    sim.equipItem('bone_shield');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMobShaman(sim, warden.id, 20 * 700)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
+  });
+
+  it('level 10 balance druid with dungeon gear can solo the Crypt Warden', () => {
+    const sim = makeSim(10, 'druid');
+    sim.applyTalents({
+      ...emptyAllocation(),
+      spec: 'balance',
+      ranks: {
+        bal_imp_wrath: 1,
+        bal_imp_moonfire: 2,
+        bal_natures_reach: 1,
+        bal_moonglow: 2,
+      },
+    });
+    sim.inventory.push({ itemId: 'cultist_robes', qty: 1 }, { itemId: 'bone_shield', qty: 1 });
+    sim.equipItem('cultist_robes');
+    sim.equipItem('bone_shield');
+    teleport(sim, 80, 88);
+    sim.enterCrypt();
+    const origin = instanceOrigin(0, sim.instanceSlotAt(sim.player.pos)!);
+    const warden = nearestMob(sim, 'crypt_warden', origin)!;
+    clearCryptExcept(sim, 'crypt_warden');
+    sim.player.hp = sim.player.maxHp;
+    sim.player.resource = sim.player.maxResource;
+    expect(fightMobDruidBalance(sim, warden.id, 20 * 700)).toBe('killed');
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.hp).toBeGreaterThan(0);
   });
 
   it('scales elite and boss levels within template bands', () => {
