@@ -82,3 +82,73 @@ jobs:
           GAME_URL: http://127.0.0.1:5173
           FEEL_BOOT_TIMEOUT_MS: 120000
         run: npm run feel:smoke
+
+  feel-smoke-online:
+    name: Online browser feel smoke
+    runs-on: ubuntu-latest
+    needs: build
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: eastbrook
+          POSTGRES_PASSWORD: feelci
+          POSTGRES_DB: eastbrook
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U eastbrook -d eastbrook"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium || true
+          if [ -x /usr/bin/chromium-browser ]; then echo "BROWSER_PATH=/usr/bin/chromium-browser" >> "$GITHUB_ENV"
+          elif [ -x /usr/bin/chromium ]; then echo "BROWSER_PATH=/usr/bin/chromium" >> "$GITHUB_ENV"
+          else echo "No chromium binary found" && exit 1; fi
+
+      - name: Start game server
+        env:
+          DATABASE_URL: postgres://eastbrook:feelci@127.0.0.1:5433/eastbrook
+          ALLOW_DEV_COMMANDS: '1'
+        run: |
+          npm run build:server
+          node dist-server/server.cjs &
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:8787/api/status > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo "Game server did not become ready" && exit 1
+
+      - name: Start Vite dev server
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo "Vite did not become ready" && exit 1
+
+      - name: Run online feel smoke
+        env:
+          GAME_URL: http://127.0.0.1:5173
+          FEEL_BOOT_TIMEOUT_MS: 120000
+          FEEL_LATENCY_MS: 150
+        run: npm run feel:smoke:online

@@ -2,30 +2,28 @@
 // movement/camera cases called out in community feedback.
 import fs from 'node:fs';
 import path from 'node:path';
-import puppeteer from 'puppeteer-core';
 
+import {
+  BASE_URL,
+  BOOT_TIMEOUT_MS,
+  SETTLE_MS,
+  STEP_MS,
+  TICK_TIMEOUT_MS,
+  attachPageDiagnostics,
+  clearMove,
+  finite,
+  gameUrl,
+  launchFeelBrowser,
+  runCheck,
+  setMove,
+  setMouselookYaw,
+  sleep,
+  waitForFrames,
+  waitForTicks,
+} from './feel_smoke_common.mjs';
 import { BROWSER_PATH } from './browser_path.mjs';
 
-const BASE_URL = process.env.GAME_URL ?? 'http://localhost:5173';
 const OUTPUT = process.env.FEEL_OUT ?? path.join('tmp', `feel-smoke-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
-const STEP_MS = Number(process.env.FEEL_STEP_MS ?? 180);
-const SETTLE_MS = Number(process.env.FEEL_SETTLE_MS ?? 120);
-const BOOT_TIMEOUT_MS = Number(process.env.FEEL_BOOT_TIMEOUT_MS ?? 120000);
-const TICK_TIMEOUT_MS = Number(process.env.FEEL_TICK_TIMEOUT_MS ?? 60000);
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function gameUrl() {
-  const url = new URL(BASE_URL);
-  url.searchParams.set('perf', '');
-  return url.toString();
-}
-
-function finite(value, fallback = 0) {
-  return Number.isFinite(value) ? value : fallback;
-}
 
 async function bootOffline(page) {
   await page.bringToFront();
@@ -214,81 +212,12 @@ async function state(page) {
   });
 }
 
-async function waitForFrames(page, count = 2, timeout = 15000) {
-  const start = await page.evaluate(() => window.__game.perf.report().frames);
-  await page.waitForFunction(
-    ({ start, count }) => window.__game.perf.report().frames >= start + count,
-    { timeout, polling: 50 },
-    { start, count },
-  );
-}
-
-async function waitForTicks(page, count = 1, timeout = TICK_TIMEOUT_MS) {
-  const start = await page.evaluate(() => window.__game.sim.tickCount);
-  await page.waitForFunction(
-    ({ start, count }) => window.__game.sim.tickCount >= start + count,
-    { timeout, polling: 50 },
-    { start, count },
-  );
-}
-
-async function setMove(page, move) {
-  await page.evaluate((move) => window.__game.input.setTouchMove(move), move);
-}
-
-async function clearMove(page) {
-  await page.evaluate(() => window.__game.input.clearTouchMove());
-}
-
-async function setMouselookYaw(page, yaw) {
-  await page.evaluate((yaw) => {
-    window.__game.input.camYaw = yaw;
-    window.__game.input.setTouchLook(true);
-    window.__game.input.setTouchLookVector({ x: 0, y: 0 });
-  }, yaw);
-}
-
-async function runCheck(name, fn, checks) {
-  try {
-    const result = await fn();
-    const failures = checks(result).filter(Boolean);
-    return {
-      name,
-      ok: failures.length === 0,
-      failures,
-      result,
-    };
-  } catch (err) {
-    return {
-      name,
-      ok: false,
-      failures: [err instanceof Error ? err.message : String(err)],
-      result: null,
-    };
-  }
-}
-
 fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
 
-const browser = await puppeteer.launch({
-  executablePath: BROWSER_PATH,
-  headless: 'new',
-  args: [
-    '--window-size=1280,720',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader',
-  ],
-});
-
+const browser = await launchFeelBrowser();
 const page = await browser.newPage();
 const errors = [];
-page.on('pageerror', (e) => errors.push(`PAGEERROR: ${e.message}`));
-page.on('console', (msg) => {
-  if (msg.type() !== 'error') return;
-  const text = msg.text();
-  if (text.includes('/api/project-stats') || text.includes('project stats') || text.includes('502')) return;
-  errors.push(`CONSOLE: ${text}`);
-});
+attachPageDiagnostics(page, errors);
 
 const checks = [];
 try {
