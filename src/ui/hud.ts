@@ -305,6 +305,8 @@ export class Hud {
   private lastPartySig = '';
   private questTrackerDirty = true;
   private hadPartyFrames = false;
+  private lastMinimapSig = '';
+  private graphicsAdaptiveEl: HTMLDivElement | null = null;
   private lastArenaSig = '';
   private lastArenaStatusSig = '';
   private arenaMatchSeen = false; // closes the queue panel once a bout starts
@@ -1869,8 +1871,8 @@ export class Hud {
         this.updatePartyFrames();
         this.hadPartyFrames = inParty;
       }
-      this.updateTradeWindow();
-      this.updateArenaStatus();
+      if (sim.tradeInfo || this.tradeWasOpen) this.updateTradeWindow();
+      if (sim.arenaInfo?.match || this.lastArenaStatusSig) this.updateArenaStatus();
       if ($('#map-window').style.display === 'block') this.updateMapWindow();
       if ($('#arena-window').style.display === 'block') this.renderArenaWindow();
       if (this.openLootMobId !== null) {
@@ -1889,7 +1891,14 @@ export class Hud {
       $('#arena-window').style.display = 'none';
     }
     this.arenaMatchSeen = inArenaMatch;
-    if (fastHud) this.updateMinimap();
+    if (fastHud) {
+      const sig = this.minimapSig();
+      if (sig !== this.lastMinimapSig) {
+        this.lastMinimapSig = sig;
+        this.updateMinimap();
+      }
+    }
+    if (this.optionsOpen && this.optionsView === 'graphics') this.refreshGraphicsAdaptiveNote();
     if (slowHud && $('#social-window').classList.contains('open')) {
       const struct = this.socialStructSig();
       if (struct !== this.lastSocialStruct) {
@@ -2013,6 +2022,28 @@ export class Hud {
     }
     ctx.putImageData(img, 0, 0);
     return c;
+  }
+
+  private minimapSig(): string {
+    const p = this.sim.player;
+    let sig = `${zoneAt(p.pos.z).id}|${p.pos.x.toFixed(1)}|${p.pos.z.toFixed(1)}|${p.facing.toFixed(2)}`;
+    const party = this.sim.partyInfo;
+    if (party) {
+      sig += '|P' + party.members.map((m) =>
+        `${m.pid}:${m.x.toFixed(0)},${m.z.toFixed(0)}:${m.dead ? 'd' : ''}`,
+      ).join(';');
+    }
+    for (const e of this.sim.entities.values()) {
+      if (e.id === p.id) continue;
+      if (Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > 90) continue;
+      let tag = `${e.id}:${e.pos.x.toFixed(0)},${e.pos.z.toFixed(0)}`;
+      if (e.kind === 'mob') tag += e.dead ? 'd' : (e.lootable ? 'l' : 'm');
+      else if (e.kind === 'npc') tag += 'n' + e.questIds.map((q) => this.sim.questState(q)[0]).join('');
+      else if (e.kind === 'object') tag += e.lootable ? 'o' : 'O';
+      else if (e.kind === 'player') tag += 'p';
+      sig += '|' + tag;
+    }
+    return sig;
   }
 
   private updateMinimap(): void {
@@ -5642,6 +5673,7 @@ export class Hud {
 
   closeOptions(): void {
     $('#options-menu').style.display = 'none';
+    this.graphicsAdaptiveEl = null;
     this.capturingKey = null;
     this.hideTooltip();
     music.resumeFromMenu();
@@ -5826,6 +5858,26 @@ export class Hud {
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
   }
 
+  private refreshGraphicsAdaptiveNote(): void {
+    const hooks = this.optionsHooks;
+    const el = this.graphicsAdaptiveEl;
+    if (!hooks || !el) return;
+    const quality = hooks.readRenderQuality?.();
+    if (!quality) {
+      el.style.display = 'none';
+      return;
+    }
+    const show = Math.abs(quality.effective - quality.ceiling) > 0.009;
+    if (!show) {
+      el.style.display = 'none';
+      return;
+    }
+    el.textContent = t('hud.options.effectiveRenderScale', {
+      percent: formatNumber(Math.round(quality.effective * 100)),
+    });
+    el.style.display = '';
+  }
+
   private renderGraphics(): void {
     const body = this.settingsViewShell(t('hud.options.graphics'));
     this.settingChoice(body, t('hud.options.graphicsQuality'), 'graphicsPreset', [
@@ -5861,15 +5913,10 @@ export class Hud {
     if (isPhoneTouchDevice()) this.settingSlider(body, t('hud.options.touchLookSpeed'), 'touchLookSpeed');
     this.settingSlider(body, t('hud.options.brightness'), 'brightness');
     this.settingSlider(body, t('hud.options.renderQuality'), 'renderScale');
-    const quality = this.optionsHooks?.readRenderQuality?.();
-    if (quality && Math.abs(quality.effective - quality.ceiling) > 0.009) {
-      const adaptive = document.createElement('div');
-      adaptive.className = 'set-note';
-      adaptive.textContent = t('hud.options.effectiveRenderScale', {
-        percent: formatNumber(Math.round(quality.effective * 100)),
-      });
-      body.appendChild(adaptive);
-    }
+    this.graphicsAdaptiveEl = document.createElement('div');
+    this.graphicsAdaptiveEl.className = 'set-note';
+    body.appendChild(this.graphicsAdaptiveEl);
+    this.refreshGraphicsAdaptiveNote();
     this.settingBool(body, t('game.settings.showNameplates'), 'showNameplates');
     this.settingToggle(body, t('hud.options.fullscreen'), 'fullscreen');
     this.settingToggle(body, t('game.settings.showOverflowXp'), 'showOverflowXp');

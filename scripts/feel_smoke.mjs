@@ -201,6 +201,7 @@ async function state(page) {
       vy: p.vy,
       onGround: p.onGround,
       camYaw: g.input.camYaw,
+      camPitch: g.input.camPitch,
       move: g.input.readMoveInput(),
       suspended: g.input.suspendMovement,
       modal: g.hud.isModalOpen(),
@@ -462,6 +463,74 @@ try {
   }, ({ dx, facingDelta, elapsedMs }) => [
     dx >= -0.25 ? `mouselook D dx ${dx.toFixed(3)} >= -0.25; expected screen-right/world -X` : '',
     facingDelta > 0.08 ? `mouselook D changed facing by ${facingDelta.toFixed(3)}rad over ${finite(elapsedMs).toFixed(1)}ms` : '',
+  ]));
+
+  checks.push(await runCheck('camera snap-follows keyboard turn when not mouselooking', async () => {
+    await resetRig(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.input.camYaw = 0;
+      g.renderer.camYaw = 0;
+      g.input.keys.add('KeyA');
+    });
+    await waitForTicks(page, 8);
+    const after = await page.evaluate(() => {
+      const g = window.__game;
+      g.input.keys.delete('KeyA');
+      const wrap = (d) => {
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        return d;
+      };
+      return {
+        facing: g.sim.player.facing,
+        yawDelta: Math.abs(wrap(g.input.camYaw - g.sim.player.facing)),
+      };
+    });
+    return after;
+  }, ({ facing, yawDelta }) => [
+    Math.abs(facing) < 0.05 ? `facing barely changed ${facing.toFixed(3)}` : '',
+    yawDelta > 0.25 ? `camYaw ${yawDelta.toFixed(3)}rad from facing after A-turn` : '',
+  ]));
+
+  checks.push(await runCheck('invert mouse Y flips pitch direction', async () => {
+    await resetRig(page);
+    const pitchDrag = async (invert) => {
+      await page.evaluate((invert) => {
+        const g = window.__game;
+        g.input.setInvertMouseY(invert);
+        g.input.camPitch = 0.32;
+      }, invert);
+      await waitForFrames(page, 1);
+      const before = await page.evaluate(() => window.__game.input.camPitch);
+      await page.evaluate((movementY) => {
+        const canvas = document.getElementById('game-canvas');
+        const rect = canvas.getBoundingClientRect();
+        const x = rect.left + rect.width * 0.5;
+        const y = rect.top + rect.height * 0.5;
+        canvas.dispatchEvent(new MouseEvent('mousedown', { button: 2, clientX: x, clientY: y, bubbles: true }));
+        window.dispatchEvent(new MouseEvent('mousemove', {
+          button: 2,
+          clientX: x,
+          clientY: y + movementY,
+          movementX: 0,
+          movementY,
+          bubbles: true,
+        }));
+        canvas.dispatchEvent(new MouseEvent('mouseup', { button: 2, clientX: x, clientY: y + movementY, bubbles: true }));
+      }, 12);
+      await waitForFrames(page, 1);
+      const after = await page.evaluate(() => window.__game.input.camPitch);
+      return after - before;
+    };
+    const normal = await pitchDrag(false);
+    const inverted = await pitchDrag(true);
+    await page.evaluate(() => window.__game.input.setInvertMouseY(false));
+    return { normal, inverted };
+  }, ({ normal, inverted }) => [
+    Math.abs(normal) < 0.005 ? `normal pitch delta ${normal.toFixed(4)}` : '',
+    Math.abs(inverted) < 0.005 ? `inverted pitch delta ${inverted.toFixed(4)}` : '',
+    normal * inverted >= 0 ? `normal (${normal.toFixed(4)}) and inverted (${inverted.toFixed(4)}) same sign` : '',
   ]));
 } finally {
   await browser.close();
