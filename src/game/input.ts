@@ -96,6 +96,7 @@ export class Input {
   // multiplier on the touch look (camera joystick) rate; setTouchLookSpeed
   // drives it from the settings menu. Mouselook uses lookSensitivity instead.
   private touchLookSpeed = 1;
+  private invertMouseY = false;
 
   constructor(private canvas: HTMLCanvasElement, private cb: InputCallbacks, private keybinds: Keybinds) {
     window.addEventListener('keydown', (e) => this.onKeyDown(e));
@@ -212,6 +213,18 @@ export class Input {
     this.touchLookSpeed = mult;
   }
 
+  setInvertMouseY(on: boolean): void {
+    this.invertMouseY = on;
+  }
+
+  private pitchDelta(dy: number): number {
+    return dy * this.lookSensitivity * (this.invertMouseY ? -1 : 1);
+  }
+
+  private touchPitchDelta(dy: number): number {
+    return dy * TOUCH_LOOK_PITCH_RATE * this.touchLookSpeed * (this.invertMouseY ? -1 : 1);
+  }
+
   setTouchMove(move: TouchMoveInput): void {
     const changed = move.forward !== this.touchMove.forward || move.back !== this.touchMove.back
       || move.strafeLeft !== this.touchMove.strafeLeft || move.strafeRight !== this.touchMove.strafeRight;
@@ -252,14 +265,14 @@ export class Input {
 
   applyTouchLookDelta(dx: number, dy: number): void {
     this.camYaw -= dx * this.lookSensitivity;
-    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + dy * this.lookSensitivity));
+    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + this.pitchDelta(dy)));
     if (dx !== 0 || dy !== 0) this.noteIntent('look');
   }
 
   updateTouchLook(dt: number): void {
     if (!this.touchLookActive) return;
     this.camYaw -= this.touchLookVector.x * TOUCH_LOOK_YAW_RATE * this.touchLookSpeed * dt;
-    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + this.touchLookVector.y * TOUCH_LOOK_PITCH_RATE * this.touchLookSpeed * dt));
+    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + this.touchPitchDelta(this.touchLookVector.y) * dt));
   }
 
   isMouselookActive(): boolean {
@@ -467,7 +480,7 @@ export class Input {
   private applyLookDelta(mx: number, my: number): void {
     if (mx === 0 && my === 0) return;
     this.camYaw -= mx * this.lookSensitivity;
-    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + my * this.lookSensitivity));
+    this.camPitch = Math.min(1.35, Math.max(-0.4, this.camPitch + this.pitchDelta(my)));
     this.noteIntent('look');
   }
 

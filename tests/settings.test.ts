@@ -29,6 +29,8 @@ describe('Settings', () => {
     expect(s.get('clickToMove')).toBe(0);
     expect(s.get('clickToMoveButton')).toBe(0);
     expect(s.get('mouseCamera')).toBe(false);
+    expect(s.get('showNameplates')).toBe(true);
+    expect(s.get('invertMouseY')).toBe(false);
   });
 
   it('clamps out-of-range values to the slider bounds', () => {

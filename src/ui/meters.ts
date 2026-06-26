@@ -237,6 +237,7 @@ export class Meters {
   /** called every hud frame; renders at ~4Hz while open */
   update(): void {
     const now = performance.now();
+    if (!this.isOpen && !this.data.current) return;
     this.data.update(this.world, this.partyPids(), now);
     if (!this.isOpen || now - this.lastRender < 250) return;
     this.render();

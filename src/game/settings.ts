@@ -40,6 +40,8 @@ export const SETTING_RANGES = {
 } as const;
 
 export const BOOL_SETTINGS = {
+  showNameplates: { def: true },
+  invertMouseY: { def: false },
   mouseCamera: { def: false },
   // off by default: mirrors the touch layout so the movement joystick sits on
   // the right and the camera joystick on the left, for left-thumb-dominant

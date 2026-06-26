@@ -580,7 +580,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
         case 'spellbook': hud.toggleSpellbook(); break;
         case 'questlog': hud.toggleQuestLog(); break;
         case 'map': hud.toggleMap(); break;
-        case 'nameplates': renderer.showNameplates = !renderer.showNameplates; break;
+        case 'nameplates': setShowNameplates(!renderer.showNameplates); break;
         case 'talents': hud.toggleTalents(); break;
         case 'meters': hud.toggleMeters(); break;
         case 'social': hud.toggleSocial(); break;
@@ -619,7 +619,11 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     onTalents: () => hud.toggleTalents(),
     onMap: () => hud.toggleMap(),
     onLeaderboard: () => hud.toggleLeaderboard(),
-    onNameplates: () => (renderer.showNameplates = !renderer.showNameplates),
+    onNameplates: () => {
+      const on = !renderer.showNameplates;
+      setShowNameplates(on);
+      return on;
+    },
     onMusic: () => {
       music.setEnabled(!music.enabled);
       return music.enabled;
@@ -637,10 +641,24 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       : null);
   }
 
+  function setShowNameplates(on: boolean): void {
+    renderer.showNameplates = on;
+    settings.set('showNameplates', on);
+    document.getElementById('mobile-nameplates')?.classList.toggle('active', on);
+  }
+
   function applySetting(key: keyof GameSettings, value: number | boolean): void {
+    if (key === 'showNameplates') {
+      setShowNameplates(!!settings.set('showNameplates', !!value));
+      return;
+    }
     if (key === 'mouseCamera') {
       const v = settings.set('mouseCamera', !!value);
       input.setMouseCameraEnabled(v);
+      return;
+    }
+    if (key === 'invertMouseY') {
+      input.setInvertMouseY(!!settings.set('invertMouseY', !!value));
       return;
     }
     if (key === 'leftHandedTouch') {
@@ -677,6 +695,10 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     captureKey: (cb) => input.captureNextKey(cb),
     settings,
     onSettingChange: (key, value) => applySetting(key, value),
+    readRenderQuality: () => {
+      const stats = renderer.perfStats();
+      return { ceiling: stats.renderScale, effective: stats.effectiveRenderScale };
+    },
   });
   if (online) {
     hud.attachReporting({
@@ -946,8 +968,10 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       alpha: Math.round(alpha * 100) / 100,
     });
     const pe = world.player;
-    // facing interp capped at 1 - extrapolating angles past the snapshot oscillates
-    updateCamera(frameDt, pe.prevFacing + wrapAngle(pe.facing - pe.prevFacing) * Math.min(1, alpha));
+    const camFacing = mouselook
+      ? pe.prevFacing + wrapAngle(pe.facing - pe.prevFacing) * Math.min(1, alpha)
+      : pe.facing;
+    updateCamera(frameDt, camFacing);
     renderer.camYaw = input.camYaw;
     renderer.camPitch = input.camPitch;
     renderer.camDist = input.camDist;

@@ -371,6 +371,78 @@ try {
     facingDelta > 0.35 ? `airborne facing stayed ${facingDelta.toFixed(3)}rad away from camera yaw` : '',
   ]));
 
+  checks.push(await runCheck('right-drag look rotates camera yaw', async () => {
+    await resetRig(page);
+    const before = await state(page);
+    await page.evaluate(() => {
+      const canvas = document.getElementById('game-canvas');
+      if (!canvas) throw new Error('missing game canvas');
+      const rect = canvas.getBoundingClientRect();
+      const x = rect.left + rect.width * 0.5;
+      const y = rect.top + rect.height * 0.5;
+      canvas.dispatchEvent(new MouseEvent('mousedown', { button: 2, clientX: x, clientY: y, bubbles: true }));
+      window.dispatchEvent(new MouseEvent('mousemove', {
+        button: 2,
+        clientX: x + 24,
+        clientY: y,
+        movementX: 24,
+        movementY: 0,
+        bubbles: true,
+      }));
+      canvas.dispatchEvent(new MouseEvent('mouseup', { button: 2, clientX: x + 24, clientY: y, bubbles: true }));
+    });
+    await waitForFrames(page, 1);
+    const after = await state(page);
+    return { before, after, yawDelta: after.camYaw - before.camYaw };
+  }, ({ yawDelta }) => [
+    Math.abs(yawDelta) < 0.01 ? `right-drag yaw delta ${yawDelta.toFixed(4)}` : '',
+  ]));
+
+  checks.push(await runCheck('target survives a right-drag camera gesture', async () => {
+    await resetRig(page);
+    const setup = await page.evaluate(() => {
+      const g = window.__game;
+      const p = g.sim.player;
+      let mobId = null;
+      let best = 40;
+      for (const e of g.sim.entities.values()) {
+        if (e.kind !== 'mob' || e.dead || !e.hostile) continue;
+        const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
+        if (d < best) { mobId = e.id; best = d; }
+      }
+      if (mobId === null) return { ok: false, reason: 'no hostile mob' };
+      g.world.targetEntity(mobId);
+      return { ok: true, mobId, targetId: g.world.targetId };
+    });
+    if (!setup.ok) return { setup, targetAfter: null, yawDelta: 0 };
+    const before = await state(page);
+    await page.evaluate(() => {
+      const canvas = document.getElementById('game-canvas');
+      if (!canvas) throw new Error('missing game canvas');
+      const rect = canvas.getBoundingClientRect();
+      const x = rect.left + rect.width * 0.5;
+      const y = rect.top + rect.height * 0.5;
+      canvas.dispatchEvent(new MouseEvent('mousedown', { button: 2, clientX: x, clientY: y, bubbles: true }));
+      window.dispatchEvent(new MouseEvent('mousemove', {
+        button: 2,
+        clientX: x + 30,
+        clientY: y + 4,
+        movementX: 30,
+        movementY: 4,
+        bubbles: true,
+      }));
+      canvas.dispatchEvent(new MouseEvent('mouseup', { button: 2, clientX: x + 30, clientY: y + 4, bubbles: true }));
+    });
+    await waitForFrames(page, 1);
+    const targetAfter = await page.evaluate(() => window.__game.world.targetId);
+    const after = await state(page);
+    return { setup, targetAfter, yawDelta: after.camYaw - before.camYaw };
+  }, ({ setup, targetAfter, yawDelta }) => [
+    !setup?.ok ? `setup failed: ${setup?.reason ?? 'unknown'}` : '',
+    setup?.ok && targetAfter !== setup.targetId ? `target changed ${setup.targetId} -> ${targetAfter}` : '',
+    setup?.ok && Math.abs(yawDelta) < 0.01 ? `right-drag yaw delta ${yawDelta.toFixed(4)}` : '',
+  ]));
+
   checks.push(await runCheck('mouselook A/D maps to strafe instead of keyboard turn', async () => {
     await resetRig(page);
     await setMouselookYaw(page, 0);

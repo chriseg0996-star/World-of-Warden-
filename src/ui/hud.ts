@@ -53,6 +53,7 @@ export interface OptionsHooks {
   captureKey(cb: (code: string | null) => void): void;
   settings: Settings;
   onSettingChange(key: keyof GameSettings, value: GameSettings[keyof GameSettings]): void;
+  readRenderQuality?(): { ceiling: number; effective: number };
 }
 
 export interface ReportHooks {
@@ -5677,6 +5678,34 @@ export class Hud {
     parent.appendChild(row);
   }
 
+  private settingBool(parent: HTMLElement, label: string, key: BoolSettingKey): void {
+    const hooks = this.optionsHooks;
+    if (!hooks) return;
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    const name = document.createElement('span');
+    name.className = 'set-name';
+    name.textContent = label;
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'btn set-toggle';
+    const sync = () => {
+      const on = hooks.settings.get(key);
+      toggle.textContent = on ? t('hud.options.on') : t('hud.options.off');
+      toggle.classList.toggle('off', !on);
+      toggle.setAttribute('aria-pressed', String(on));
+      toggle.setAttribute('aria-label', label);
+    };
+    sync();
+    toggle.addEventListener('click', () => {
+      audio.click();
+      hooks.onSettingChange(key, !hooks.settings.get(key));
+      sync();
+    });
+    row.append(name, toggle);
+    parent.appendChild(row);
+  }
+
   private settingToggle(parent: HTMLElement, label: string, key: 'fullscreen' | 'showOverflowXp'): void {
     const hooks = this.optionsHooks;
     if (!hooks) return;
@@ -5802,11 +5831,22 @@ export class Hud {
       ]);
     }
     this.settingSlider(body, t('hud.options.cameraSpeed'), 'cameraSpeed');
+    this.settingBool(body, t('hud.options.invertMouseY'), 'invertMouseY');
     // Camera Speed only scales mouselook; on touch the camera joystick has its
     // own rate, so phones get a dedicated sensitivity slider here.
     if (isPhoneTouchDevice()) this.settingSlider(body, t('hud.options.touchLookSpeed'), 'touchLookSpeed');
     this.settingSlider(body, t('hud.options.brightness'), 'brightness');
     this.settingSlider(body, t('hud.options.renderQuality'), 'renderScale');
+    const quality = this.optionsHooks?.readRenderQuality?.();
+    if (quality && Math.abs(quality.effective - quality.ceiling) > 0.009) {
+      const adaptive = document.createElement('div');
+      adaptive.className = 'set-note';
+      adaptive.textContent = t('hud.options.effectiveRenderScale', {
+        percent: formatNumber(Math.round(quality.effective * 100)),
+      });
+      body.appendChild(adaptive);
+    }
+    this.settingBool(body, t('game.settings.showNameplates'), 'showNameplates');
     this.settingToggle(body, t('hud.options.fullscreen'), 'fullscreen');
     this.settingToggle(body, t('game.settings.showOverflowXp'), 'showOverflowXp');
     // Touch-only: lets phone players dim the on-screen joysticks + buttons.
