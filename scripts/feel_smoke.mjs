@@ -461,6 +461,50 @@ try {
     Math.abs(inverted) < 0.005 ? `inverted pitch delta ${inverted.toFixed(4)}` : '',
     normal * inverted >= 0 ? `normal (${normal.toFixed(4)}) and inverted (${inverted.toFixed(4)}) same sign` : '',
   ]));
+
+  checks.push(await runCheck('short right-click drag rotates camera yaw', async () => {
+    await resetRig(page);
+    const before = await state(page);
+    await page.evaluate(() => {
+      const canvas = document.getElementById('game-canvas');
+      if (!canvas) throw new Error('missing game canvas');
+      const rect = canvas.getBoundingClientRect();
+      const x = rect.left + rect.width * 0.5;
+      const y = rect.top + rect.height * 0.5;
+      canvas.dispatchEvent(new MouseEvent('mousedown', { button: 2, clientX: x, clientY: y, bubbles: true }));
+      window.dispatchEvent(new MouseEvent('mousemove', {
+        button: 2,
+        clientX: x + 6,
+        clientY: y,
+        movementX: 6,
+        movementY: 0,
+        bubbles: true,
+      }));
+      canvas.dispatchEvent(new MouseEvent('mouseup', { button: 2, clientX: x + 6, clientY: y, bubbles: true }));
+    });
+    await waitForFrames(page, 1);
+    const after = await state(page);
+    return { yawDelta: after.camYaw - before.camYaw };
+  }, ({ yawDelta }) => [
+    Math.abs(yawDelta) < 0.008 ? `short right-drag yaw delta ${yawDelta.toFixed(4)}` : '',
+  ]));
+
+  checks.push(await runCheck('click-to-move advances toward ground target', async () => {
+    await resetRig(page);
+    const before = await state(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.settings.set('clickToMove', 1);
+      const p = g.sim.player;
+      g.input.setClickMoveTarget({ x: p.pos.x, z: p.pos.z + 14 }, 0.5);
+    });
+    await waitForTicks(page, 8);
+    const after = await state(page);
+    await page.evaluate(() => window.__game.input.clearClickMove());
+    return { dz: after.z - before.z, elapsedMs: after.t - before.t };
+  }, ({ dz, elapsedMs }) => [
+    dz <= 0.35 ? `click-to-move dz ${dz.toFixed(3)} <= 0.35 after ${finite(elapsedMs).toFixed(1)}ms` : '',
+  ]));
 } finally {
   await browser.close();
 }

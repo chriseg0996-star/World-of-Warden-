@@ -340,7 +340,6 @@ export class Hud {
   private socialSuggestTimer: number | undefined;
   private lastHudFastAt = 0;
   private lastHudMediumAt = 0;
-  private lastHudSlowAt = 0;
   private charPreview: CharacterPreview | null = null;
   private charPreviewCanvas: HTMLCanvasElement | null = null;
   // current typeahead state: which input, its results, and the keyboard-
@@ -1632,8 +1631,6 @@ export class Hud {
     if (fastHud) this.lastHudFastAt = now;
     const mediumHud = now - this.lastHudMediumAt >= 250;
     if (mediumHud) this.lastHudMediumAt = now;
-    const slowHud = now - this.lastHudSlowAt >= 500;
-    if (slowHud) this.lastHudSlowAt = now;
 
     this.meters.update();
     this.syncActiveHotbarForm();
@@ -1883,6 +1880,7 @@ export class Hud {
         const npc = sim.entities.get(this.openVendorNpcId);
         if (!npc || dist2d(p.pos, npc.pos) > 8) this.closeVendor();
       }
+      if (this.marketOpen && !this.nearbyMarketNpc()) this.closeMarket();
     }
 
     // when a bout begins, get the queue panel out of the way for the fight
@@ -1899,21 +1897,6 @@ export class Hud {
       }
     }
     if (this.optionsOpen && this.optionsView === 'graphics') this.refreshGraphicsAdaptiveNote();
-    if (slowHud && $('#social-window').classList.contains('open')) {
-      const struct = this.socialStructSig();
-      if (struct !== this.lastSocialStruct) {
-        this.lastSocialStruct = struct;
-        this.lastSocialContent = JSON.stringify(this.sim.socialInfo);
-        this.renderSocial();
-      } else {
-        const content = JSON.stringify(this.sim.socialInfo);
-        if (content !== this.lastSocialContent) { this.lastSocialContent = content; this.refreshSocialList(); }
-      }
-    }
-    if (slowHud && this.marketOpen) {
-      if (!this.nearbyMarketNpc()) this.closeMarket();
-      else this.refreshMarket();
-    }
   }
 
   private renderAuras(el: HTMLElement, e: Entity, mode: 'all' | 'debuffs'): void {
@@ -3708,6 +3691,31 @@ export class Hud {
     if ($('#bags').style.display !== 'none') this.renderBags();
     if (this.openVendorNpcId !== null) this.renderVendor();
     this.renderCharIfOpen();
+  }
+
+  onSocialChanged(): void {
+    if (!$('#social-window').classList.contains('open')) return;
+    const struct = this.socialStructSig();
+    if (struct !== this.lastSocialStruct) {
+      this.lastSocialStruct = struct;
+      this.lastSocialContent = JSON.stringify(this.sim.socialInfo);
+      this.renderSocial();
+      return;
+    }
+    const content = JSON.stringify(this.sim.socialInfo);
+    if (content !== this.lastSocialContent) {
+      this.lastSocialContent = content;
+      this.refreshSocialList();
+    }
+  }
+
+  onMarketChanged(): void {
+    if (!this.marketOpen) return;
+    if (!this.nearbyMarketNpc()) {
+      this.closeMarket();
+      return;
+    }
+    this.refreshMarket();
   }
 
   private renderCharIfOpen(): void {

@@ -958,6 +958,8 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     perf.time('events', () => hud.handleEvents(net.drainEvents()));
     if (net.consumeProfanityChanged()) hud.setProfanityWords(net.profanityWords);
     if (net.consumeInventoryChanged()) hud.onInventoryChanged();
+    if (net.consumeSocialChanged()) hud.onSocialChanged();
+    if (net.consumeMarketChanged()) hud.onMarketChanged();
     const alpha = net.lastSnapAt > 0
       ? Math.min(1.25, (performance.now() - net.lastSnapAt) / Math.max(20, net.snapInterval))
       : 1;
@@ -994,7 +996,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     face(facing: unknown) { input.setControllerFacing(facing); },
     stop() { input.clearControllerMoveInput(); },
   };
-  (window as any).__game = { sim: world, world, renderer, input, hud, online, controller, perf, debugHud };
+  (window as any).__game = { sim: world, world, renderer, input, hud, online, controller, perf, debugHud, settings };
 }
 
 // ---------------------------------------------------------------------------

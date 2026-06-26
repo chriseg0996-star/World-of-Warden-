@@ -258,6 +258,7 @@ export class ClientWorld implements IWorld {
   realm = '';
   // bumped whenever a fresh social snapshot lands, so an open panel re-renders
   private socialDirty = false;
+  private marketDirty = false;
   // snapshot interpolation
   lastSnapAt = 0;
   snapInterval = 50; // ms, adapts to measured cadence
@@ -458,6 +459,7 @@ export class ClientWorld implements IWorld {
         };
         apply(this.socialInfo.friends);
         if (this.socialInfo.guild) apply(this.socialInfo.guild.members);
+        this.socialDirty = true;
       }
       return;
     }
@@ -469,6 +471,12 @@ export class ClientWorld implements IWorld {
   consumeSocialChanged(): boolean {
     const v = this.socialDirty;
     this.socialDirty = false;
+    return v;
+  }
+
+  consumeMarketChanged(): boolean {
+    const v = this.marketDirty;
+    this.marketDirty = false;
     return v;
   }
 
@@ -675,7 +683,10 @@ export class ClientWorld implements IWorld {
       if (s.trade !== undefined) this.tradeInfo = s.trade;
       if (s.duel !== undefined) this.duelInfo = s.duel;
       if (s.arena !== undefined) this.arenaInfo = s.arena;
-      if (s.market !== undefined) this.marketInfo = s.market;
+      if (s.market !== undefined) {
+        this.marketInfo = s.market;
+        this.marketDirty = true;
+      }
       // camera follows server-side facing changes when not mouselooking
       if (prevSelfFacing !== undefined && this.mouselookFacing === null) {
         let d = e.facing - prevSelfFacing;
