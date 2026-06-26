@@ -146,5 +146,31 @@ await new Promise((r) => setTimeout(r, 400));
 await page.screenshot({ path: 'tmp/t15_map.png' });
 await page.keyboard.press('m');
 
+// Esc game menu + graphics panel
+await page.keyboard.press('Escape');
+await new Promise((r) => setTimeout(r, 350));
+await page.screenshot({ path: 'tmp/t16_options.png' });
+await page.evaluate(() => {
+  const btns = [...document.querySelectorAll('#options-menu .opt-btn')];
+  const gfx = btns.find((b) => b.textContent?.includes('Graphic') || b.textContent?.includes('Gráfic'));
+  if (gfx) gfx.click();
+});
+await new Promise((r) => setTimeout(r, 350));
+await page.screenshot({ path: 'tmp/t17_graphics.png' });
+await page.keyboard.press('Escape');
+await new Promise((r) => setTimeout(r, 200));
+
+// talent window (needs level 5+ for points)
+await page.evaluate(() => {
+  const p = window.__game.sim.player;
+  p.level = 10;
+  p.maxHp = 99999;
+  p.hp = 99999;
+});
+await page.keyboard.press('n');
+await new Promise((r) => setTimeout(r, 400));
+await page.screenshot({ path: 'tmp/t18_talents.png' });
+await page.keyboard.press('n');
+
 console.log(errors.length ? 'ERRORS:\n' + errors.slice(0, 15).join('\n') : 'no page errors');
 await browser.close();

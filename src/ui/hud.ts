@@ -303,6 +303,8 @@ export class Hud {
   private tradeWasOpen = false;
   private lastTradeSig = '';
   private lastPartySig = '';
+  private questTrackerDirty = true;
+  private hadPartyFrames = false;
   private lastArenaSig = '';
   private lastArenaStatusSig = '';
   private arenaMatchSeen = false; // closes the queue panel once a bout starts
@@ -1171,8 +1173,12 @@ export class Hud {
     }, 0);
   }
 
+  private touchQuestTracker(): void {
+    this.questTrackerDirty = true;
+  }
+
   private refreshLocalizedDynamicUi(): void {
-    this.updateQuestTracker();
+    this.touchQuestTracker();
     const log = $('#quest-log-window');
     if (log.style.display === 'block') this.renderQuestLog();
     if ($('#bags').style.display === 'block') this.renderBags();
@@ -1830,6 +1836,7 @@ export class Hud {
             this.showBanner(currentZoneName);
             this.log(t('hud.core.enteringZone', { zone: currentZoneName }), '#ffd100');
             this.logZoneWelcome(currentZone);
+            this.touchQuestTracker();
           }
           this.lastZoneId = currentZone.id;
         }
@@ -1853,8 +1860,15 @@ export class Hud {
       music.update(zone, inCombat);
       audio.updateAmbient(inHub, Math.hypot(p.pos.x - 7, p.pos.z - 16.5) < 14, 0.5);
 
-      this.updateQuestTracker();
-      this.updatePartyFrames();
+      if (this.questTrackerDirty) {
+        this.updateQuestTracker();
+        this.questTrackerDirty = false;
+      }
+      const inParty = !!sim.partyInfo;
+      if (inParty || this.hadPartyFrames) {
+        this.updatePartyFrames();
+        this.hadPartyFrames = inParty;
+      }
       this.updateTradeWindow();
       this.updateArenaStatus();
       if ($('#map-window').style.display === 'block') this.updateMapWindow();
@@ -2608,16 +2622,22 @@ export class Hud {
         case 'error': this.showError(this.localizeErrorText(ev.text)); break;
         case 'questAccepted':
           audio.questAccept();
+          this.touchQuestTracker();
           this.refreshGossip();
           break;
-        case 'questProgress': this.log(this.localizeQuestProgressText(ev.questId, ev.text), '#dcd29f'); break;
+        case 'questProgress':
+          this.log(this.localizeQuestProgressText(ev.questId, ev.text), '#dcd29f');
+          this.touchQuestTracker();
+          break;
         case 'questReady': {
           this.showBanner(t('questUi.logs.ready', { name: questTitle(ev.questId), status: t('questUi.log.readyStatus') }));
           audio.questDone();
+          this.touchQuestTracker();
           break;
         }
         case 'questDone':
           audio.questDone();
+          this.touchQuestTracker();
           this.refreshGossip();
           break;
         case 'chat': {
@@ -4775,7 +4795,11 @@ export class Hud {
       abandon.className = 'btn';
       abandon.type = 'button';
       abandon.textContent = t('questUi.log.abandon');
-      abandon.addEventListener('click', () => { sim.abandonQuest(this.selectedQuestLogId!); this.renderQuestLog(); });
+      abandon.addEventListener('click', () => {
+        sim.abandonQuest(this.selectedQuestLogId!);
+        this.touchQuestTracker();
+        this.renderQuestLog();
+      });
       detail.appendChild(abandon);
     }
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeQuestLog());
