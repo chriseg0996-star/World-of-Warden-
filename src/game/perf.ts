@@ -135,6 +135,7 @@ export class PerfMonitor {
 
   frame(dt: number, now = performance.now()): void {
     this.frames++;
+    if (!this.enabled) return;
     const ms = Math.min(250, Math.max(0, dt * 1000));
     pushSample(this.frameMs, ms);
     this.frameWindow.push({ at: now, ms });

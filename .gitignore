@@ -6,6 +6,10 @@ dist/
 dist-env/
 dist-server/
 media-cache/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
+src-tauri/app-icon.png
 
 # test artifacts & screenshots
 tmp/

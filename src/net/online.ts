@@ -12,6 +12,7 @@ import {
 } from '../sim/types';
 import { normalizeMoveFacing, sanitizeMoveInput } from '../sim/move_input';
 import { isOverheadEmoteId, type ArenaInfo, type CharacterSearchResult, type DuelInfo, type FriendInfo, type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId, type PartyInfo, type PresenceStatus, type SocialInfo, type TradeInfo } from '../world_api';
+import { apiUrl, resolveApiOrigin, resolveWebSocketUrl } from '../desktop/shell';
 
 // ---------------------------------------------------------------------------
 // REST
@@ -62,11 +63,19 @@ export class Api {
     this.base = url || '';
   }
 
+  private origin(): string {
+    return resolveApiOrigin(this.base);
+  }
+
+  private url(path: string): string {
+    return apiUrl(path, this.base);
+  }
+
   // The realm directory is always read from the page's own server. Sending the
   // token (when logged in) also returns per-realm character counts.
   async realms(): Promise<RealmDirectory> {
     try {
-      const res = await fetch('/api/realms', { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} });
+      const res = await fetch(this.url('/api/realms'), { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} });
       if (!res.ok) return { current: '', realms: [], characters: {} };
       const d = await res.json();
       return { current: d.current ?? '', realms: d.realms ?? [], characters: d.characters ?? {} };
@@ -88,7 +97,7 @@ export class Api {
   }
 
   private async post(path: string, body: unknown): Promise<any> {
-    const res = await fetch(this.base + path, {
+    const res = await fetch(this.url(path), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -102,7 +111,7 @@ export class Api {
   }
 
   private async get(path: string): Promise<any> {
-    const res = await fetch(this.base + path, {
+    const res = await fetch(this.url(path), {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
     });
     const data = await res.json().catch(() => ({}));
@@ -111,7 +120,7 @@ export class Api {
   }
 
   private async delete(path: string, body: unknown): Promise<any> {
-    const res = await fetch(this.base + path, {
+    const res = await fetch(this.url(path), {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -297,9 +306,7 @@ export class ClientWorld implements IWorld {
     this.cfg = { seed: 20061, playerClass: cls };
     // when a realm was picked, connect to that realm's origin; otherwise the
     // page's own host
-    const wsUrl = base
-      ? base.replace(/^http/, 'ws') + '/ws'
-      : buildWebSocketUrl(location.protocol, location.host);
+    const wsUrl = resolveWebSocketUrl(base);
     this.ws = new WebSocket(wsUrl);
     this.ws.onopen = () => {
       this.ws.send(JSON.stringify(buildWebSocketAuthMessage(token, characterId)));
@@ -911,7 +918,7 @@ export class ClientWorld implements IWorld {
     const q = query.trim();
     if (!q) return [];
     try {
-      const res = await fetch(`${this.base}/api/search?q=${encodeURIComponent(q)}`, { headers: { Authorization: `Bearer ${this.token}` } });
+      const res = await fetch(this.url(`/api/search?q=${encodeURIComponent(q)}`), { headers: { Authorization: `Bearer ${this.token}` } });
       if (!res.ok) return [];
       return (await res.json()).results ?? [];
     } catch {
@@ -944,7 +951,7 @@ export class ClientWorld implements IWorld {
   }
   async leaderboard(): Promise<LeaderboardEntry[]> {
     try {
-      const res = await fetch(`${this.base}/api/leaderboard?metric=lifetimeXp&limit=100`);
+      const res = await fetch(this.url('/api/leaderboard?metric=lifetimeXp&limit=100'));
       if (!res.ok) return [];
       return (await res.json()).leaders ?? [];
     } catch {

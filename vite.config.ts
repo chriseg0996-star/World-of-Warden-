@@ -28,6 +28,8 @@ function gitSha(): string | undefined {
 
 const appVersion = env(['APP_VERSION', 'npm_package_version']) ?? pkg.version ?? '0.0.0';
 const appBuildDate = env(['APP_BUILD_DATE', 'BUILD_DATE']) ?? new Date().toISOString();
+const desktopShell = process.env.DESKTOP_SHELL === '1' || !!process.env.TAURI_ENV_PLATFORM;
+const desktopRealmOrigin = env(['DESKTOP_REALM_ORIGIN', 'WARDENFALL_REALM_ORIGIN']) ?? 'http://127.0.0.1:8787';
 const appBuildId = env([
   'APP_BUILD_ID',
   'APP_BUILD_NUMBER',
@@ -45,6 +47,8 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_BUILD_ID__: JSON.stringify(appBuildId.slice(0, 12)),
     __APP_BUILD_DATE__: JSON.stringify(appBuildDate),
+    __DESKTOP_SHELL__: JSON.stringify(desktopShell),
+    __DESKTOP_REALM_ORIGIN__: JSON.stringify(desktopRealmOrigin),
   },
   // Parent dir has a postcss.config.js with Tailwind — ignore it; this project has no CSS pipeline.
   css: {

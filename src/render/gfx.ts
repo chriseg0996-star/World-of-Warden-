@@ -64,8 +64,8 @@ function settingsFor(
     // it ~1ms-class on real GPUs; ultra gets full-res Medium
     ao: tier === 'high' || tier === 'ultra',
     msaaSamples: tier === 'high' || tier === 'ultra' ? 4 : 0,
-    pixelRatioCap: tier === 'low' ? 1.48 : tier === 'medium' ? 1.48 : tier === 'high' ? 1.75 : 2.5,
-    shadowMap: tier === 'low' ? 2048 : tier === 'medium' ? 2560 : 4096,
+    pixelRatioCap: tier === 'low' ? 1.48 : tier === 'medium' ? 1.48 : tier === 'high' ? 1.35 : 1.75,
+    shadowMap: tier === 'low' ? 2048 : tier === 'medium' ? 2048 : 3072,
     standardMaterials: tier === 'medium' || tier === 'high' || tier === 'ultra',
     grassRadius: tier === 'low' ? 70 : tier === 'medium' ? 70 : 82, // low/mobile prioritizes fill/alpha cost over meadow density
     grassStep: tier === 'low' ? 2.15 : tier === 'medium' ? 2.15 : 1.8,
@@ -155,7 +155,7 @@ export function tierFromHints(hints: GfxRuntimeHints, softwareGl: boolean): GfxT
     case PRESET_ULTRA: return 'ultra';
     case PRESET_ADVANCED: return 'high';
   }
-  return softwareGl || isConstrainedBrowser(hints) || isWeakIntegratedGpu(hints.gpuRenderer) ? 'low' : 'high';
+  return softwareGl || isConstrainedBrowser(hints) || isWeakIntegratedGpu(hints.gpuRenderer) ? 'low' : 'medium';
 }
 
 // Software GL (SwiftShader/llvmpipe — headless test runners, VMs) can't take

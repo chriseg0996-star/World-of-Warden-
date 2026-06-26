@@ -219,7 +219,7 @@ export class Renderer {
   private renderScale = 1; // user-requested resolution ceiling on top of the device pixel ratio
   private effectiveRenderScale = 1; // runtime value after adaptive backoff
   private frameMsEma = 16.7;
-  private adaptiveGrace = 2.0;
+  private adaptiveGrace = 0.75;
   private adaptiveCooldown = 0;
   private stableFrameTime = 0;
   private baseExposure = 1.12; // tone-mapping exposure at brightness 1.0
@@ -612,7 +612,7 @@ export class Renderer {
   private updateAdaptiveResolution(dt: number): void {
     if (!Number.isFinite(dt) || dt <= 0) return;
     const frameMs = Math.min(250, dt * 1000);
-    this.frameMsEma += (frameMs - this.frameMsEma) * 0.08;
+    this.frameMsEma += (frameMs - this.frameMsEma) * 0.14;
     if (this.adaptiveGrace > 0) {
       this.adaptiveGrace -= dt;
       return;
@@ -623,9 +623,9 @@ export class Renderer {
     }
 
     const mobile = this.isMobileRuntime();
-    const minScale = mobile ? 0.55 : (GFX.tier === 'low' ? 0.9 : 0.7);
-    const dropThreshold = mobile ? 20 : 24; // ~50fps mobile, ~42fps desktop
-    const urgentThreshold = mobile ? 28 : 34;
+    const minScale = mobile ? 0.55 : (GFX.tier === 'low' ? 0.85 : 0.65);
+    const dropThreshold = mobile ? 18 : 17; // react before frame time blows past 60fps
+    const urgentThreshold = mobile ? 24 : 22;
     const recoverThreshold = mobile ? 15.5 : 14.5;
 
     if (this.frameMsEma >= dropThreshold && this.effectiveRenderScale > minScale) {

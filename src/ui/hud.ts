@@ -447,6 +447,9 @@ export class Hud {
     $('#mm-bag').addEventListener('click', () => this.toggleBags());
     $('#mm-social').addEventListener('click', () => this.toggleSocial());
     $('#mm-options')?.addEventListener('click', () => this.toggleOptionsMenu());
+    $('#mm-hub')?.addEventListener('click', () => {
+      $('#side-buttons')?.classList.toggle('expanded');
+    });
     $('#mm-arena').addEventListener('click', () => this.toggleArena());
     $('#mm-leaderboard').addEventListener('click', () => this.toggleLeaderboard());
     const emoteBtn = $('#mm-emote');
@@ -472,7 +475,8 @@ export class Hud {
     this.showBanner(startZoneName);
     this.log(t('hud.core.welcomeZone', { zone: startZoneName }), '#ffd100');
     this.logZoneWelcome(startZone);
-    this.log('Tip: type /join world or /join lfg to chat with players across the realm.', '#7fd4ff');
+    this.log(t('hud.core.movementHint'), '#7fd4ff');
+    this.log(t('hud.core.joinChatTip'), '#7fd4ff');
   }
 
   private setText(el: HTMLElement, text: string): void {
@@ -1634,7 +1638,7 @@ export class Hud {
 
     this.meters.update();
     this.syncActiveHotbarForm();
-    this.syncSlotMap(); // picks up newly learned abilities mid-session
+    if (fastHud) this.syncSlotMap();
 
     // talent buttons glow while the player has unspent points (and a tree exists)
     const tp = sim.talentPoints();
@@ -1653,7 +1657,7 @@ export class Hud {
     if (this.pfResourceEl.className !== resClass) this.pfResourceEl.className = resClass;
 
     // buff bar (player buffs + debuffs)
-    this.renderAuras(this.buffBarEl, p, 'all');
+    if (fastHud) this.renderAuras(this.buffBarEl, p, 'all');
 
     // target frame
     const target = p.targetId !== null ? sim.entities.get(p.targetId) : null;

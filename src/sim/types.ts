@@ -3,7 +3,7 @@
 export const TICK_RATE = 20; // sim ticks per second
 export const DT = 1 / TICK_RATE;
 export const RUN_SPEED = 7; // yards/sec, classic run speed
-export const TURN_SPEED = Math.PI; // rad/sec keyboard turning
+export const TURN_SPEED = Math.PI; // rad/sec keyboard turning (WoW Classic)
 export const MELEE_RANGE = 5; // yards
 export const INTERACT_RANGE = 5;
 export const GCD = 1.5; // seconds

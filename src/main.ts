@@ -26,7 +26,11 @@ import { hydrateIcons } from './ui/ui_icons';
 import { createPerfMonitor } from './game/perf';
 import { createDebugHud } from './game/debug_hud';
 import { updateFollowCameraYaw, wrapAngle } from './game/camera_follow';
+import { isDesktopShell } from './desktop/shell';
 
+if (isDesktopShell()) {
+  document.body.classList.add('desktop-shell');
+}
 
 const WORLD_SEED = 20061; // fixed: Wardenfall is a persistent place
 const CLICK_MOVE_TURN_RATE = 4.2; // rad/sec; responsive turning while the camera stays decoupled from click spam
@@ -802,18 +806,24 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     }
   }
 
+const MAX_SIM_STEPS_PER_FRAME = 3;
+
   let last = performance.now();
   let acc = 0;
 
-  // Camera follow state: keyboard turning advances facing in 20Hz sim steps,
+  // Camera follow state:
   // so the camera tracks the player's render-interpolated facing per frame
   // (same curve the character model follows) instead of the raw tick deltas -
   // that's what killed the turn stutter. While running, the orbit offset
   // eases back to zero so the camera settles in behind the character.
   let lastInterpFacing: number | null = null;
+  let hoverPickAt = 0;
+  let hoverPickX = 0;
+  let hoverPickY = 0;
   function updateCamera(frameDt: number, interpFacing: number): void {
     const mi = input.readMoveInput();
     const clickMoving = !!input.clickMoveTarget && !input.suspendMovement && !world.player.dead;
+    const keyboardTurning = mi.turnLeft || mi.turnRight;
     const next = updateFollowCameraYaw({
       camYaw: input.camYaw,
       interpFacing,
@@ -823,7 +833,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       moving: mi.forward || mi.strafeLeft || mi.strafeRight || clickMoving,
       clickMoving,
       orbiting: false,
-      snapFollow: !input.isMouseCameraMode(),
+      snapFollow: keyboardTurning && !input.isMouseCameraMode(),
     });
     input.camYaw = next.camYaw;
     lastInterpFacing = next.lastInterpFacing; // track through mouselook too — no snap on release
@@ -882,6 +892,12 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       input.setHoverCursor('default');
       return;
     }
+    const now = performance.now();
+    const moved = input.hoverX !== hoverPickX || input.hoverY !== hoverPickY;
+    if (!moved && now - hoverPickAt < 50) return;
+    hoverPickAt = now;
+    hoverPickX = input.hoverX;
+    hoverPickY = input.hoverY;
     const id = renderer.pick(input.hoverX, input.hoverY);
     const entity = id !== null ? world.entities.get(id) : undefined;
     input.setHoverCursor(hoverCursorKind(entity, world.playerId, partyMemberIds()));
@@ -921,7 +937,8 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
 
     if (offlineSim) {
       acc += frameDt;
-      while (acc >= DT) {
+      let simSteps = 0;
+      while (acc >= DT && simSteps < MAX_SIM_STEPS_PER_FRAME) {
         const { mi, facing } = resolveMove(mouselook, offlineSim.player.pos, offlineSim.player.facing);
         Object.assign(offlineSim.moveInput, mi);
         const stepFacing = movementFacing ?? facing;
@@ -930,7 +947,9 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
         const events = perf.time('sim', () => offlineSim.tick());
         perf.time('events', () => hud.handleEvents(events));
         acc -= DT;
+        simSteps++;
       }
+      if (acc > DT * MAX_SIM_STEPS_PER_FRAME) acc = DT * MAX_SIM_STEPS_PER_FRAME;
       const pp = offlineSim.player;
       updateCamera(frameDt, pp.prevFacing + wrapAngle(pp.facing - pp.prevFacing) * (acc / DT));
       renderer.camYaw = input.camYaw;
@@ -942,7 +961,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       perf.markInputVisible(performance.now());
       perf.time('hud', () => hud.update());
       debugHud.tick(world, now);
-      perf.tick(now);
+      if (perf.enabled) perf.tick(now);
       return;
     }
 
@@ -970,9 +989,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       alpha: Math.round(alpha * 100) / 100,
     });
     const pe = world.player;
-    const camFacing = mouselook
-      ? pe.prevFacing + wrapAngle(pe.facing - pe.prevFacing) * Math.min(1, alpha)
-      : pe.facing;
+    const camFacing = pe.prevFacing + wrapAngle(pe.facing - pe.prevFacing) * Math.min(1, alpha);
     updateCamera(frameDt, camFacing);
     renderer.camYaw = input.camYaw;
     renderer.camPitch = input.camPitch;
@@ -982,7 +999,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     perf.markInputVisible(performance.now());
     perf.time('hud', () => hud.update());
     debugHud.tick(world, now);
-    perf.tick(now);
+    if (perf.enabled) perf.tick(now);
   }
   requestAnimationFrame(frame);
   // cut to the game only once the first frame is actually on screen

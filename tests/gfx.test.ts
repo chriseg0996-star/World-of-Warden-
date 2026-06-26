@@ -27,7 +27,7 @@ describe('graphics tier resolution', () => {
   });
 
   it('drops automatic constrained and software sessions to low while preserving forced high', () => {
-    expect(tierFromHints(desktop, false)).toBe('high');
+    expect(tierFromHints(desktop, false)).toBe('medium');
     expect(tierFromHints(desktop, true)).toBe('low');
     expect(tierFromHints({ ...desktop, maxTouchPoints: 1, coarsePointer: true }, false)).toBe('low');
     expect(tierFromHints({ ...desktop, search: '?gfx=high', maxTouchPoints: 1, coarsePointer: true }, false)).toBe('high');

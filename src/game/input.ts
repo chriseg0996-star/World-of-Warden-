@@ -1,6 +1,6 @@
-// Default (Mouse Camera off): WoW-style — A/D turns you and the camera together,
-// Q/E strafe, right-drag mouselooks (left click targets/interacts), both buttons
-// run forward. Optional Mouse Camera (on): OSRS-style camera-relative WASD.
+// Default (Mouse Camera off): WoW-style — A/D keyboard-turns you (camera follows),
+// Q/E strafe, right-drag mouselooks. Hold right mouse for strafe-with-A/D.
+// Optional Mouse Camera (on): OSRS-style camera-relative WASD.
 // Shared: space jump, wheel zoom, Tab target, rebindable action bar, R autorun.
 
 import { Keybinds, actionKind } from './keybinds';

@@ -7,6 +7,21 @@ describe('camera follow', () => {
     expect(wrapAngle(-Math.PI * 1.5)).toBeCloseTo(Math.PI / 2);
   });
 
+  it('tracks facing during keyboard turn when snapFollow is enabled', () => {
+    const next = updateFollowCameraYaw({
+      camYaw: 1.0,
+      interpFacing: 0.4,
+      lastInterpFacing: 0.2,
+      frameDt: 1 / 60,
+      mouselook: false,
+      moving: false,
+      orbiting: false,
+      snapFollow: true,
+    });
+    expect(next.camYaw).toBeCloseTo(1.2);
+    expect(next.lastInterpFacing).toBe(0.4);
+  });
+
   it('snaps the camera to character facing deltas when snapFollow is enabled', () => {
     const next = updateFollowCameraYaw({
       camYaw: 1.0,

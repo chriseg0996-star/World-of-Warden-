@@ -394,7 +394,7 @@ try {
     facingDelta > 0.08 ? `mouselook D changed facing by ${facingDelta.toFixed(3)}rad over ${finite(elapsedMs).toFixed(1)}ms` : '',
   ]));
 
-  checks.push(await runCheck('camera snap-follows keyboard turn when not mouselooking', async () => {
+  checks.push(await runCheck('camera follows keyboard turn when not mouselooking', async () => {
     await resetRig(page);
     await page.evaluate(() => {
       const g = window.__game;

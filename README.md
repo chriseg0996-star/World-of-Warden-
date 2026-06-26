@@ -80,6 +80,23 @@ Open http://localhost:5173 → **Play Online** → create an account → create 
 character → Enter World. Open a second browser/tab and log in again — you'll
 see each other in town. `Enter` opens chat.
 
+## Desktop launcher (Tauri)
+
+The same Vite client runs in a native window for full-screen play with better
+GPU scheduling than an embedded browser tab.
+
+**Prerequisites:** Node.js, [Rust](https://rustup.rs/), and WebView2 on Windows.
+
+```bash
+npm install
+npm run desktop:dev      # native window + hot reload (starts Vite via tauri.conf)
+npm run desktop:build    # release installer under src-tauri/target/release/bundle/
+```
+
+Offline play works immediately. For online realms, run `npm run server` in
+another terminal — the desktop client defaults to `http://127.0.0.1:8787`
+(override at build time with `DESKTOP_REALM_ORIGIN`).
+
 The player wiki is a real MediaWiki service when running Docker Compose:
 open http://localhost:8080/wiki/. Its seed pages are generated from the
 current game content and community research with `npm run wiki:seed`.

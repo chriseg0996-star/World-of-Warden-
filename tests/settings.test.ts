@@ -24,7 +24,7 @@ describe('Settings', () => {
     expect(s.get('foliageDensity')).toBe(SETTING_RANGES.foliageDensity.def);
     expect(s.get('effectsQuality')).toBe(SETTING_RANGES.effectsQuality.def);
     expect(s.get('shadowQuality')).toBe(SETTING_RANGES.shadowQuality.def);
-    expect(s.get('renderScale')).toBe(1);
+    expect(s.get('renderScale')).toBe(SETTING_RANGES.renderScale.def);
     expect(s.get('fullscreen')).toBe(1);
     expect(s.get('clickToMove')).toBe(0);
     expect(s.get('clickToMoveButton')).toBe(0);

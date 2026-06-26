@@ -18,7 +18,7 @@ export const SETTING_RANGES = {
   foliageDensity: { min: 0, max: 1, def: 1 },
   effectsQuality: { min: 0, max: 1, def: 1 },
   shadowQuality: { min: 0, max: 1, def: 1 },
-  renderScale: { min: 0.5, max: 1, def: 1 },
+  renderScale: { min: 0.5, max: 1, def: 0.9 },
   fullscreen: { min: 0, max: 1, def: 1 },
   // on by default: post-cap players see their overflow/virtual-level bar; turn
   // off for the classic static "MAX LEVEL" text (Max-Level XP Overflow)
