@@ -204,6 +204,50 @@ async function runOnlineSuite(page, checks, { label, latencyMs }) {
       ? `camYaw ${yawDelta.toFixed(3)}rad from server facing`
       : '',
   ]));
+
+  checks.push(await runCheck(`${label} social panel opens with server data`, async () => {
+    await resetOnlineInput(page);
+    const result = await page.evaluate(() => {
+      window.__game.hud.toggleSocial();
+      const el = document.querySelector('#social-window');
+      return {
+        open: el?.classList.contains('open') ?? false,
+        hasSocial: window.__game.world.socialInfo !== null,
+        bodyLen: el?.textContent?.trim().length ?? 0,
+      };
+    });
+    await sleep(200);
+    await page.evaluate(() => window.__game.hud.toggleSocial());
+    return result;
+  }, ({ open, hasSocial, bodyLen }) => [
+    !open ? 'social window not open' : '',
+    !hasSocial ? 'socialInfo null while online' : '',
+    bodyLen < 12 ? `social panel too empty (${bodyLen} chars)` : '',
+  ]));
+
+  checks.push(await runCheck(`${label} market panel opens near merchant`, async () => {
+    await resetOnlineInput(page);
+    await page.evaluate(() => {
+      window.__game.online.cmd({ cmd: 'dev_teleport', x: 0, z: 5 });
+    });
+    await sleep(450);
+    const result = await page.evaluate(() => {
+      window.__game.hud.openMarket();
+      const body = document.getElementById('market-body');
+      return {
+        open: window.__game.hud.marketWindowOpen,
+        hasInfo: window.__game.world.marketInfo !== null,
+        bodyLen: body?.innerHTML?.length ?? 0,
+      };
+    });
+    await sleep(250);
+    await page.evaluate(() => window.__game.hud.closeMarket());
+    return result;
+  }, ({ open, hasInfo, bodyLen }) => [
+    !open ? 'market window not open' : '',
+    !hasInfo ? 'marketInfo null while online' : '',
+    bodyLen < 20 ? `market body too empty (${bodyLen} chars)` : '',
+  ]));
 }
 
 fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
