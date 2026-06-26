@@ -62,7 +62,9 @@ describe('Keybinds defaults', () => {
     const kb = new Keybinds();
     expect(kb.actionForCode('KeyW')).toBe('forward');
     expect(kb.actionForCode('ArrowUp')).toBe('forward'); // secondary default
-    expect(kb.actionForCode('KeyD')).toBe('turnRight');
+    expect(kb.actionForCode('KeyA')).toBe('strafeLeft');
+    expect(kb.actionForCode('KeyD')).toBe('strafeRight');
+    expect(kb.actionForCode('KeyQ')).toBe('turnLeft');
     expect(kb.actionForCode('Space')).toBe('jump');
     expect(kb.actionForCode('Tab')).toBe('target');
     expect(kb.actionForCode('KeyB')).toBe('bags');
@@ -149,6 +151,20 @@ describe('persistence', () => {
     expect(b.actionForCode('KeyR')).toBe('slot0');
     expect(b.actionForCode('KeyJ')).toBe('jump');
     expect(b.actionForCode('Space')).toBe(null);
+  });
+
+  it('migrates legacy A/D turn bindings to WoW-rebound strafe defaults', () => {
+    localStorage.setItem('woc_keybinds', JSON.stringify({
+      turnLeft: ['KeyA', 'ArrowLeft'],
+      turnRight: ['KeyD', 'ArrowRight'],
+      strafeLeft: ['KeyQ', null],
+      strafeRight: ['KeyE', null],
+    }));
+    const kb = new Keybinds();
+    expect(kb.actionForCode('KeyA')).toBe('strafeLeft');
+    expect(kb.actionForCode('KeyD')).toBe('strafeRight');
+    expect(kb.actionForCode('KeyQ')).toBe('turnLeft');
+    expect(kb.actionForCode('KeyE')).toBe('turnRight');
   });
 
   it('keeps defaults for actions missing from older saved data', () => {

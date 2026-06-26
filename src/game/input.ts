@@ -1,5 +1,5 @@
-// Default (Mouse Camera off): WoW-style — A/D keyboard-turns you (camera follows),
-// Q/E strafe, right-drag mouselooks. Hold right mouse for strafe-with-A/D.
+// Default (Mouse Camera off): WoW rebound — A/D strafe (camera stays put),
+// Q/E keyboard-turn, right-drag mouselooks and turns you.
 // Optional Mouse Camera (on): OSRS-style camera-relative WASD.
 // Shared: space jump, wheel zoom, Tab target, rebindable action bar, R autorun.
 
@@ -538,14 +538,12 @@ export class Input {
     }
 
     const mouselook = this.isMouselookActive();
-    const aHeld = held('turnLeft');
-    const dHeld = held('turnRight');
     return {
       forward, back, jump,
-      strafeLeft: held('strafeLeft') || (mouselook && aHeld) || this.touchMove.strafeLeft,
-      strafeRight: held('strafeRight') || (mouselook && dHeld) || this.touchMove.strafeRight,
-      turnLeft: !mouselook && aHeld,
-      turnRight: !mouselook && dHeld,
+      strafeLeft: held('strafeLeft') || this.touchMove.strafeLeft,
+      strafeRight: held('strafeRight') || this.touchMove.strafeRight,
+      turnLeft: !mouselook && held('turnLeft'),
+      turnRight: !mouselook && held('turnRight'),
     };
   }
 }

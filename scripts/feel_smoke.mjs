@@ -394,18 +394,48 @@ try {
     facingDelta > 0.08 ? `mouselook D changed facing by ${facingDelta.toFixed(3)}rad over ${finite(elapsedMs).toFixed(1)}ms` : '',
   ]));
 
-  checks.push(await runCheck('camera follows keyboard turn when not mouselooking', async () => {
+  checks.push(await runCheck('A/D strafe does not spin the camera', async () => {
+    await resetRig(page);
+    await page.evaluate(() => {
+      const g = window.__game;
+      g.input.camYaw = 0.5;
+      g.renderer.camYaw = 0.5;
+      g.input.keys.add('KeyA');
+    });
+    const before = await state(page);
+    await waitForTicks(page, 8);
+    const after = await page.evaluate((startFacing) => {
+      const g = window.__game;
+      g.input.keys.delete('KeyA');
+      const wrap = (d) => {
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        return d;
+      };
+      return {
+        camYaw: g.input.camYaw,
+        yawDelta: Math.abs(wrap(g.input.camYaw - 0.5)),
+        facingDelta: Math.abs(wrap(g.sim.player.facing - startFacing)),
+      };
+    }, before.facing);
+    return { before, after, yawDelta: after.yawDelta, facingDelta: after.facingDelta };
+  }, ({ yawDelta, facingDelta }) => [
+    yawDelta > 0.05 ? `A strafe moved camera yaw by ${yawDelta.toFixed(3)}rad` : '',
+    facingDelta > 0.08 ? `A strafe rotated facing by ${facingDelta.toFixed(3)}rad` : '',
+  ]));
+
+  checks.push(await runCheck('Q/E keyboard turn follows camera when not mouselooking', async () => {
     await resetRig(page);
     await page.evaluate(() => {
       const g = window.__game;
       g.input.camYaw = 0;
       g.renderer.camYaw = 0;
-      g.input.keys.add('KeyA');
+      g.input.keys.add('KeyQ');
     });
     await waitForTicks(page, 8);
     const after = await page.evaluate(() => {
       const g = window.__game;
-      g.input.keys.delete('KeyA');
+      g.input.keys.delete('KeyQ');
       const wrap = (d) => {
         while (d > Math.PI) d -= 2 * Math.PI;
         while (d < -Math.PI) d += 2 * Math.PI;

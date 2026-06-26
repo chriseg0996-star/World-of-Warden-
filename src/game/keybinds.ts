@@ -29,10 +29,10 @@ export const BIND_ACTIONS: BindAction[] = [
   // Movement / camera — polled every frame (held)
   { id: 'forward', label: 'Move Forward', category: 'Movement', kind: 'held', defaults: ['KeyW', 'ArrowUp'] },
   { id: 'back', label: 'Move Backward', category: 'Movement', kind: 'held', defaults: ['KeyS', 'ArrowDown'] },
-  { id: 'turnLeft', label: 'Turn Left', category: 'Movement', kind: 'held', defaults: ['KeyA', 'ArrowLeft'] },
-  { id: 'turnRight', label: 'Turn Right', category: 'Movement', kind: 'held', defaults: ['KeyD', 'ArrowRight'] },
-  { id: 'strafeLeft', label: 'Strafe Left', category: 'Movement', kind: 'held', defaults: ['KeyQ'] },
-  { id: 'strafeRight', label: 'Strafe Right', category: 'Movement', kind: 'held', defaults: ['KeyE'] },
+  { id: 'turnLeft', label: 'Turn Left', category: 'Movement', kind: 'held', defaults: ['KeyQ'] },
+  { id: 'turnRight', label: 'Turn Right', category: 'Movement', kind: 'held', defaults: ['KeyE'] },
+  { id: 'strafeLeft', label: 'Strafe Left', category: 'Movement', kind: 'held', defaults: ['KeyA', 'ArrowLeft'] },
+  { id: 'strafeRight', label: 'Strafe Right', category: 'Movement', kind: 'held', defaults: ['KeyD', 'ArrowRight'] },
   { id: 'jump', label: 'Jump', category: 'Movement', kind: 'held', defaults: ['Space'] },
   { id: 'autorun', label: 'Toggle Autorun', category: 'Movement', kind: 'edge', defaults: ['KeyR'] },
   // Targeting / interaction
@@ -151,6 +151,24 @@ export class Keybinds {
         else claimed.add(c);
       }
     }
+    this.migrateLegacyMovementBinds(obj);
+  }
+
+  /** WoW rebound: A/D strafe, Q/E turn — upgrade saves that still use vanilla A/D turn. */
+  private migrateLegacyMovementBinds(stored: Record<string, unknown>): void {
+    const turnL = this.map.get('turnLeft');
+    const turnR = this.map.get('turnRight');
+    const strafeL = this.map.get('strafeLeft');
+    const strafeR = this.map.get('strafeRight');
+    if (!turnL || !turnR || !strafeL || !strafeR) return;
+    const legacyTurn = turnL[0] === 'KeyA' && turnR[0] === 'KeyD';
+    const legacyStrafe = strafeL[0] === 'KeyQ' && strafeR[0] === 'KeyE';
+    if (!legacyTurn || !legacyStrafe) return;
+    this.map.set('strafeLeft', ['KeyA', 'ArrowLeft']);
+    this.map.set('strafeRight', ['KeyD', 'ArrowRight']);
+    this.map.set('turnLeft', ['KeyQ', null]);
+    this.map.set('turnRight', ['KeyE', null]);
+    this.save();
   }
 
   private save(): void {
