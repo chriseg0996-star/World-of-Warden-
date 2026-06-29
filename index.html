@@ -482,11 +482,12 @@
   .portrait {
     width: 60px; height: 60px; border-radius: 50%;
     border: 2px solid var(--panel-border-strong);
-    background: radial-gradient(circle at 35% 30%, #3a3a4e, #14141c);
+    background: #101018;
     box-shadow: var(--hud-shadow), inset 0 0 16px rgba(0, 0, 0, 0.45);
     display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
   }
-  .portrait canvas { border-radius: 50%; }
+  .portrait canvas { width: 100%; height: 100%; display: block; border-radius: 50%; }
   .level-chip {
     position: absolute; bottom: -2px; left: -2px; width: 22px; height: 22px;
     background: rgba(12, 10, 8, 0.92);
@@ -545,15 +546,25 @@
 
   /* ---------- bottom cluster ---------- */
   #bottom-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: var(--hud-inset); text-align: center; }
-  #xpbar { width: 100%; height: 8px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--hud-hairline);
-    margin: 0 0 6px; position: relative; border-radius: 4px; overflow: hidden; }
+  #xpbar-block { width: 100%; margin-bottom: 6px; }
+  .xpbar-caption {
+    font-size: 10px;
+    line-height: 1.25;
+    text-align: center;
+    color: var(--color-text-muted);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  #xpbar { width: 100%; height: 5px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--hud-hairline);
+    margin: 0; position: relative; border-radius: 3px; overflow: hidden; }
   #xpbar .fill { height: 100%; width: 0%; background: linear-gradient(#b85eff, #6a1bb0); transition: background .3s; }
   #xpbar .ticks { position: absolute; inset: 0; display: flex; }
   #xpbar .ticks i { flex: 1; border-right: 1px solid #00000055; }
-  #xpbar .label { position: absolute; inset: 0; font-size: 8px; color: #fff; text-align: center; line-height: 8px; text-shadow: 0 1px 2px #000; opacity: 0.85; transition: opacity .15s; }
-  #xpbar:hover .label { opacity: 1; }
-  /* Post-cap overflow bar (Max-Level XP Overflow): gold/prestige tint. */
-  #xpbar.overflow { outline-color: #b8902a; box-shadow: 0 0 6px #f5c84355; }
+  #xpbar.overflow { outline: 1px solid #b8902a; box-shadow: 0 0 6px #f5c84355; }
   #xpbar.overflow .fill { background: linear-gradient(#ffe27a, #d99a1c); }
   #actionbar-row { display: flex; align-items: flex-end; gap: 8px; }
   /* xp bar stacks directly on the action bar; the taller side-button
@@ -609,16 +620,41 @@
   /* micro-menu: bottom-right, stacked upward, sitting just above the
      Discord/GitHub buttons (both right-aligned to the same edge). */
   #side-buttons { position: absolute; right: var(--hud-inset); bottom: var(--hud-inset);
-    display: flex; flex-direction: column; gap: 3px; z-index: 19;
-    padding: 5px; border-radius: var(--radius-lg);
+    display: flex; flex-direction: column; align-items: stretch; gap: 2px; z-index: 19;
+    padding: 4px; border-radius: var(--radius-lg);
     background: var(--panel-glass); backdrop-filter: var(--hud-blur); -webkit-backdrop-filter: var(--hud-blur);
     border: 1px solid var(--panel-border); box-shadow: var(--hud-shadow); }
-  #side-buttons:not(.expanded) .micro-btn:not(#mm-options):not(#mm-hub) { display: none; }
-  #side-buttons.expanded #mm-hub { border-color: var(--gold); color: #fff; }
-  .micro-btn { width: 36px; height: 32px; border: 1px solid var(--hud-hairline); border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.03); color: var(--color-text-muted); cursor: pointer;
+  #side-buttons:not(.expanded) .micro-btn:not(#mm-options):not(#mm-hub),
+  #side-buttons:not(.expanded) .micro-divider { display: none; }
+  #side-buttons.expanded { padding: 5px; gap: 1px; min-width: 152px; }
+  #side-buttons.expanded #mm-hub { border-color: var(--gold); color: var(--gold); }
+  .micro-divider { height: 1px; margin: 3px 6px; background: var(--hud-hairline); flex: none; }
+  .micro-btn {
+    width: 36px; height: 32px; border: 1px solid transparent; border-radius: var(--radius-md);
+    background: transparent; color: var(--color-text-muted); cursor: pointer;
     font-size: 12px; font-weight: 600; position: relative;
-    transition: border-color var(--transition-speed), color var(--transition-speed), background var(--transition-speed); }
+    display: inline-flex; align-items: center; justify-content: center; gap: 0;
+    transition: border-color var(--transition-speed), color var(--transition-speed), background var(--transition-speed);
+  }
+  #side-buttons.expanded .micro-btn:not(#mm-hub) {
+    width: 100%; min-height: 30px; height: auto; padding: 5px 8px;
+    justify-content: flex-start; gap: 8px;
+  }
+  #side-buttons.expanded .micro-btn .micro-label {
+    display: block; flex: 1 1 auto; text-align: left;
+    font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #side-buttons.expanded .micro-btn .keybind {
+    position: static; flex: 0 0 auto; margin-left: auto;
+    font-size: 9px; color: var(--color-text-muted); opacity: 0.8;
+  }
+  #side-buttons:not(.expanded) .micro-btn .micro-label { display: none; }
+  #side-buttons:not(.expanded) #mm-hub .keybind,
+  #side-buttons:not(.expanded) #mm-options .keybind { display: block; }
+  #side-buttons.expanded .micro-btn:hover { background: rgba(255, 209, 0, 0.06); border-color: var(--hud-hairline); color: var(--gold); }
+  #side-buttons.expanded .micro-btn:hover .micro-label { color: var(--gold); }
+  #side-buttons.expanded .micro-btn::before { display: none; }
   /* hover flyout: the button's background grows leftward to reveal its label.
      The panel tucks 6px under the button (z-index:-1) so it reads as one surface. */
   .micro-btn::before {
@@ -738,13 +774,25 @@
   }
 
   /* ---------- minimap ---------- */
-  #minimap-wrap { position: static; width: 100%; text-align: center;
+  #minimap-wrap {
+    position: static; width: 100%;
+    display: flex; flex-direction: column; align-items: center;
     background: var(--panel-glass); backdrop-filter: var(--hud-blur); -webkit-backdrop-filter: var(--hud-blur);
     border: 1px solid var(--panel-border); border-radius: var(--radius-xl);
-    padding: 8px 10px 10px; box-shadow: var(--hud-shadow); }
-  #zone-label { font-size: 11px; color: var(--gold); font-family: var(--font-heading); font-weight: 600;
-    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
-  #minimap { border-radius: 50%; border: 2px solid var(--panel-border-strong); box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.35); }
+    padding: 8px 8px 10px; box-shadow: var(--hud-shadow);
+  }
+  #zone-label {
+    width: 100%; text-align: center;
+    font-size: 10px; color: var(--gold); font-family: var(--font-heading); font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #minimap {
+    display: block; flex: none;
+    width: 158px; height: 158px;
+    border-radius: 50%; border: 2px solid var(--panel-border-strong);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.38);
+  }
 
   /* ---------- community HUD ---------- */
   /* Discord/GitHub: bottom-right, directly below the micro-menu, right-aligned with it. */
@@ -833,30 +881,87 @@
   .q-rare { border-color: #0070dd !important; }
   .q-epic { border-color: #a335ee !important; box-shadow: 0 0 6px #a335ee66; }
 
-  /* character window */
-  #char-window { width: 440px; }
-  .paperdoll { display: flex; gap: 12px; align-items: stretch; }
-  .equip-col { display: flex; flex-direction: column; gap: 3px; }
+  /* character window — classic paperdoll */
+  #char-window { width: min(520px, calc(100vw - 24px)); }
+  .paperdoll {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) 46px;
+    gap: 10px;
+    align-items: stretch;
+    min-height: 272px;
+    margin-top: 4px;
+  }
+  .equip-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 2px 0;
+  }
   .equip-slot {
-    display: flex; gap: 8px; align-items: center; width: 148px;
-    padding: 4px 6px; border-radius: var(--radius-md);
-    border: 1px solid transparent; transition: background .12s, border-color .12s;
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--hud-hairline);
+    background: rgba(0, 0, 0, 0.38);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+    transition: border-color .12s, background .12s, box-shadow .12s;
+    cursor: default;
   }
-  .equip-slot:hover { background: rgba(255, 255, 255, 0.04); border-color: var(--hud-hairline); }
-  .equip-slot .slot-name { font-size: 10px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  .equip-slot .slot-item { font-size: 11.5px; line-height: 1.3; }
+  .equip-slot:hover {
+    border-color: var(--panel-border-strong);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 8px rgba(255, 209, 0, 0.08);
+  }
+  .equip-slot .equip-icon,
+  .equip-slot .item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+  }
+  .equip-slot.is-empty .equip-icon { opacity: 0.5; }
+  .equip-empty-label {
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    bottom: 2px;
+    font-size: 6.5px;
+    line-height: 1;
+    text-align: center;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+  .equip-slot:not(.is-empty) .equip-empty-label { display: none; }
   .char-model-panel {
-    flex: 1; min-width: 0; height: 176px;
-    border: 1px solid var(--panel-border); border-radius: var(--radius-md);
-    background: rgba(0, 0, 0, 0.28); overflow: hidden; display: flex; flex-direction: column;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 272px;
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(ellipse 80% 55% at 50% 88%, rgba(255, 209, 0, 0.07), transparent 70%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.28));
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
   }
-  .char-model-preview { width: 100%; flex: 1; min-height: 0; }
+  .char-model-preview { width: 100%; flex: 1 1 auto; min-height: 200px; }
   .char-model-preview canvas { display: block; width: 100% !important; height: 100% !important; }
-  .char-skin-row { justify-content: center; align-items: center; margin: 0; padding: 6px 0 8px; flex-shrink: 0; }
+  .char-skin-row { justify-content: center; align-items: center; margin: 0; padding: 6px 8px 8px; flex-shrink: 0; }
+  .char-sheet-body { margin-top: 10px; }
   .char-stats {
-    font-size: 12px; line-height: 1.7; color: var(--color-text-light); margin-top: 12px;
+    font-size: 11.5px; line-height: 1.65; color: var(--color-text-light);
     border-top: 1px solid var(--hud-hairline); padding-top: 10px;
-    display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px;
   }
   .char-stats b { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
 
@@ -1249,65 +1354,94 @@
   #map-canvas { border: 2px solid var(--border); outline: 1px solid #000; border-radius: 4px; touch-action: none; }
 
   /* ---------- options / game menu (Esc) ---------- */
-  #options-menu { width: min(92vw, 740px); z-index: 40; padding: 14px 16px 16px; }
-  .opt-layout { display: flex; align-items: stretch; min-height: 340px; gap: 0; }
+  #options-menu {
+    width: min(94vw, 500px);
+    top: 11vh;
+    max-height: min(78vh, 480px);
+    z-index: 40;
+    padding: 8px 10px 10px;
+    overflow: hidden;
+  }
+  #options-menu .panel-title { margin-bottom: 6px; padding-bottom: 5px; font-size: 11px; }
+  .opt-layout { display: flex; align-items: stretch; min-height: 0; gap: 0; }
   .opt-nav {
-    flex: 0 0 164px;
+    flex: 0 0 120px;
     display: flex;
     flex-direction: column;
     gap: 3px;
-    padding: 4px 10px 4px 4px;
+    padding: 2px 8px 2px 2px;
     border-right: 1px solid var(--hud-hairline);
   }
   .opt-nav-rule {
     height: 1px;
-    margin: 6px 4px;
+    margin: 4px 2px;
     background: rgba(255, 209, 0, 0.12);
+    flex: none;
   }
-  .opt-nav-spacer { flex: 1 1 auto; min-height: 8px; }
-  .opt-nav-btn {
+  .opt-nav-spacer { flex: 1 1 auto; min-height: 4px; }
+  #options-menu .opt-nav .opt-nav-btn.btn {
     margin: 0;
-    text-align: left;
-    padding: 8px 11px;
-    font-size: 11.5px;
+    width: 100%;
+    min-height: 30px;
+    height: 30px;
+    padding: 0 7px;
+    font-size: 9.5px;
+    line-height: 1;
     letter-spacing: 0.05em;
+    text-align: left;
     text-transform: uppercase;
     background: transparent;
     border: 1px solid transparent;
     box-shadow: none;
     color: var(--color-text-muted);
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: var(--radius-md);
   }
-  .opt-nav-btn:hover { border-color: var(--panel-border); background: rgba(255, 255, 255, 0.04); color: var(--color-text-light); }
-  .opt-nav-btn.active {
+  #options-menu .opt-nav .opt-nav-btn.btn:hover {
+    border-color: var(--panel-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-light);
+    box-shadow: none;
+  }
+  #options-menu .opt-nav .opt-nav-btn.btn.active {
     border-color: var(--panel-border-strong);
     background: rgba(255, 209, 0, 0.07);
     color: #fff4c7;
   }
-  .opt-nav-resume { font-weight: 700; margin-bottom: 4px; color: var(--gold); }
-  .opt-nav-logout { font-size: 11px; opacity: 0.88; }
+  #options-menu .opt-nav .opt-nav-resume { color: var(--gold); font-weight: 700; }
+  #options-menu .opt-nav .opt-nav-logout { color: var(--color-text-muted); opacity: 0.92; }
   .opt-content {
     flex: 1 1 auto;
     min-width: 0;
-    padding: 2px 4px 4px 14px;
-    max-height: min(72vh, 540px);
+    padding: 0 2px 4px 8px;
+    max-height: min(56vh, 380px);
     overflow-y: auto;
   }
   .opt-section-title {
     font-family: var(--font-heading);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 1.3px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--wf-gold-bright, #ffe48a);
-    opacity: 0.9;
-    margin: 12px 0 5px;
-    padding-bottom: 3px;
-    border-bottom: 1px solid rgba(255, 209, 0, 0.14);
+    opacity: 0.88;
+    margin: 8px 0 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(255, 209, 0, 0.12);
   }
-  .opt-section-title:first-child { margin-top: 0; }
+  #options-menu .kb-cat { font-size: 10px; margin: 6px 0 3px; padding-bottom: 3px; }
+  #options-menu .kb-row { gap: 6px; padding: 4px 6px; grid-template-columns: 1fr 70px 70px; }
+  #options-menu .kb-name { font-size: 11px; }
+  #options-menu .kb-key { padding: 3px 5px; font-size: 10px; }
+  #options-menu .set-row { grid-template-columns: 96px 1fr 40px; gap: 6px; padding: 3px 5px; }
+  #options-menu .set-name { font-size: 10.5px; }
   .opt-section { display: flex; flex-direction: column; gap: 4px; margin-bottom: 2px; }
-  .opt-content-footer { display: flex; gap: 8px; margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06); flex-wrap: wrap; }
+  .opt-content-footer { display: flex; gap: 6px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.06); flex-wrap: wrap; }
   .opt-list { display: flex; flex-direction: column; gap: 8px; align-items: stretch; padding: 4px 0; }
   .opt-btn { margin: 0; text-align: center; }
   .kb-rows { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
@@ -1344,8 +1478,8 @@
     max-width: 98px;
   }
   .kb-toggle.off { filter: grayscale(0.6) brightness(0.8); color: #b9ac82; }
-  .set-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
-  .set-row { display: grid; grid-template-columns: 132px 1fr 48px; align-items: center; gap: 12px; padding: 6px 8px; border-radius: var(--radius-md); }
+  .set-rows { display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px; }
+  .set-row { display: grid; grid-template-columns: 108px 1fr 42px; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--radius-md); }
   .set-row:nth-child(odd) { background: rgba(255, 255, 255, 0.03); }
   .set-name { font-size: 12px; color: var(--color-text-light); }
   .set-slider { width: 100%; accent-color: var(--gold); cursor: pointer; }
@@ -3598,11 +3732,17 @@
     pointer-events: none;
   }
   body.mobile-touch #actionbar-row { pointer-events: auto; }
-  body.mobile-touch #xpbar {
+  body.mobile-touch #xpbar-block {
     position: fixed;
     left: max(8px, env(safe-area-inset-left));
     right: auto;
-    top: calc(max(8px, env(safe-area-inset-top)) + 70px);
+    top: calc(max(8px, env(safe-area-inset-top)) + 64px);
+    width: 246px;
+    margin: 0;
+    z-index: 19;
+  }
+  body.mobile-touch .xpbar-caption { font-size: 9px; margin-bottom: 2px; opacity: 0.9; }
+  body.mobile-touch #xpbar {
     bottom: auto;
     width: 246px;
     min-width: 0;
@@ -3612,7 +3752,6 @@
     z-index: 19;
     opacity: 0.86;
   }
-  body.mobile-touch #xpbar .label { display: none; }
   body.mobile-touch #castbar {
     position: fixed;
     left: calc(max(18px, env(safe-area-inset-left)) + 132px);
@@ -3863,11 +4002,21 @@
   body.mobile-touch #char-window {
     left: 10px;
     top: 10px;
-    width: min(360px, calc(100vw - 20px));
+    width: min(380px, calc(100vw - 20px));
     max-height: calc(100vh - 20px);
     box-sizing: border-box;
     overflow-y: auto;
   }
+  body.mobile-touch .paperdoll {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 6px;
+    min-height: 220px;
+  }
+  body.mobile-touch .equip-slot { width: 38px; height: 38px; }
+  body.mobile-touch .equip-slot .equip-icon,
+  body.mobile-touch .equip-slot .item-icon { width: 34px; height: 34px; }
+  body.mobile-touch .char-model-panel { min-height: 220px; }
+  body.mobile-touch .char-model-preview { min-height: 160px; }
   body.mobile-touch .mkt-price-row {
     flex-wrap: wrap;
   }
@@ -4127,11 +4276,13 @@
     body.mobile-touch #actionbar { grid-template-columns: repeat(5, 40px); grid-auto-rows: 40px; gap: 4px; padding: 4px; width: max-content; background: linear-gradient(170deg, #15151fa8, #08080db8); }
     body.mobile-touch #actionbar.many-spells { grid-template-columns: repeat(6, 40px); }
     body.mobile-touch .action-btn { width: 40px; height: 40px; }
-    body.mobile-touch #xpbar {
+    body.mobile-touch #xpbar-block {
       left: max(6px, env(safe-area-inset-left));
-      top: calc(max(6px, env(safe-area-inset-top)) + 48px);
-      bottom: auto;
+      top: calc(max(6px, env(safe-area-inset-top)) + 44px);
       width: 180px;
+    }
+    body.mobile-touch #xpbar {
+      width: 100%;
       min-width: 0;
       height: 5px;
     }
@@ -5321,7 +5472,7 @@
     </div>
     <div id="player-frame" class="unitframe">
       <div class="portrait-wrap">
-        <div class="portrait"><canvas id="pf-portrait" width="54" height="54"></canvas></div>
+        <div class="portrait"><canvas id="pf-portrait" width="108" height="108"></canvas></div>
         <div class="level-chip" id="pf-level">1</div>
       </div>
       <div class="uf-bars">
@@ -5332,7 +5483,7 @@
     </div>
     <div id="target-frame" class="unitframe">
       <div class="portrait-wrap">
-        <div class="portrait"><canvas id="tf-portrait" width="54" height="54"></canvas></div>
+        <div class="portrait"><canvas id="tf-portrait" width="108" height="108"></canvas></div>
         <div class="level-chip" id="tf-level"></div>
         <div id="tf-elite-tag" data-i18n="hud.core.elite">ELITE</div>
       </div>
@@ -5357,7 +5508,7 @@
     <div id="hud-right-rail">
       <div id="minimap-wrap">
         <div id="zone-label" data-i18n="entities.zones.eastbrook_vale.name">Eastbrook Vale</div>
-        <canvas id="minimap" width="162" height="162"></canvas>
+        <canvas id="minimap" width="158" height="158"></canvas>
       </div>
       <div id="quest-tracker"></div>
     </div>
@@ -5381,7 +5532,10 @@
       <div id="actionbar-row">
         <div id="actionbar-stack">
           <div id="petbar" class="panel"></div>
-          <div id="xpbar"><div class="fill"></div><div class="ticks"></div><div class="label"></div></div>
+          <div id="xpbar-block">
+            <div class="xpbar-caption" id="xpbar-caption"></div>
+            <div id="xpbar"><div class="fill"></div><div class="ticks"></div></div>
+          </div>
           <div id="actionbar" class="panel bar-six"></div>
         </div>
         <div id="meters-window" class="panel">
@@ -5440,19 +5594,22 @@
     <div id="social-window" class="window panel"></div>
     <div id="report-window" class="window panel"></div>
     <div id="side-buttons">
-      <button class="micro-btn" id="mm-hub" data-i18n-title="hud.core.menuHub" data-i18n-aria="hud.core.menuHub" title="Game menus" aria-label="Game menus" data-icon="menu"><span class="keybind">+</span></button>
-      <button class="micro-btn" id="mm-char" data-i18n-title="hud.keybinds.actions.char" data-i18n-aria="hud.keybinds.actions.char" title="Character" aria-label="Character" data-icon="character"><span class="keybind">c</span></button>
-      <button class="micro-btn" id="mm-spell" data-i18n-title="abilityUi.spellbook.title" data-i18n-aria="abilityUi.spellbook.title" title="Spellbook" aria-label="Spellbook" data-icon="spellbook"><span class="keybind">p</span></button>
-      <button class="micro-btn" id="mm-talents" data-i18n-title="game.talents.title" data-i18n-aria="game.talents.title" title="Talents" aria-label="Talents" data-icon="talents"><span class="keybind">n</span></button>
-      <button class="micro-btn" id="mm-quest" data-i18n-title="questUi.log.title" data-i18n-aria="questUi.log.title" title="Quest Log" aria-label="Quest Log" data-icon="questlog"><span class="keybind">l</span></button>
-      <button class="micro-btn" id="mm-map" data-i18n-title="hud.keybinds.actions.map" data-i18n-aria="hud.keybinds.actions.map" title="World Map" aria-label="World Map" data-icon="map"><span class="keybind">m</span></button>
-      <button class="micro-btn" id="mm-bag" data-i18n-title="itemUi.bags.title" data-i18n-aria="itemUi.bags.title" title="Bags" aria-label="Bags" data-icon="bags"><span class="keybind">b</span></button>
-      <button class="micro-btn" id="mm-arena" data-i18n-title="hud.keybinds.actions.arena" data-i18n-aria="hud.keybinds.actions.arena" title="Arena (Ashen Coliseum)" aria-label="Arena (Ashen Coliseum)" data-icon="arena"><span class="keybind">g</span></button>
-      <button class="micro-btn" id="mm-leaderboard" data-i18n-title="game.leaderboard.title" data-i18n-aria="game.leaderboard.title" title="Leaderboard" aria-label="Leaderboard" data-icon="leaderboard"><span class="keybind">k</span></button>
-      <button class="micro-btn" id="mm-emote" aria-label="Emotes" data-icon="emote"><span class="keybind">x</span></button>
-      <button class="micro-btn" id="mm-music" data-i18n-title="hud.options.music" data-i18n-aria="hud.options.music" title="Music" aria-label="Music" data-icon="music"></button>
-      <button class="micro-btn" id="mm-social" data-i18n-title="hud.keybinds.actions.social" data-i18n-aria="hud.keybinds.actions.social" title="Friends &amp; Guild" aria-label="Friends &amp; Guild" data-icon="social"><span class="keybind">o</span></button>
-      <button class="micro-btn" id="mm-options" data-i18n-title="hud.options.gameMenu" data-i18n-aria="hud.options.gameMenu" title="Game Menu" aria-label="Game Menu" data-icon="menu"><span class="keybind">esc</span></button>
+      <button class="micro-btn" id="mm-hub" data-i18n-title="hud.core.menuHub" data-i18n-aria="hud.core.menuHub" title="Game menus" aria-label="Game menus" data-icon="menu"><span class="micro-label" data-i18n="hud.core.menuHub">Game menus</span><span class="keybind">+</span></button>
+      <div class="micro-divider" aria-hidden="true"></div>
+      <button class="micro-btn" id="mm-char" data-i18n-title="hud.keybinds.actions.char" data-i18n-aria="hud.keybinds.actions.char" title="Character" aria-label="Character" data-icon="character"><span class="micro-label" data-i18n="hud.keybinds.actions.char">Character</span><span class="keybind">c</span></button>
+      <button class="micro-btn" id="mm-spell" data-i18n-title="abilityUi.spellbook.title" data-i18n-aria="abilityUi.spellbook.title" title="Spellbook" aria-label="Spellbook" data-icon="spellbook"><span class="micro-label" data-i18n="abilityUi.spellbook.title">Spellbook</span><span class="keybind">p</span></button>
+      <button class="micro-btn" id="mm-talents" data-i18n-title="game.talents.title" data-i18n-aria="game.talents.title" title="Talents" aria-label="Talents" data-icon="talents"><span class="micro-label" data-i18n="game.talents.title">Talents</span><span class="keybind">n</span></button>
+      <button class="micro-btn" id="mm-bag" data-i18n-title="itemUi.bags.title" data-i18n-aria="itemUi.bags.title" title="Bags" aria-label="Bags" data-icon="bags"><span class="micro-label" data-i18n="itemUi.bags.title">Bags</span><span class="keybind">b</span></button>
+      <div class="micro-divider" aria-hidden="true"></div>
+      <button class="micro-btn" id="mm-quest" data-i18n-title="questUi.log.title" data-i18n-aria="questUi.log.title" title="Quest Log" aria-label="Quest Log" data-icon="questlog"><span class="micro-label" data-i18n="questUi.log.title">Quest Log</span><span class="keybind">l</span></button>
+      <button class="micro-btn" id="mm-map" data-i18n-title="hud.keybinds.actions.map" data-i18n-aria="hud.keybinds.actions.map" title="World Map" aria-label="World Map" data-icon="map"><span class="micro-label" data-i18n="hud.keybinds.actions.map">World Map</span><span class="keybind">m</span></button>
+      <button class="micro-btn" id="mm-arena" data-i18n-title="hud.keybinds.actions.arena" data-i18n-aria="hud.keybinds.actions.arena" title="Arena (Ashen Coliseum)" aria-label="Arena (Ashen Coliseum)" data-icon="arena"><span class="micro-label" data-i18n="hud.keybinds.actions.arena">Arena</span><span class="keybind">g</span></button>
+      <button class="micro-btn" id="mm-leaderboard" data-i18n-title="game.leaderboard.title" data-i18n-aria="game.leaderboard.title" title="Leaderboard" aria-label="Leaderboard" data-icon="leaderboard"><span class="micro-label" data-i18n="game.leaderboard.title">Leaderboard</span><span class="keybind">k</span></button>
+      <div class="micro-divider" aria-hidden="true"></div>
+      <button class="micro-btn" id="mm-emote" data-i18n-title="hud.core.emotes" data-i18n-aria="hud.core.emotes" title="Emotes" aria-label="Emotes" data-icon="emote"><span class="micro-label" data-i18n="hud.core.emotes">Emotes</span><span class="keybind">x</span></button>
+      <button class="micro-btn" id="mm-music" data-i18n-title="hud.options.music" data-i18n-aria="hud.options.music" title="Music" aria-label="Music" data-icon="music"><span class="micro-label" data-i18n="hud.options.music">Music</span></button>
+      <button class="micro-btn" id="mm-social" data-i18n-title="hud.keybinds.actions.social" data-i18n-aria="hud.keybinds.actions.social" title="Friends &amp; Guild" aria-label="Friends &amp; Guild" data-icon="social"><span class="micro-label" data-i18n="hud.keybinds.actions.social">Friends &amp; Guild</span><span class="keybind">o</span></button>
+      <button class="micro-btn" id="mm-options" data-i18n-title="hud.options.gameMenu" data-i18n-aria="hud.options.gameMenu" title="Game Menu" aria-label="Game Menu" data-icon="menu"><span class="micro-label" data-i18n="hud.options.gameMenu">Game Menu</span><span class="keybind">esc</span></button>
     </div>
     <div id="tooltip" class="panel"></div>
 

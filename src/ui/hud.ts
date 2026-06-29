@@ -129,6 +129,13 @@ const ITEM_SLOT_LABEL_KEYS: Record<EquipSlot, TranslationKey> = {
   trinket: 'itemUi.slots.trinket',
   mainhand: 'itemUi.slots.mainhand',
 };
+/** Classic paperdoll columns — mirrors WoW (armor left, accessories/weapons split). */
+const PAPERDOLL_LEFT_SLOTS: readonly EquipSlot[] = [
+  'head', 'neck', 'shoulder', 'back', 'chest', 'wrist', 'mainhand',
+];
+const PAPERDOLL_RIGHT_SLOTS: readonly EquipSlot[] = [
+  'hands', 'waist', 'legs', 'feet', 'ring1', 'ring2', 'trinket',
+];
 // Localized display names for item sets (sim carries canonical English; UI localizes here).
 const SET_NAME_KEYS: Record<string, TranslationKey> = {
   recruit_vigil: 'itemUi.set.recruitVigil',
@@ -293,7 +300,7 @@ export class Hud {
   private castbarLabelEl = this.castbarEl.querySelector('.label') as HTMLElement;
   private actionbarEl = $('#actionbar');
   private xpFillEl = $('#xpbar .fill');
-  private xpLabelEl = $('#xpbar .label');
+  private xpLabelEl = $('#xpbar-caption');
   private deathOverlayEl = $('#death-overlay');
   private hotWriteCache = new Map<HTMLElement, string>();
   private hotDomWrites = 0;
@@ -382,7 +389,7 @@ export class Hud {
     this.drawPortrait($('#pf-portrait') as unknown as HTMLCanvasElement, `class_${sim.cfg.playerClass}`);
     const mm = $('#minimap') as unknown as HTMLCanvasElement;
     this.minimapCtx = mm.getContext('2d')!;
-    this.minimapBg = this.renderTerrainCanvas(140, { minX: WORLD_MIN_X, maxX: WORLD_MAX_X, minZ: WORLD_MIN_Z, maxZ: WORLD_MAX_Z });
+    this.minimapBg = this.renderTerrainCanvas(136, { minX: WORLD_MIN_X, maxX: WORLD_MAX_X, minZ: WORLD_MIN_Z, maxZ: WORLD_MAX_Z });
     mm.style.cursor = 'pointer';
     mm.title = t('controls.worldMap');
     mm.addEventListener('click', () => this.toggleMap());
@@ -415,11 +422,11 @@ export class Hud {
         this.openMarkerMenu(t.id, t.name, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
       }
     });
-    $('#mm-char').addEventListener('click', () => this.toggleChar());
-    $('#mm-spell').addEventListener('click', () => this.toggleSpellbook());
-    $('#mm-talents')?.addEventListener('click', () => this.toggleTalents());
-    $('#mm-quest').addEventListener('click', () => this.toggleQuestLog());
-    $('#mm-map').addEventListener('click', () => this.toggleMap());
+    $('#mm-char').addEventListener('click', () => this.onMicroAction(() => this.toggleChar()));
+    $('#mm-spell').addEventListener('click', () => this.onMicroAction(() => this.toggleSpellbook()));
+    $('#mm-talents')?.addEventListener('click', () => this.onMicroAction(() => this.toggleTalents()));
+    $('#mm-quest').addEventListener('click', () => this.onMicroAction(() => this.toggleQuestLog()));
+    $('#mm-map').addEventListener('click', () => this.onMicroAction(() => this.toggleMap()));
     $('#map-close').addEventListener('click', () => { $('#map-window').style.display = 'none'; });
     const mapCanvas = $('#map-canvas') as unknown as HTMLCanvasElement;
     mapCanvas.addEventListener('wheel', (ev) => {
@@ -455,18 +462,22 @@ export class Hud {
     const endDrag = () => { this.mapDrag = null; mapCanvas.style.cursor = ''; };
     mapCanvas.addEventListener('pointerup', endDrag);
     mapCanvas.addEventListener('pointercancel', endDrag);
-    $('#mm-bag').addEventListener('click', () => this.toggleBags());
-    $('#mm-social').addEventListener('click', () => this.toggleSocial());
-    $('#mm-options')?.addEventListener('click', () => this.toggleOptionsMenu());
-    $('#mm-hub')?.addEventListener('click', () => {
-      $('#side-buttons')?.classList.toggle('expanded');
+    $('#mm-bag').addEventListener('click', () => this.onMicroAction(() => this.toggleBags()));
+    $('#mm-social').addEventListener('click', () => this.onMicroAction(() => this.toggleSocial()));
+    $('#mm-options')?.addEventListener('click', () => this.onMicroAction(() => this.toggleOptionsMenu()));
+    $('#mm-hub')?.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const rail = $('#side-buttons');
+      if (!rail) return;
+      rail.classList.toggle('expanded');
+      this.syncMicroHubLabel();
     });
-    $('#mm-arena').addEventListener('click', () => this.toggleArena());
-    $('#mm-leaderboard').addEventListener('click', () => this.toggleLeaderboard());
+    $('#mm-arena').addEventListener('click', () => this.onMicroAction(() => this.toggleArena()));
+    $('#mm-leaderboard').addEventListener('click', () => this.onMicroAction(() => this.toggleLeaderboard()));
     const emoteBtn = $('#mm-emote');
     emoteBtn.addEventListener('click', (ev) => {
       ev.preventDefault();
-      this.toggleEmoteWheel();
+      this.onMicroAction(() => this.toggleEmoteWheel());
     });
     const musicBtn = $('#mm-music');
     const styleMusicBtn = () => {
@@ -479,6 +490,13 @@ export class Hud {
     musicBtn.addEventListener('click', () => {
       music.setEnabled(!music.enabled);
       styleMusicBtn();
+      this.collapseMicroMenu();
+    });
+    document.getElementById('ui')?.addEventListener('pointerdown', (ev) => {
+      if (!this.isMicroMenuExpanded()) return;
+      const rail = $('#side-buttons');
+      if (!rail || rail.contains(ev.target as Node)) return;
+      this.collapseMicroMenu();
     });
     const startZone = zoneAt(sim.player.pos.z);
     const startZoneName = zoneDisplayName(startZone.id);
@@ -941,8 +959,15 @@ export class Hud {
   private drawPortrait(canvas: HTMLCanvasElement, crestId: string): void {
     const ctx = canvas.getContext('2d')!;
     const s = canvas.width;
+    const render = Math.max(s, 108);
+    const src = iconCanvas('crest', crestId, render);
     ctx.clearRect(0, 0, s, s);
-    ctx.drawImage(iconCanvas('crest', crestId, s), 0, 0, s, s);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(src, 0, 0, s, s);
+    ctx.restore();
   }
 
   private itemIcon(item: ItemDef): string {
@@ -1510,31 +1535,68 @@ export class Hud {
     document.querySelectorAll('#actionbar .drop-target').forEach((el) => el.classList.remove('drop-target'));
   }
 
+  private isMicroMenuExpanded(): boolean {
+    return $('#side-buttons')?.classList.contains('expanded') ?? false;
+  }
+
+  private collapseMicroMenu(): void {
+    const rail = $('#side-buttons');
+    if (!rail?.classList.contains('expanded')) return;
+    rail.classList.remove('expanded');
+    this.syncMicroHubLabel();
+  }
+
+  private syncMicroHubLabel(): void {
+    const hub = $('#mm-hub');
+    if (!hub) return;
+    const key = this.isMicroMenuExpanded() ? 'hud.core.menuHubClose' : 'hud.core.menuHub';
+    const label = t(key);
+    hub.setAttribute('aria-label', label);
+    hub.setAttribute('title', label);
+    const hubLabel = hub.querySelector<HTMLElement>('.micro-label');
+    if (hubLabel) hubLabel.textContent = label;
+  }
+
+  private onMicroAction(action: () => void): void {
+    action();
+    this.collapseMicroMenu();
+  }
+
   // Repaint the keycap on every action button from the current bindings.
   private refreshKeybindLabels(): void {
     for (let i = 0; i < this.abilityButtons.length; i++) {
       this.abilityButtons[i].keybindEl.textContent = this.keybinds.primaryLabel(`slot${i}`);
     }
-    const sideButtons: [selector: string, action: string, label: string][] = [
-      ['#mm-char', 'char', 'Character'],
-      ['#mm-spell', 'spellbook', 'Spellbook'],
-      ['#mm-talents', 'talents', 'Talents'],
-      ['#mm-quest', 'questlog', 'Quest Log'],
-      ['#mm-map', 'map', 'Map'],
-      ['#mm-bag', 'bags', 'Bags'],
-      ['#mm-arena', 'arena', 'Arena'],
-      ['#mm-leaderboard', 'leaderboard', 'Leaderboard'],
-      ['#mm-emote', 'emoteWheel', 'Emotes'],
-      ['#mm-social', 'social', 'Friends'],
+    const sideButtons: [string, string, TranslationKey][] = [
+      ['#mm-char', 'char', 'hud.keybinds.actions.char'],
+      ['#mm-spell', 'spellbook', 'hud.keybinds.actions.spellbook'],
+      ['#mm-talents', 'talents', 'game.talents.title'],
+      ['#mm-quest', 'questlog', 'questUi.log.title'],
+      ['#mm-map', 'map', 'hud.keybinds.actions.map'],
+      ['#mm-bag', 'bags', 'hud.keybinds.actions.bags'],
+      ['#mm-arena', 'arena', 'hud.keybinds.actions.arena'],
+      ['#mm-leaderboard', 'leaderboard', 'game.leaderboard.title'],
+      ['#mm-emote', 'emoteWheel', 'hud.core.emotes'],
+      ['#mm-social', 'social', 'hud.keybinds.actions.social'],
+      ['#mm-music', '', 'hud.options.music'],
+      ['#mm-options', '', 'hud.options.gameMenu'],
     ];
-    for (const [selector, action, label] of sideButtons) {
+    for (const [selector, action, labelKey] of sideButtons) {
       const btn = document.querySelector<HTMLElement>(selector);
       if (!btn) continue;
-      const key = this.keybinds.primaryLabel(action);
-      const keyEl = btn.querySelector<HTMLElement>('.keybind');
-      if (keyEl) keyEl.textContent = key.toLowerCase();
-      btn.setAttribute('aria-label', key ? `${label} (${key})` : label);
+      const labelText = t(labelKey);
+      const labelEl = btn.querySelector<HTMLElement>('.micro-label');
+      if (labelEl) labelEl.textContent = labelText;
+      if (action) {
+        const key = this.keybinds.primaryLabel(action);
+        const keyEl = btn.querySelector<HTMLElement>('.keybind');
+        if (keyEl) keyEl.textContent = key.toLowerCase();
+        btn.setAttribute('aria-label', key ? `${labelText} (${key})` : labelText);
+      } else {
+        btn.setAttribute('aria-label', labelText);
+      }
     }
+    this.syncMicroHubLabel();
   }
 
   private buildXpTicks(): void {
@@ -2046,7 +2108,7 @@ export class Hud {
 
   private updateMinimap(): void {
     const ctx = this.minimapCtx;
-    const S = 162;
+    const S = 158;
     const p = this.sim.player;
     $('#zone-label').textContent = zoneDisplayName(zoneAt(p.pos.z).id);
     ctx.clearRect(0, 0, S, S);
@@ -3939,12 +4001,14 @@ export class Hud {
     const className = classDisplayName(cls.id);
     let html = `<div class="panel-title"><span>${esc(p.name)} <span class="panel-subtitle">${esc(t('itemUi.equipment.levelClass', { level: formatNumber(p.level, { maximumFractionDigits: 0 }), className }))}</span></span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
     html += `<div class="paperdoll">
-      <div class="equip-col" id="equip-col"></div>
+      <div class="equip-col equip-col-left" id="equip-col-left"></div>
       <div class="char-model-panel">
         <div id="char-model-preview" class="char-model-preview"></div>
-        <div id="char-skin-row" class="skin-row char-skin-row" role="list" aria-label="Chroma"></div>
+        <div id="char-skin-row" class="skin-row char-skin-row" role="list" data-i18n-aria="itemUi.equipment.chromaList"></div>
       </div>
-    </div>`;
+      <div class="equip-col equip-col-right" id="equip-col-right"></div>
+    </div>
+    <div class="char-sheet-body">`;
     const wpn = sim.equipment.mainhand ? ITEMS[sim.equipment.mainhand] : null;
     const dps = wpn?.weapon ? ((wpn.weapon.min + wpn.weapon.max) / 2 + (p.attackPower / 14) * wpn.weapon.speed) / wpn.weapon.speed : 0;
     html += `<div class="char-stats">
@@ -3957,47 +4021,58 @@ export class Hud {
     </div>`;
     html += this.talentSummaryHtml();
     html += this.progressionHtml(p.level);
+    html += `</div>`;
     el.innerHTML = html;
     el.querySelector('[data-act="prestige"]')?.addEventListener('click', () => this.openPrestigeDialog());
-    const col = el.querySelector('#equip-col')!;
-    const slots: { key: EquipSlot; name: string }[] =
-      EQUIP_SLOTS.map((key) => ({ key, name: itemSlotName(key) }));
-    for (const slot of slots) {
-      const itemId = sim.equipment[slot.key];
-      const item = itemId ? ITEMS[itemId] : null;
-      const row = document.createElement('div');
-      row.className = 'equip-slot';
-      const qColor = !item ? '#666' : QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
-      row.innerHTML = `${item ? this.itemIcon(item) : `<img class="item-icon" style="border-color:#444" src="${iconDataUrl('item', 'slot_empty')}" alt="" draggable="false">`}
-        <div><div class="slot-name">${esc(slot.name)}</div><div class="slot-item" style="color:${qColor}">${item ? esc(itemDisplayName(item)) : esc(t('itemUi.equipment.empty'))}</div></div>`;
-      if (item) {
-        this.attachTooltip(row, () => this.itemTooltip(item, { compare: false }));
-        if (item.use?.type !== 'trinketUse') {
-          row.addEventListener('contextmenu', (ev) => {
-            ev.preventDefault();
-            this.sim.unequipItem(slot.key);
-            this.renderChar();
-            if ($('#bags').style.display === 'block') this.renderBags();
-          });
-        }
-        // On-use trinkets activate when their paperdoll slot is clicked/activated.
-        if (item.use?.type === 'trinketUse' && itemId) {
-          row.setAttribute('role', 'button');
-          row.tabIndex = 0;
-          row.style.cursor = 'pointer';
-          row.setAttribute('aria-label', t('itemUi.equipment.activate', { name: itemDisplayName(item) }));
-          const activate = () => { this.sim.useItem(itemId); };
-          row.addEventListener('click', activate);
-          row.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
-          });
-        }
-      }
-      col.appendChild(row);
-    }
+    const leftCol = el.querySelector('#equip-col-left')!;
+    const rightCol = el.querySelector('#equip-col-right')!;
+    for (const key of PAPERDOLL_LEFT_SLOTS) this.appendEquipSlot(leftCol, key);
+    for (const key of PAPERDOLL_RIGHT_SLOTS) this.appendEquipSlot(rightCol, key);
     this.renderCharPreview();
     this.renderCharSkinPicker();
     el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.hideTooltip(); });
+  }
+
+  private appendEquipSlot(parent: HTMLElement, slotKey: EquipSlot): void {
+    const sim = this.sim;
+    const slotLabel = itemSlotName(slotKey);
+    const itemId = sim.equipment[slotKey];
+    const item = itemId ? ITEMS[itemId] : null;
+    const row = document.createElement('div');
+    row.className = 'equip-slot' + (item ? '' : ' is-empty');
+    row.dataset.slot = slotKey;
+    const iconHtml = item
+      ? this.itemIcon(item)
+      : `<img class="item-icon equip-icon" style="border-color:#444" src="${iconDataUrl('item', 'slot_empty')}" alt="" draggable="false">`;
+    row.innerHTML = `${iconHtml}<span class="equip-empty-label">${esc(slotLabel)}</span>`;
+    const ariaItem = item ? itemDisplayName(item) : t('itemUi.equipment.empty');
+    row.setAttribute('aria-label', `${slotLabel}: ${ariaItem}`);
+    if (item) {
+      row.title = `${slotLabel} — ${itemDisplayName(item)}`;
+      this.attachTooltip(row, () => this.itemTooltip(item, { compare: false }));
+      if (item.use?.type !== 'trinketUse') {
+        row.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          this.sim.unequipItem(slotKey);
+          this.renderChar();
+          if ($('#bags').style.display === 'block') this.renderBags();
+        });
+      }
+      if (item.use?.type === 'trinketUse' && itemId) {
+        row.setAttribute('role', 'button');
+        row.tabIndex = 0;
+        row.style.cursor = 'pointer';
+        row.setAttribute('aria-label', t('itemUi.equipment.activate', { name: itemDisplayName(item) }));
+        const activate = () => { this.sim.useItem(itemId); };
+        row.addEventListener('click', activate);
+        row.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+        });
+      }
+    } else {
+      row.title = slotLabel;
+    }
+    parent.appendChild(row);
   }
 
   private renderCharPreview(): void {
@@ -4021,6 +4096,7 @@ export class Hud {
     const count = skinCount(`player_${cls}`);
     row.innerHTML = '';
     row.style.setProperty('--class-color', classCss(cls));
+    row.setAttribute('aria-label', t('itemUi.equipment.chromaList'));
     if (count <= 1) return;
     const current = Math.max(0, Math.min(count - 1, this.sim.player.skin ?? 0));
     for (let i = 0; i < count; i++) {
@@ -4029,7 +4105,7 @@ export class Hud {
       b.className = 'skin-swatch' + (i === current ? ' sel' : '');
       b.textContent = String(i + 1);
       b.setAttribute('role', 'listitem');
-      b.setAttribute('aria-label', `Chroma ${i + 1}`);
+      b.setAttribute('aria-label', t('itemUi.equipment.chromaOption', { index: i + 1 }));
       b.addEventListener('click', () => {
         row.querySelectorAll('.skin-swatch').forEach((x) => x.classList.remove('sel'));
         b.classList.add('sel');
@@ -5724,6 +5800,7 @@ export class Hud {
     resume.type = 'button';
     resume.className = 'btn opt-nav-btn opt-nav-resume';
     resume.textContent = t('hud.options.returnToGame');
+    resume.title = t('hud.options.returnToGame');
     resume.addEventListener('click', () => { audio.click(); this.closeOptions(); });
     nav.appendChild(resume);
     const navRule = document.createElement('div');
@@ -5734,6 +5811,7 @@ export class Hud {
       btn.type = 'button';
       btn.className = 'btn opt-nav-btn' + (this.optionsView === view.id ? ' active' : '');
       btn.textContent = view.label;
+      btn.title = view.label;
       btn.setAttribute('aria-current', this.optionsView === view.id ? 'page' : 'false');
       btn.addEventListener('click', () => {
         if (this.optionsView === view.id) return;
@@ -5752,6 +5830,7 @@ export class Hud {
     logoutBtn.type = 'button';
     logoutBtn.className = 'btn opt-nav-btn opt-nav-logout';
     logoutBtn.textContent = t('hud.options.logout');
+    logoutBtn.title = t('hud.options.logout');
     logoutBtn.addEventListener('click', () => {
       audio.click();
       this.confirmDialog(
