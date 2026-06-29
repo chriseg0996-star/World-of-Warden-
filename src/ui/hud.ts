@@ -243,7 +243,18 @@ export class Hud {
   // Soft swear terms from the server (online only), masked in chat when the
   // player's "Filter Profanity" setting is on. Fed by main.ts from ClientWorld.
   private profanityWords: string[] = [];
-  private optionsView: 'main' | 'keybinds' | 'graphics' | 'audio' = 'main';
+  private optionsView: 'keybinds' | 'graphics' | 'audio' = 'graphics';
+
+  private optSection(parent: HTMLElement, title: string): HTMLElement {
+    const head = document.createElement('div');
+    head.className = 'opt-section-title';
+    head.textContent = title;
+    parent.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'opt-section';
+    parent.appendChild(body);
+    return body;
+  }
   private capturingKey: { action: string; index: number } | null = null; // binding awaiting a key
   private keybindNote = '';
   private emoteWheelOpen = false;
@@ -5674,7 +5685,7 @@ export class Hud {
   toggleOptionsMenu(): void {
     if (this.optionsOpen) { this.closeOptions(); return; }
     this.closeOtherWindows('#options-menu');
-    this.optionsView = 'main';
+    this.optionsView = 'graphics';
     this.capturingKey = null;
     this.keybindNote = '';
     this.renderOptions();
@@ -5691,29 +5702,76 @@ export class Hud {
     music.resumeFromMenu();
   }
 
+  private optionsContent(): HTMLElement {
+    return $('#opt-content');
+  }
+
   private renderOptions(): void {
-    if (this.optionsView === 'keybinds') { this.renderKeybinds(); return; }
-    if (this.optionsView === 'graphics') { this.renderGraphics(); return; }
-    if (this.optionsView === 'audio') { this.renderAudio(); return; }
     const el = $('#options-menu');
     el.innerHTML = `<div class="panel-title"><span>${esc(t('hud.options.gameMenu'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
-    const list = document.createElement('div');
-    list.className = 'opt-list';
-    const add = (text: string, onClick: () => void) => {
-      const b = document.createElement('button');
-      b.className = 'btn opt-btn';
-      b.textContent = text;
-      b.addEventListener('click', () => { audio.click(); onClick(); });
-      list.appendChild(b);
-    };
-    const goto = (view: 'keybinds' | 'graphics' | 'audio') => { this.optionsView = view; this.keybindNote = ''; this.renderOptions(); };
-    add(t('hud.options.keyBindings'), () => goto('keybinds'));
-    add(t('hud.options.graphics'), () => goto('graphics'));
-    add(t('hud.options.audio'), () => goto('audio'));
-    add(t('hud.options.logout'), () => this.optionsHooks?.logout());
-    add(t('hud.options.returnToGame'), () => this.closeOptions());
-    el.appendChild(list);
+    const layout = document.createElement('div');
+    layout.className = 'opt-layout';
+    const nav = document.createElement('nav');
+    nav.className = 'opt-nav';
+    nav.setAttribute('aria-label', t('hud.options.gameMenu'));
+    const views: Array<{ id: 'keybinds' | 'graphics' | 'audio'; label: string }> = [
+      { id: 'keybinds', label: t('hud.options.navControls') },
+      { id: 'graphics', label: t('hud.options.navDisplay') },
+      { id: 'audio', label: t('hud.options.navSound') },
+    ];
+    const resume = document.createElement('button');
+    resume.type = 'button';
+    resume.className = 'btn opt-nav-btn opt-nav-resume';
+    resume.textContent = t('hud.options.returnToGame');
+    resume.addEventListener('click', () => { audio.click(); this.closeOptions(); });
+    nav.appendChild(resume);
+    const navRule = document.createElement('div');
+    navRule.className = 'opt-nav-rule';
+    nav.appendChild(navRule);
+    for (const view of views) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn opt-nav-btn' + (this.optionsView === view.id ? ' active' : '');
+      btn.textContent = view.label;
+      btn.setAttribute('aria-current', this.optionsView === view.id ? 'page' : 'false');
+      btn.addEventListener('click', () => {
+        if (this.optionsView === view.id) return;
+        audio.click();
+        this.optionsView = view.id;
+        this.capturingKey = null;
+        this.keybindNote = '';
+        this.renderOptions();
+      });
+      nav.appendChild(btn);
+    }
+    const spacer = document.createElement('div');
+    spacer.className = 'opt-nav-spacer';
+    nav.appendChild(spacer);
+    const logoutBtn = document.createElement('button');
+    logoutBtn.type = 'button';
+    logoutBtn.className = 'btn opt-nav-btn opt-nav-logout';
+    logoutBtn.textContent = t('hud.options.logout');
+    logoutBtn.addEventListener('click', () => {
+      audio.click();
+      this.confirmDialog(
+        t('hud.options.logoutConfirmTitle'),
+        t('hud.options.logoutConfirmBody'),
+        t('hud.options.logout'),
+        t('deleteCharacter.cancel'),
+        () => this.optionsHooks?.logout(),
+      );
+    });
+    nav.appendChild(logoutBtn);
+    layout.appendChild(nav);
+    const content = document.createElement('div');
+    content.id = 'opt-content';
+    content.className = 'opt-content';
+    layout.appendChild(content);
+    el.appendChild(layout);
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
+    if (this.optionsView === 'keybinds') this.renderKeybinds();
+    else if (this.optionsView === 'graphics') this.renderGraphics();
+    else this.renderAudio();
   }
 
   // A labelled slider bound to a numeric setting; live-applies via the hook.
@@ -5840,34 +5898,31 @@ export class Hud {
     sync();
   }
 
-  private settingsViewShell(title: string): HTMLElement {
-    const el = $('#options-menu');
-    el.innerHTML = `<div class="panel-title"><span>${esc(title)}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
+  private settingsViewBody(): HTMLElement {
     const body = document.createElement('div');
     body.className = 'set-rows';
-    el.appendChild(body);
+    this.optionsContent().appendChild(body);
     return body;
   }
 
-  private settingsViewFooter(): void {
-    const el = $('#options-menu');
+  private settingsViewFooter(parent: HTMLElement): void {
+    const hooks = this.optionsHooks;
+    if (!hooks) return;
+    const footer = document.createElement('div');
+    footer.className = 'opt-content-footer';
     const reset = document.createElement('button');
+    reset.type = 'button';
     reset.className = 'btn';
     reset.textContent = t('hud.options.resetToDefaults');
     reset.addEventListener('click', () => {
       audio.click();
-      this.optionsHooks?.settings.reset();
-      // re-apply every setting to its subsystem, then redraw the view
-      const all = this.optionsHooks?.settings.all();
-      if (all) for (const k of Object.keys(all) as (keyof GameSettings)[]) this.optionsHooks?.onSettingChange(k, all[k]);
+      hooks.settings.reset();
+      const all = hooks.settings.all();
+      for (const k of Object.keys(all) as (keyof GameSettings)[]) hooks.onSettingChange(k, all[k]);
       this.renderOptions();
     });
-    const back = document.createElement('button');
-    back.className = 'btn';
-    back.textContent = t('hud.options.back');
-    back.addEventListener('click', () => { audio.click(); this.optionsView = 'main'; this.renderOptions(); });
-    el.append(reset, back);
-    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
+    footer.appendChild(reset);
+    parent.appendChild(footer);
   }
 
   private refreshGraphicsAdaptiveNote(): void {
@@ -5891,53 +5946,54 @@ export class Hud {
   }
 
   private renderGraphics(): void {
-    const body = this.settingsViewShell(t('hud.options.graphics'));
-    this.settingChoice(body, t('hud.options.graphicsQuality'), 'graphicsPreset', [
+    const content = this.optionsContent();
+    const gfx = this.optSection(content, t('hud.options.sectionGraphics'));
+    this.settingChoice(gfx, t('hud.options.graphicsQuality'), 'graphicsPreset', [
       { value: 0, label: t('hud.options.graphicsPresetAuto') },
       { value: 1, label: t('hud.options.graphicsPresetLow') },
       { value: 2, label: t('hud.options.graphicsPresetMedium') },
       { value: 3, label: t('hud.options.graphicsPresetHigh') },
       { value: 4, label: t('hud.options.graphicsPresetUltra') },
       { value: 5, label: t('hud.options.graphicsPresetAdvanced') },
-    ], () => this.renderGraphics());
+    ], () => this.renderOptions());
     if (Math.round(this.optionsHooks?.settings.get('graphicsPreset') ?? 0) === 5) {
-      this.settingChoice(body, t('hud.options.terrainDetail'), 'terrainDetail', [
+      const adv = this.optSection(content, t('hud.options.sectionAdvanced'));
+      this.settingChoice(adv, t('hud.options.terrainDetail'), 'terrainDetail', [
         { value: 0, label: t('hud.options.terrainLow') },
         { value: 1, label: t('hud.options.terrainHigh') },
       ]);
-      this.settingChoice(body, t('hud.options.foliageDensity'), 'foliageDensity', [
+      this.settingChoice(adv, t('hud.options.foliageDensity'), 'foliageDensity', [
         { value: 0, label: t('hud.options.terrainLow') },
         { value: 1, label: t('hud.options.terrainHigh') },
       ]);
-      this.settingChoice(body, t('hud.options.effectsQuality'), 'effectsQuality', [
+      this.settingChoice(adv, t('hud.options.effectsQuality'), 'effectsQuality', [
         { value: 0, label: t('hud.options.terrainLow') },
         { value: 1, label: t('hud.options.terrainHigh') },
       ]);
-      this.settingChoice(body, t('hud.options.shadowQuality'), 'shadowQuality', [
+      this.settingChoice(adv, t('hud.options.shadowQuality'), 'shadowQuality', [
         { value: 0, label: t('hud.options.terrainLow') },
         { value: 1, label: t('hud.options.terrainHigh') },
       ]);
     }
-    this.settingSlider(body, t('hud.options.cameraSpeed'), 'cameraSpeed');
-    this.settingBool(body, t('hud.options.invertMouseY'), 'invertMouseY');
-    // Camera Speed only scales mouselook; on touch the camera joystick has its
-    // own rate, so phones get a dedicated sensitivity slider here.
-    if (isPhoneTouchDevice()) this.settingSlider(body, t('hud.options.touchLookSpeed'), 'touchLookSpeed');
-    this.settingSlider(body, t('hud.options.brightness'), 'brightness');
-    this.settingSlider(body, t('hud.options.renderQuality'), 'renderScale');
+    const camera = this.optSection(content, t('hud.options.sectionCamera'));
+    this.settingSlider(camera, t('hud.options.cameraSpeed'), 'cameraSpeed');
+    this.settingBool(camera, t('hud.options.invertMouseY'), 'invertMouseY');
+    if (isPhoneTouchDevice()) this.settingSlider(camera, t('hud.options.touchLookSpeed'), 'touchLookSpeed');
+    const iface = this.optSection(content, t('hud.options.sectionInterface'));
+    this.settingSlider(iface, t('hud.options.brightness'), 'brightness');
+    this.settingSlider(iface, t('hud.options.renderQuality'), 'renderScale');
     this.graphicsAdaptiveEl = document.createElement('div');
     this.graphicsAdaptiveEl.className = 'set-note';
-    body.appendChild(this.graphicsAdaptiveEl);
+    iface.appendChild(this.graphicsAdaptiveEl);
     this.refreshGraphicsAdaptiveNote();
-    this.settingBool(body, t('game.settings.showNameplates'), 'showNameplates');
-    this.settingToggle(body, t('hud.options.fullscreen'), 'fullscreen');
-    this.settingToggle(body, t('game.settings.showOverflowXp'), 'showOverflowXp');
-    // Touch-only: lets phone players dim the on-screen joysticks + buttons.
-    if (isPhoneTouchDevice()) this.settingSlider(body, t('hud.options.touchOpacity'), 'touchOpacity');
+    this.settingBool(iface, t('game.settings.showNameplates'), 'showNameplates');
+    this.settingToggle(iface, t('hud.options.fullscreen'), 'fullscreen');
+    this.settingToggle(iface, t('game.settings.showOverflowXp'), 'showOverflowXp');
+    if (isPhoneTouchDevice()) this.settingSlider(iface, t('hud.options.touchOpacity'), 'touchOpacity');
     const note = document.createElement('div');
     note.className = 'set-note';
     note.textContent = t('hud.options.graphicsNote');
-    $('#options-menu').appendChild(note);
+    content.appendChild(note);
     const reloadNote = document.createElement('div');
     reloadNote.className = 'set-note';
     reloadNote.textContent = t('hud.options.graphicsReloadNote');
@@ -5946,12 +6002,13 @@ export class Hud {
     reload.className = 'btn';
     reload.textContent = t('hud.options.reloadNow');
     reload.addEventListener('click', () => { audio.click(); location.reload(); });
-    $('#options-menu').append(reloadNote, reload);
-    this.settingsViewFooter();
+    content.append(reloadNote, reload);
+    this.settingsViewFooter(content);
   }
 
   private renderAudio(): void {
-    const body = this.settingsViewShell(t('hud.options.audio'));
+    const content = this.optionsContent();
+    const body = this.settingsViewBody();
     this.settingSlider(body, t('hud.options.soundEffects'), 'sfxVolume');
     this.settingSlider(body, t('hud.options.musicVolume'), 'musicVolume');
     const row = document.createElement('div');
@@ -5971,7 +6028,7 @@ export class Hud {
     toggle.addEventListener('click', () => { audio.click(); music.setEnabled(!music.enabled); sync(); });
     row.append(name, toggle);
     body.appendChild(row);
-    this.settingsViewFooter();
+    this.settingsViewFooter(content);
   }
 
   // Display name for an action row. Action-bar slots show the shortcut that
@@ -6048,17 +6105,18 @@ export class Hud {
   }
 
   private renderKeybinds(): void {
-    const el = $('#options-menu');
-    el.innerHTML = `<div class="panel-title"><span>${esc(t('hud.options.keyBindings'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
-    this.settingToggleKeybind(el, t('hud.options.mouseCamera'), 'mouseCamera');
-    this.settingToggleKeybind(el, t('hud.options.clickToMove'), 'clickToMove');
-    this.clickMoveMouseButtonRow(el);
-    this.settingToggleKeybind(el, t('hud.options.leftHandedTouch'), 'leftHandedTouch');
-    this.settingToggleKeybind(el, t('hud.options.filterProfanity'), 'filterProfanity');
+    const content = this.optionsContent();
+    const move = this.optSection(content, t('hud.options.sectionMovement'));
+    this.settingToggleKeybind(move, t('hud.options.mouseCamera'), 'mouseCamera');
+    this.settingToggleKeybind(move, t('hud.options.clickToMove'), 'clickToMove');
+    this.clickMoveMouseButtonRow(move);
+    this.settingToggleKeybind(move, t('hud.options.leftHandedTouch'), 'leftHandedTouch');
+    this.settingToggleKeybind(move, t('hud.options.filterProfanity'), 'filterProfanity');
+    const keys = this.optSection(content, t('hud.options.sectionKeys'));
     const note = document.createElement('div');
     note.className = 'kb-note';
     note.textContent = this.keybindNote || t('hud.options.keybindHelpMouseCamera');
-    el.appendChild(note);
+    keys.appendChild(note);
     const rows = document.createElement('div');
     rows.className = 'kb-rows';
     for (const category of BIND_CATEGORIES) {
@@ -6093,8 +6151,11 @@ export class Hud {
         rows.appendChild(row);
       }
     }
-    el.appendChild(rows);
+    keys.appendChild(rows);
+    const footer = document.createElement('div');
+    footer.className = 'opt-content-footer';
     const reset = document.createElement('button');
+    reset.type = 'button';
     reset.className = 'btn';
     reset.textContent = t('hud.options.resetToDefaults');
     reset.addEventListener('click', () => {
@@ -6103,14 +6164,10 @@ export class Hud {
       this.capturingKey = null;
       this.keybindNote = t('hud.options.keybindReset');
       this.refreshKeybindLabels();
-      this.renderKeybinds();
+      this.renderOptions();
     });
-    const back = document.createElement('button');
-    back.className = 'btn';
-    back.textContent = t('hud.options.back');
-    back.addEventListener('click', () => { audio.click(); this.optionsView = 'main'; this.capturingKey = null; this.renderOptions(); });
-    el.append(reset, back);
-    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
+    footer.appendChild(reset);
+    content.appendChild(footer);
   }
 
   private beginCapture(actionId: string, index: number, fallbackLabel: string): void {
@@ -6118,7 +6175,7 @@ export class Hud {
     const name = this.actionDisplayName(actionId, fallbackLabel);
     this.capturingKey = { action: actionId, index };
     this.keybindNote = t('hud.options.keybindCapture', { action: name });
-    this.renderKeybinds();
+    this.renderOptions();
     this.optionsHooks.captureKey((code) => {
       this.capturingKey = null;
       if (code === null) {
@@ -6130,7 +6187,7 @@ export class Hud {
         this.refreshKeybindLabels();
       }
       // re-render only if the menu is still open (player may have closed it)
-      if (this.optionsOpen) this.renderKeybinds();
+      if (this.optionsOpen) this.renderOptions();
     });
   }
 

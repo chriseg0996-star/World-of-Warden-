@@ -258,7 +258,8 @@ function optimizedScene(url: string): THREE.Object3D {
   const hit = optimizedSceneCache.get(url);
   if (hit) return hit;
   const root = cloneSkinned(resolvedGltf(url).scene);
-  mergeSkinnedParts(root);
+  // KayKit rigs animate bones, not mesh nodes — merging skinned parts has
+  // produced bind-pose/T-pose bodies when weight/normal layouts diverge.
   optimizedSceneCache.set(url, root);
   return root;
 }
@@ -329,7 +330,8 @@ export function assembleModel(def: VisualDef): THREE.Object3D {
   // so a skin override hits them but not the separate weapons attached below
   root.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.userData.bodyMesh = true; });
   // KayKit characters ship every accessory mesh visible; keep only the kit
-  if (def.show) {
+  // entries listed in def.show. An empty array means "default look" (no filter).
+  if (def.show && def.show.length > 0) {
     const keep = new Set(def.show);
     root.traverse((o) => {
       const mesh = o as THREE.Mesh;

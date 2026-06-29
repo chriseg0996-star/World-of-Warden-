@@ -4,7 +4,7 @@
   "version": "0.7.0",
   "identifier": "com.wardenfall.game",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "node scripts/ensure_vite_for_tauri.mjs",
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "npm run build:desktop",
     "frontendDist": "../dist"

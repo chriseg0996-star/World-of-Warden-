@@ -390,8 +390,79 @@ function requestPreferredFullscreen(): void {
 // ---------------------------------------------------------------------------
 
 const LOADING_FADE_MS = 350; // keep in sync with the #loading-screen CSS transition
+const LOAD_ASSET_MAX = 0.72; // asset fetches map to 0–72% (never pin near 100%)
+const LOAD_BUILD_END = 0.97; // scene build eases 72→97% on the compositor
 
 let loadingHideTimer: number | null = null;
+let loadBarDisplay = 0;
+let loadBarTarget = 0;
+let loadBarRaf: number | null = null;
+
+function applyLoadBar(fraction: number): void {
+  $('#ls-fill').style.setProperty('--load', String(Math.min(0.995, fraction)));
+}
+
+function stopLoadBarTicker(): void {
+  if (loadBarRaf !== null) {
+    cancelAnimationFrame(loadBarRaf);
+    loadBarRaf = null;
+  }
+}
+
+function startLoadBarTicker(): void {
+  if (loadBarRaf !== null) return;
+  const tick = (): void => {
+    const gap = loadBarTarget - loadBarDisplay;
+    if (gap > 0.0004) {
+      // Steady creep so the bar never freezes when one asset lags at the end.
+      const step = Math.max(gap * 0.14, 0.0018);
+      loadBarDisplay = Math.min(loadBarTarget, loadBarDisplay + step);
+      const fill = $('#ls-fill');
+      fill.style.transition = 'none';
+      applyLoadBar(loadBarDisplay);
+    }
+    loadBarRaf = requestAnimationFrame(tick);
+  };
+  loadBarRaf = requestAnimationFrame(tick);
+}
+
+function resetLoadingProgress(): void {
+  stopLoadBarTicker();
+  loadBarDisplay = 0;
+  loadBarTarget = 0;
+  const fill = $('#ls-fill');
+  fill.style.transition = 'transform .15s ease-out';
+  applyLoadBar(0);
+}
+
+function setAssetLoadingProgress(done: number, total: number): void {
+  const frac = total > 0 ? done / total : 0;
+  loadBarTarget = frac * LOAD_ASSET_MAX;
+  if (loadBarTarget < loadBarDisplay) loadBarTarget = loadBarDisplay;
+  startLoadBarTicker();
+  setLoadingStatus(t('loading.worldProgress', { done, total }));
+}
+
+function beginBuildLoadingProgress(): void {
+  setLoadingStatus(t('loading.enteringWorld'));
+  stopLoadBarTicker();
+  loadBarTarget = LOAD_BUILD_END;
+  loadBarDisplay = Math.max(loadBarDisplay, LOAD_ASSET_MAX);
+  const fill = $('#ls-fill');
+  // transform transitions keep moving during the synchronous Renderer/Hud build.
+  fill.style.transition = 'transform 3.5s linear';
+  applyLoadBar(LOAD_BUILD_END);
+  loadBarDisplay = LOAD_BUILD_END;
+}
+
+function completeLoadingProgress(): void {
+  stopLoadBarTicker();
+  const fill = $('#ls-fill');
+  fill.style.transition = 'transform .2s ease-out';
+  applyLoadBar(1);
+  loadBarDisplay = 1;
+  loadBarTarget = 1;
+}
 
 function showLoadingScreen(statusText: string): void {
   const el = $('#loading-screen');
@@ -401,16 +472,12 @@ function showLoadingScreen(statusText: string): void {
   }
   el.classList.remove('fade');
   el.classList.add('visible');
+  resetLoadingProgress();
   setLoadingStatus(statusText);
 }
 
 function setLoadingStatus(text: string): void {
   $('#ls-status').textContent = text;
-}
-
-function setLoadingProgress(done: number, total: number): void {
-  $('#ls-fill').style.width = total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
-  setLoadingStatus(t('loading.worldProgress', { done, total }));
 }
 
 function hideLoadingScreen(): void {
@@ -502,14 +569,13 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
       import('./render/renderer'),
       import('./ui/hud'),
     ]);
-    await assetsReady((done, total) => setLoadingProgress(done, total));
+    await assetsReady((done, total) => setAssetLoadingProgress(done, total));
   } catch (err) {
     fatalOverlay(t('loading.assetsFailed', { error: technicalErrorMessage(err) }));
     return;
   }
-  setLoadingStatus(t('loading.enteringWorld'));
-  // Let the final status + full progress bar paint before the synchronous
-  // Renderer/Hud build freezes the main thread for a beat.
+  beginBuildLoadingProgress();
+  // Let the build-phase bar animation start before the synchronous scene build.
   await nextPaint();
   mountGameUi();
 
@@ -534,6 +600,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
     fatalOverlay(t('loading.rendererFailed', { error: technicalErrorMessage(err) }));
     return;
   }
+  completeLoadingProgress();
 
   const chatInput = $('#chat-input') as unknown as HTMLInputElement;
   const clickMoveMarker = $('#click-move-marker') as HTMLDivElement;

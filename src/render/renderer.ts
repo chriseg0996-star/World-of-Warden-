@@ -1155,12 +1155,13 @@ export class Renderer {
       const x = e.prevPos.x + (e.pos.x - e.prevPos.x) * ea;
       const y = e.prevPos.y + (e.pos.y - e.prevPos.y) * ea;
       const z = e.prevPos.z + (e.pos.z - e.prevPos.z) * ea;
+      const vx = x - v.lastX;
+      const vz = z - v.lastZ;
       v.group.position.set(x, y, z);
-      let facing = e.prevFacing + shortestAngle(e.prevFacing, e.facing) * ea;
-      if (id === p.id && renderFacingOverride !== null) facing = renderFacingOverride;
-      v.group.rotation.y = facing;
 
       if (e.kind === 'object') {
+        v.lastX = x;
+        v.lastZ = z;
         const vis = e.lootable;
         v.group.visible = vis;
         if (v.sparkle && vis) {
@@ -1177,6 +1178,17 @@ export class Renderer {
         }
         continue;
       }
+      let facing = e.prevFacing + shortestAngle(e.prevFacing, e.facing) * ea;
+      if (id === p.id && renderFacingOverride !== null) facing = renderFacingOverride;
+      else if (e.kind !== 'player') {
+        const simDx = e.pos.x - e.prevPos.x;
+        const simDz = e.pos.z - e.prevPos.z;
+        if (simDx * simDx + simDz * simDz > 1e-10) {
+          facing = Math.atan2(simDx, simDz);
+        }
+      }
+      v.group.rotation.y = facing;
+
       if (!v.visual) continue;
 
       // live skin swap — appearance changed (in-game changer or a multiplayer peer)
@@ -1217,10 +1229,12 @@ export class Renderer {
 
       // animation state machine inputs, derived from render-space motion with
       // hysteresis so a one-frame speed dip can't reset the walk clip
-      const vx = x - v.lastX, vz = z - v.lastZ;
       v.lastX = x;
       v.lastZ = z;
-      const loco = updateLocomotion(v.loco, vx, vz, facing, dt);
+      const loco = updateLocomotion(
+        v.loco, vx, vz, facing, dt,
+        id === p.id ? this.sim.moveInput : undefined,
+      );
       const moving = loco.moving;
       const visuallyDead = isVisuallyDead(e);
       // `onGround` is authoritative offline but is never sent in online snapshots
@@ -1237,18 +1251,16 @@ export class Renderer {
         moving,
         airborne,
         backwards: loco.backwards,
+        strafeLeft: loco.strafeLeft,
+        strafeRight: loco.strafeRight,
         dead: visuallyDead,
         casting: e.castingAbility !== null && !visuallyDead,
         swimming,
         sitting: e.kind === 'player' && (e.sitting || e.eating !== null || e.drinking !== null),
       };
-      // distance-tiered mixer updates: near = every frame, mid = every 2nd,
-      // far (static LOD mesh visible) = every 6th; edges latch regardless
-      let animate = true;
-      if (id !== p.id) {
-        if (v.isFar) animate = ((this.frameIdx + e.id) % 6) === 0;
-        else if (d2 > ENTITY_SHADOW_RANGE_SQ) animate = ((this.frameIdx + e.id) & 1) === 0;
-      }
+      // Always integrate the mixer for visible skinned rigs (throttling left
+      // actions at weight 0 → bind-pose/T-pose). Far LOD uses a static mesh.
+      const animate = id === p.id || !v.isFar;
       active.update(dt, st, animate);
 
       const emoteId = e.kind === 'player' && e.overheadEmoteId && !e.dead ? e.overheadEmoteId : null;

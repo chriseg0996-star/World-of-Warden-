@@ -10,7 +10,7 @@
     "build": "node scripts/build_media_manifest.mjs generate && vite build && node scripts/build_media_manifest.mjs emit",
     "build:desktop": "node scripts/build_desktop.mjs",
     "desktop:icons": "node scripts/prepare_tauri_icons.mjs",
-    "desktop:dev": "node scripts/prepare_tauri_icons.mjs && tauri dev",
+    "desktop:dev": "node scripts/tauri_dev.mjs",
     "desktop:build": "node scripts/prepare_tauri_icons.mjs && tauri build",
     "preview": "vite preview",
     "test": "vitest run",

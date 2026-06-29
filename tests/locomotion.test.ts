@@ -47,16 +47,71 @@ describe('locomotion hysteresis', () => {
     expect(s.moving).toBe(false);
   });
 
-  it('keeps the backpedal direction through a stalled frame', () => {
+  it('does not flag strafe visuals without a held-key hint (NPCs / guards)', () => {
     const t = newLocoTrack();
-    // facing +Z (0); travel toward -Z is backwards
-    for (let i = 0; i < 10; i++) updateLocomotion(t, 0, -2.2 * FPS, 0, FPS);
-    const moving = updateLocomotion(t, 0, -2.2 * FPS, 0, FPS);
+    for (let i = 0; i < 10; i++) updateLocomotion(t, 2.2 * FPS, 0, 0, FPS);
+    const s = updateLocomotion(t, 2.2 * FPS, 0, 0, FPS);
+    expect(s.strafeRight).toBe(false);
+    expect(s.moving).toBe(true);
+    const hinted = updateLocomotion(t, 2.2 * FPS, 0, 0, FPS, {
+      forward: false, back: false, strafeLeft: false, strafeRight: true,
+    });
+    expect(hinted.strafeRight).toBe(true);
+  });
+
+  it('uses held-key hints for stable pure strafe on the local player', () => {
+    const t = newLocoTrack();
+    const hint = { forward: false, back: false, strafeLeft: true, strafeRight: false };
+    for (let i = 0; i < 10; i++) updateLocomotion(t, 0, 0, 0, FPS, hint);
+    const s = updateLocomotion(t, 0, 0, 0, FPS, hint);
+    expect(s.moving).toBe(false);
+    expect(s.strafeLeft).toBe(false);
+    // with movement + hint, direction is stable even if velocity is noisy
+    const moving = updateLocomotion(t, 2.2 * FPS, 0, 0, FPS, hint);
+    expect(moving.strafeLeft).toBe(true);
+    const noisy = updateLocomotion(t, 0.01, 2.2 * FPS, 0, FPS, hint);
+    expect(noisy.strafeLeft).toBe(true);
+  });
+
+  it('tracks lateral velocity but hides strafe visuals without input', () => {
+    const t = newLocoTrack();
+    // facing +Z; travel +X is lateral
+    for (let i = 0; i < 10; i++) updateLocomotion(t, 2.2 * FPS, 0, 0, FPS);
+    const s = updateLocomotion(t, 2.2 * FPS, 0, 0, FPS);
+    expect(s.moving).toBe(true);
+    expect(s.strafeRight).toBe(false);
+    expect(s.strafeLeft).toBe(false);
+    expect(s.backwards).toBe(false);
+  });
+
+  it('keeps strafe direction through a stalled frame with input hint', () => {
+    const t = newLocoTrack();
+    const hint = { forward: false, back: false, strafeLeft: true, strafeRight: false };
+    for (let i = 0; i < 10; i++) updateLocomotion(t, -2.2 * FPS, 0, 0, FPS, hint);
+    const moving = updateLocomotion(t, -2.2 * FPS, 0, 0, FPS, hint);
+    expect(moving.strafeLeft).toBe(true);
+    const stalled = updateLocomotion(t, 0, 0, 0, FPS, hint);
+    expect(stalled.moving).toBe(true);
+    expect(stalled.strafeLeft).toBe(true);
+  });
+
+  it('keeps the backpedal direction through a stalled frame with input', () => {
+    const t = newLocoTrack();
+    const hint = { forward: false, back: true, strafeLeft: false, strafeRight: false };
+    for (let i = 0; i < 10; i++) updateLocomotion(t, 0, -2.2 * FPS, 0, FPS, hint);
+    const moving = updateLocomotion(t, 0, -2.2 * FPS, 0, FPS, hint);
     expect(moving.backwards).toBe(true);
-    // a stalled frame must not flip walkBack -> walk
-    const stalled = updateLocomotion(t, 0, 0, 0, FPS);
+    const stalled = updateLocomotion(t, 0, 0, 0, FPS, hint);
     expect(stalled.moving).toBe(true);
     expect(stalled.backwards).toBe(true);
+  });
+
+  it('does not flag backwards for NPCs without input (interp noise)', () => {
+    const t = newLocoTrack();
+    for (let i = 0; i < 10; i++) updateLocomotion(t, 0, -2.2 * FPS, 0, FPS);
+    const s = updateLocomotion(t, 0, -2.2 * FPS, 0, FPS);
+    expect(s.moving).toBe(true);
+    expect(s.backwards).toBe(false);
   });
 
   it('treats a teleport snap as not moving', () => {

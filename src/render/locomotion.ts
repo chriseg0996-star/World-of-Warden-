@@ -12,22 +12,63 @@ export const MOVE_ENTER_SPEED = 0.4; // u/s above which an entity is "moving"
 export const MOVE_HOLD_TIME = 0.22; // s to keep "moving" latched after speed dips
 export const SPEED_SMOOTH_RATE = 12; // EMA rate for the cadence-driving speed
 const TELEPORT_SPEED = 25; // u/s above this is a snap, not locomotion
+const STRAFE_DOMINANCE = 0.35;
+const STRAFE_EXIT_FORWARD = 0.55; // stay in strafe until forward dominates
+const BACKPEDAL_DOT = -0.3;
+
+function dirFromVelocity(
+  fwd: number, right: number, prev: LocoMoveDir,
+): LocoMoveDir {
+  if (fwd < BACKPEDAL_DOT) return 'back';
+  const absR = Math.abs(right);
+  const absF = Math.abs(fwd);
+  if (prev === 'strafeLeft' || prev === 'strafeRight') {
+    if (absR > 0.25 && absR >= absF) return right > 0 ? 'strafeRight' : 'strafeLeft';
+    if (absF > STRAFE_EXIT_FORWARD) return 'forward';
+    return prev;
+  }
+  if (absR > STRAFE_DOMINANCE && absR >= absF) return right > 0 ? 'strafeRight' : 'strafeLeft';
+  return 'forward';
+}
+
+function dirFromInput(hint: LocoInputHint): LocoMoveDir | null {
+  const { forward, back, strafeLeft, strafeRight } = hint;
+  const lat = strafeLeft || strafeRight;
+  if (!forward && !back && strafeLeft && !strafeRight) return 'strafeLeft';
+  if (!forward && !back && strafeRight && !strafeLeft) return 'strafeRight';
+  if (back && !forward && !lat) return 'back';
+  if (forward && !back && !lat) return 'forward';
+  if (lat && !forward && !back) return strafeRight ? 'strafeRight' : 'strafeLeft';
+  return null;
+}
+
+export type LocoMoveDir = 'forward' | 'back' | 'strafeLeft' | 'strafeRight';
+
+/** Optional held-key hint (local player) — stable vs noisy render velocity. */
+export interface LocoInputHint {
+  forward: boolean;
+  back: boolean;
+  strafeLeft: boolean;
+  strafeRight: boolean;
+}
 
 /** Per-entity hysteresis state; the renderer keeps one of these per view. */
 export interface LocoTrack {
   moveHold: number;
   smoothSpeed: number;
-  movingBackwards: boolean;
+  movingDir: LocoMoveDir;
 }
 
 export interface LocoState {
   speed: number; // smoothed, for footstep cadence matching
   moving: boolean;
   backwards: boolean;
+  strafeLeft: boolean;
+  strafeRight: boolean;
 }
 
 export function newLocoTrack(): LocoTrack {
-  return { moveHold: 0, smoothSpeed: 0, movingBackwards: false };
+  return { moveHold: 0, smoothSpeed: 0, movingDir: 'forward' };
 }
 
 /**
@@ -39,6 +80,7 @@ export function newLocoTrack(): LocoTrack {
  */
 export function updateLocomotion(
   t: LocoTrack, vx: number, vz: number, facing: number, dt: number,
+  input?: LocoInputHint,
 ): LocoState {
   const dist = Math.hypot(vx, vz);
   let speed = dist / Math.max(dt, 1e-4);
@@ -55,12 +97,35 @@ export function updateLocomotion(
   }
 
   // only re-judge direction on frames with real displacement; a stalled frame
-  // keeps the last direction so walkBack doesn't flip to walk and reset
+  // keeps the last direction so walkBack/strafe clips don't flip and reset
   if (speed > MOVE_ENTER_SPEED && dist > 1e-6) {
-    t.movingBackwards = (vx * Math.sin(facing) + vz * Math.cos(facing)) / dist < -0.3;
+    const inputDir = input ? dirFromInput(input) : null;
+    if (inputDir) {
+      t.movingDir = inputDir;
+    } else if (input) {
+      // Diagonal / mixed keys: fall back to velocity vs facing for the player.
+      const fwd = (vx * Math.sin(facing) + vz * Math.cos(facing)) / dist;
+      const right = (vx * Math.cos(facing) - vz * Math.sin(facing)) / dist;
+      t.movingDir = dirFromVelocity(fwd, right, t.movingDir);
+    } else {
+      // NPCs/mobs: always forward walk/run — render velocity vs facing is noisy
+      // during snapshot interpolation and would flip walkBack / strafe clips.
+      t.movingDir = 'forward';
+    }
   } else if (!moving) {
-    t.movingBackwards = false;
+    t.movingDir = 'forward';
   }
 
-  return { speed: t.smoothSpeed, moving, backwards: moving && t.movingBackwards };
+  const strafeL = moving && t.movingDir === 'strafeLeft';
+  const strafeR = moving && t.movingDir === 'strafeRight';
+  // Lateral lean / strafe visuals are player-only (A/D rebound).
+  const strafeVisual = !!input && (strafeL || strafeR);
+
+  return {
+    speed: t.smoothSpeed,
+    moving,
+    backwards: !!input && moving && t.movingDir === 'back',
+    strafeLeft: strafeVisual && strafeL,
+    strafeRight: strafeVisual && strafeR,
+  };
 }

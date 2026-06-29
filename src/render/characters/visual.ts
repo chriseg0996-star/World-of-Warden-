@@ -19,6 +19,9 @@ export interface AnimState {
   airborne: boolean;
   /** moving against facing (players backpedaling) */
   backwards: boolean;
+  /** lateral travel relative to facing */
+  strafeLeft: boolean;
+  strafeRight: boolean;
   dead: boolean;
   casting: boolean;
   swimming: boolean;
@@ -33,6 +36,8 @@ const RUN_SPEED_THRESHOLD = 4.5; // u/s — sim walk/wander sits well below
 const HIT_REACT_COOLDOWN = 0.38;
 const DEFAULT_WALK_REF = 2.2;
 const DEFAULT_RUN_REF = 7;
+const LOCO_CROSSFADE = 0.14;
+const STRAFE_LEAN = 0.11; // subtle lateral tilt while A/D strafing (WoW rebound style)
 // Lie_Idle already lays the rig flat — a touch of extra pitch reads as a
 // surface glide; clip-less rigs (creatures) get the full procedural prone
 const SWIM_PITCH_CLIP = 0.35;
@@ -100,6 +105,7 @@ export class CharacterVisual {
   private hitCooldown = 0;
   private knockX = 0;
   private knockZ = 0;
+  private strafeLean = 0;
   private pendingDt = 0;
   private swimPitch = 0;
 
@@ -171,8 +177,13 @@ export class CharacterVisual {
 
     const idle = this.action(this.def.clips.idle);
     if (idle) {
-      idle.play();
+      idle.reset().fadeIn(0).play();
+      idle.enabled = true;
+      idle.setEffectiveWeight(1);
       this.current = idle;
+      this.baseState = 'idle';
+      this.mixer.update(0);
+      this.updateSkeletons();
     }
   }
 
@@ -206,7 +217,7 @@ export class CharacterVisual {
         this.currentOneShotIsEmote = false;
         this.fadeTo(this.baseAction(), FADE, false);
       } else if (baseChanged && !this.currentIsOneShot) {
-        this.fadeTo(this.baseAction(), FADE, false);
+        this.fadeTo(this.baseAction(), LOCO_CROSSFADE, false);
       }
       // foot-speed matching on locomotion cycles
       if (!this.currentIsOneShot && this.current) {
@@ -223,7 +234,11 @@ export class CharacterVisual {
     const wantPitch = s.swimming && !s.dead ? proneAngle : 0;
     this.swimPitch += (wantPitch - this.swimPitch) * Math.min(1, dt * 8);
     this.poseWrap.rotation.x = this.swimPitch;
-    this.poseWrap.rotation.z = 0;
+    const wantLean = !s.swimming && !s.dead && s.moving
+      ? (s.strafeLeft ? STRAFE_LEAN : s.strafeRight ? -STRAFE_LEAN : 0)
+      : 0;
+    this.strafeLean += (wantLean - this.strafeLean) * Math.min(1, dt * 12);
+    this.poseWrap.rotation.z = s.swimming || s.dead ? 0 : this.strafeLean;
     this.poseWrap.position.y = s.swimming && !s.dead
       ? SWIM_RISE + Math.sin(performance.now() / 500 + this.bobPhase) * 0.08
       : 0;
@@ -242,8 +257,16 @@ export class CharacterVisual {
     this.pendingDt = Math.min(MIXER_DT_CAP, this.pendingDt + dt);
     if (animate) {
       this.mixer.update(this.pendingDt);
+      this.updateSkeletons();
       this.pendingDt = 0;
     }
+  }
+
+  private updateSkeletons(): void {
+    this.model.traverse((o) => {
+      const sm = o as THREE.SkinnedMesh;
+      if (sm.isSkinnedMesh) sm.skeleton.update();
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -360,6 +383,7 @@ export class CharacterVisual {
     if (s.sitting) return 'sit';
     if (s.moving) {
       if (s.backwards && this.def.clips.walkBack) return 'walkBack';
+      // WoW rebound strafe: keep the forward run/walk cycle; lateral slide is sim-only.
       return s.speed >= RUN_SPEED_THRESHOLD ? 'run' : 'walk';
     }
     return 'idle';
@@ -407,10 +431,20 @@ export class CharacterVisual {
     if (!next) return;
     if (next === this.current && !oneShot) return;
     const prev = this.current;
-    next.reset();
+    const crossfadeLoco = !oneShot && prev && prev !== next && !this.currentIsOneShot;
+    if (crossfadeLoco) {
+      const prevDur = prev.getClip().duration;
+      const nextDur = next.getClip().duration;
+      if (prevDur > 0 && nextDur > 0) {
+        next.time = ((prev.time % prevDur) / prevDur) * nextDur;
+      }
+    } else {
+      next.reset();
+    }
     next.setLoop(oneShot || this.isOnce(next) ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
     next.clampWhenFinished = true;
     next.timeScale = 1;
+    next.enabled = true;
     if (prev && prev !== next) prev.fadeOut(fade);
     next.fadeIn(fade).play();
     this.current = next;

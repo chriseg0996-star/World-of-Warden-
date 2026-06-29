@@ -22,6 +22,8 @@ const PREVIEW_ANIM_STATE = {
   moving: false,
   airborne: false,
   backwards: false,
+  strafeLeft: false,
+  strafeRight: false,
   dead: false,
   casting: false,
   swimming: false,

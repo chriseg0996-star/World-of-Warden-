@@ -971,9 +971,7 @@ export class Sim {
     npc.pos.x += (dx / dist) * step;
     npc.pos.z += (dz / dist) * step;
     npc.pos.y = groundHeight(npc.pos.x, npc.pos.z, this.cfg.seed);
-    npc.facing = Math.atan2(dx, dz);
-    npc.prevPos = { ...npc.pos };
-    npc.prevFacing = npc.facing;
+    npc.facing = angleTo(npc.pos, target);
   }
 
   // Deterministic outward spiral to the nearest spot that is on dry-enough
@@ -4314,8 +4312,9 @@ export class Sim {
     const d = dist2d(e.pos, dest);
     if (d < 0.3) return true;
     const desired = angleTo(e.pos, dest);
-    e.facing = desired;
     const step = Math.min(speed * DT, d);
+    const oldX = e.pos.x;
+    const oldZ = e.pos.z;
     const canSwim = this.mobCanSwim(MOBS[e.templateId]);
 
     if (ignoreObstacles) {
@@ -4323,6 +4322,7 @@ export class Sim {
       const nz = e.pos.z + Math.cos(desired) * step;
       e.pos.x = nx;
       e.pos.z = nz;
+      e.facing = desired;
       const g = groundHeight(nx, nz, this.cfg.seed);
       e.pos.y = Math.max(g, SWIM_SURFACE_Y); // ride the surface while phasing, don't sink under terrain/water
       return d - step < 0.3;
@@ -4345,6 +4345,10 @@ export class Sim {
     }
     e.pos.x = bestX;
     e.pos.z = bestZ;
+    const mdx = bestX - oldX;
+    const mdz = bestZ - oldZ;
+    if (mdx * mdx + mdz * mdz > 1e-10) e.facing = Math.atan2(mdx, mdz);
+    else e.facing = desired;
     const g = groundHeight(bestX, bestZ, this.cfg.seed);
     e.pos.y = canSwim && g < WATER_LEVEL - SWIM_DEPTH ? SWIM_SURFACE_Y : g;
     return dist2d(e.pos, dest) < 0.3;
