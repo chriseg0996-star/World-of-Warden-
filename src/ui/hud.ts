@@ -243,7 +243,7 @@ export class Hud {
   // Soft swear terms from the server (online only), masked in chat when the
   // player's "Filter Profanity" setting is on. Fed by main.ts from ClientWorld.
   private profanityWords: string[] = [];
-  private optionsView: 'keybinds' | 'graphics' | 'audio' = 'graphics';
+  private optionsView: 'keybinds' | 'graphics' | 'interface' | 'audio' = 'graphics';
 
   private optSection(parent: HTMLElement, title: string): HTMLElement {
     const head = document.createElement('div');
@@ -1911,7 +1911,7 @@ export class Hud {
         this.updateMinimap();
       }
     }
-    if (this.optionsOpen && this.optionsView === 'graphics') this.refreshGraphicsAdaptiveNote();
+    if (this.optionsOpen && this.optionsView === 'interface') this.refreshGraphicsAdaptiveNote();
   }
 
   private renderAuras(el: HTMLElement, e: Entity, mode: 'all' | 'debuffs'): void {
@@ -5714,10 +5714,11 @@ export class Hud {
     const nav = document.createElement('nav');
     nav.className = 'opt-nav';
     nav.setAttribute('aria-label', t('hud.options.gameMenu'));
-    const views: Array<{ id: 'keybinds' | 'graphics' | 'audio'; label: string }> = [
+    const views: Array<{ id: 'keybinds' | 'graphics' | 'interface' | 'audio'; label: string }> = [
       { id: 'keybinds', label: t('hud.options.navControls') },
-      { id: 'graphics', label: t('hud.options.navDisplay') },
-      { id: 'audio', label: t('hud.options.navSound') },
+      { id: 'graphics', label: t('hud.options.graphics') },
+      { id: 'interface', label: t('hud.options.navInterface') },
+      { id: 'audio', label: t('hud.options.audio') },
     ];
     const resume = document.createElement('button');
     resume.type = 'button';
@@ -5771,6 +5772,7 @@ export class Hud {
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeOptions());
     if (this.optionsView === 'keybinds') this.renderKeybinds();
     else if (this.optionsView === 'graphics') this.renderGraphics();
+    else if (this.optionsView === 'interface') this.renderInterface();
     else this.renderAudio();
   }
 
@@ -5975,21 +5977,6 @@ export class Hud {
         { value: 1, label: t('hud.options.terrainHigh') },
       ]);
     }
-    const camera = this.optSection(content, t('hud.options.sectionCamera'));
-    this.settingSlider(camera, t('hud.options.cameraSpeed'), 'cameraSpeed');
-    this.settingBool(camera, t('hud.options.invertMouseY'), 'invertMouseY');
-    if (isPhoneTouchDevice()) this.settingSlider(camera, t('hud.options.touchLookSpeed'), 'touchLookSpeed');
-    const iface = this.optSection(content, t('hud.options.sectionInterface'));
-    this.settingSlider(iface, t('hud.options.brightness'), 'brightness');
-    this.settingSlider(iface, t('hud.options.renderQuality'), 'renderScale');
-    this.graphicsAdaptiveEl = document.createElement('div');
-    this.graphicsAdaptiveEl.className = 'set-note';
-    iface.appendChild(this.graphicsAdaptiveEl);
-    this.refreshGraphicsAdaptiveNote();
-    this.settingBool(iface, t('game.settings.showNameplates'), 'showNameplates');
-    this.settingToggle(iface, t('hud.options.fullscreen'), 'fullscreen');
-    this.settingToggle(iface, t('game.settings.showOverflowXp'), 'showOverflowXp');
-    if (isPhoneTouchDevice()) this.settingSlider(iface, t('hud.options.touchOpacity'), 'touchOpacity');
     const note = document.createElement('div');
     note.className = 'set-note';
     note.textContent = t('hud.options.graphicsNote');
@@ -6003,6 +5990,27 @@ export class Hud {
     reload.textContent = t('hud.options.reloadNow');
     reload.addEventListener('click', () => { audio.click(); location.reload(); });
     content.append(reloadNote, reload);
+    this.settingsViewFooter(content);
+  }
+
+  private renderInterface(): void {
+    const content = this.optionsContent();
+    const display = this.optSection(content, t('hud.options.sectionInterface'));
+    this.settingSlider(display, t('hud.options.brightness'), 'brightness');
+    this.settingSlider(display, t('hud.options.renderQuality'), 'renderScale');
+    this.graphicsAdaptiveEl = document.createElement('div');
+    this.graphicsAdaptiveEl.className = 'set-note';
+    display.appendChild(this.graphicsAdaptiveEl);
+    this.refreshGraphicsAdaptiveNote();
+    const iface = this.optSection(content, t('hud.options.sectionHud'));
+    this.settingBool(iface, t('game.settings.showNameplates'), 'showNameplates');
+    this.settingToggle(iface, t('hud.options.fullscreen'), 'fullscreen');
+    this.settingToggle(iface, t('game.settings.showOverflowXp'), 'showOverflowXp');
+    if (isPhoneTouchDevice()) this.settingSlider(iface, t('hud.options.touchOpacity'), 'touchOpacity');
+    const note = document.createElement('div');
+    note.className = 'set-note';
+    note.textContent = t('hud.options.interfaceNote');
+    content.appendChild(note);
     this.settingsViewFooter(content);
   }
 
@@ -6112,6 +6120,10 @@ export class Hud {
     this.clickMoveMouseButtonRow(move);
     this.settingToggleKeybind(move, t('hud.options.leftHandedTouch'), 'leftHandedTouch');
     this.settingToggleKeybind(move, t('hud.options.filterProfanity'), 'filterProfanity');
+    const camera = this.optSection(content, t('hud.options.sectionCamera'));
+    this.settingSlider(camera, t('hud.options.cameraSpeed'), 'cameraSpeed');
+    this.settingBool(camera, t('hud.options.invertMouseY'), 'invertMouseY');
+    if (isPhoneTouchDevice()) this.settingSlider(camera, t('hud.options.touchLookSpeed'), 'touchLookSpeed');
     const keys = this.optSection(content, t('hud.options.sectionKeys'));
     const note = document.createElement('div');
     note.className = 'kb-note';
