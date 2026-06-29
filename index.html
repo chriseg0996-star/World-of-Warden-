@@ -161,6 +161,17 @@
     --hud-blur: blur(14px);
     --radius-lg: 10px;
     --radius-xl: 12px;
+
+    /* HUD layout grid — one inset, one gap, aligned columns */
+    --hud-inset: 14px;
+    --hud-gap: 8px;
+    --hud-right-col-w: 178px;
+    --hud-action-slot: 46px;
+    --hud-action-gap: 5px;
+    --hud-action-pad-x: 10px;
+    --hud-action-cols: 6;
+    --hud-actionbar-w: calc(var(--hud-action-pad-x) * 2 + var(--hud-action-cols) * var(--hud-action-slot) + (var(--hud-action-cols) - 1) * var(--hud-action-gap));
+    --hud-unit-frame-h: 76px;
   }
   * { 
     box-sizing: border-box; 
@@ -332,6 +343,7 @@
   #nameplates { position: fixed; left: 0; top: 0; width: var(--app-vw); height: var(--app-vh); overflow: hidden; pointer-events: none; z-index: 1; }
   #ui { position: fixed; left: 0; top: 0; width: var(--app-vw); max-width: 100vw; height: var(--app-vh); overflow: hidden; pointer-events: none; z-index: 10; }
   #ui > * { pointer-events: auto; }
+  #ui > #hud-right-rail { pointer-events: none; }
   #ui > .click-move-marker,
   #ui > .click-move-marker * { pointer-events: none; }
 
@@ -435,11 +447,11 @@
   .chat-bubble.yell { font-weight: bold; color: #7a1408; border-color: #c43a2a; }
 
   /* ---------- unit frames ---------- */
-  .unitframe { position: absolute; top: 12px; display: flex; gap: 0; align-items: center; }
+  .unitframe { position: absolute; top: var(--hud-inset); display: flex; gap: 0; align-items: center; }
   #player-frame {
     position: absolute;
-    left: 12px;
-    top: 12px;
+    left: var(--hud-inset);
+    top: var(--hud-inset);
     width: auto;
     margin: 0;
     z-index: 6;
@@ -457,7 +469,7 @@
     flex: none;
     min-width: 0;
   }
-  #target-frame { left: 12px; top: 88px; display: none; z-index: 6; transition: filter .15s; }
+  #target-frame { left: var(--hud-inset); top: calc(var(--hud-inset) + var(--hud-unit-frame-h)); display: none; z-index: 6; transition: filter .15s; }
   #target-frame.has-target .uf-bars {
     border-color: var(--gold-dim);
     box-shadow: 0 0 14px #ffd10044, 0 2px 10px #000a;
@@ -508,7 +520,12 @@
   .combo-pip.on { background: radial-gradient(circle at 35% 30%, #ff7a5e, #c0392b); box-shadow: 0 0 5px #ff5533aa; border-color: #ffad99; }
 
   /* ---------- buff bar ---------- */
-  #buff-bar { position: absolute; right: 196px; top: 14px; display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 4px; max-width: 320px; pointer-events: auto; }
+  #buff-bar {
+    position: absolute;
+    right: calc(var(--hud-inset) + var(--hud-right-col-w) + var(--hud-gap));
+    top: calc(var(--hud-inset) + 2px);
+    display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 4px; max-width: 320px; pointer-events: auto;
+  }
   .buff { width: 28px; height: 28px; border: 1px solid var(--color-buff); border-radius: 4px;
     position: relative; cursor: default; background-color: #10141c;
     background-size: cover; background-position: center; background-repeat: no-repeat; }
@@ -527,9 +544,9 @@
     color: #fff; text-shadow: 1px 1px 2px #000; font-family: var(--title-font); }
 
   /* ---------- bottom cluster ---------- */
-  #bottom-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 6px; text-align: center; }
-  #xpbar { width: 360px; height: 8px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--hud-hairline);
-    margin: 0 auto 6px; position: relative; border-radius: 4px; overflow: hidden; }
+  #bottom-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: var(--hud-inset); text-align: center; }
+  #xpbar { width: 100%; height: 8px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--hud-hairline);
+    margin: 0 0 6px; position: relative; border-radius: 4px; overflow: hidden; }
   #xpbar .fill { height: 100%; width: 0%; background: linear-gradient(#b85eff, #6a1bb0); transition: background .3s; }
   #xpbar .ticks { position: absolute; inset: 0; display: flex; }
   #xpbar .ticks i { flex: 1; border-right: 1px solid #00000055; }
@@ -541,7 +558,7 @@
   #actionbar-row { display: flex; align-items: flex-end; gap: 8px; }
   /* xp bar stacks directly on the action bar; the taller side-button
      column must not push it up (it used to float ~150px above the bar) */
-  #actionbar-stack { display: flex; flex-direction: column; position: relative; }
+  #actionbar-stack { display: flex; flex-direction: column; align-items: stretch; position: relative; width: var(--hud-actionbar-w); }
   #petbar { display: none; position: absolute; left: 0; top: -52px; gap: 6px; padding: 0; margin: 0;
     background: transparent; border: 0; outline: 0; box-shadow: none; }
   .petbar-group { display: flex; gap: 4px; padding: 4px; border: 2px solid #000; outline: 1px solid #5b4618;
@@ -591,7 +608,7 @@
   .action-btn.drop-target { border-color: #7fd1ff; box-shadow: 0 0 8px #7fd1ff88; }
   /* micro-menu: bottom-right, stacked upward, sitting just above the
      Discord/GitHub buttons (both right-aligned to the same edge). */
-  #side-buttons { position: absolute; right: 16px; bottom: 74px;
+  #side-buttons { position: absolute; right: var(--hud-inset); bottom: var(--hud-inset);
     display: flex; flex-direction: column; gap: 3px; z-index: 19;
     padding: 5px; border-radius: var(--radius-lg);
     background: var(--panel-glass); backdrop-filter: var(--hud-blur); -webkit-backdrop-filter: var(--hud-blur);
@@ -632,8 +649,8 @@
   /* ---------- chat frame ---------- */
   /* width shrinks on narrower screens so the chat never overlaps the centred
      bottom bar (≈612px wide); caps at 370px when there's room. */
-  #chatlog-wrap { position: absolute; left: 12px; bottom: 8px; width: min(370px, calc(50vw - 330px)); }
-  #chatlog-tabs { display: flex; gap: 2px; margin-left: 6px; margin-bottom: -1px; position: relative; z-index: 2; }
+  #chatlog-wrap { position: absolute; left: var(--hud-inset); bottom: var(--hud-inset); width: min(370px, calc(50vw - 330px)); }
+  #chatlog-tabs { display: flex; gap: 2px; margin-left: 0; margin-bottom: -1px; position: relative; z-index: 2; }
   .chat-tab { height: 24px; padding: 0 12px; border: 1px solid var(--hud-hairline); border-bottom: none;
     border-radius: var(--radius-md) var(--radius-md) 0 0; background: rgba(12, 10, 18, 0.75); color: var(--color-text-muted);
     cursor: pointer; font-family: var(--font-heading); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -661,7 +678,21 @@
   .report-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 
   /* ---------- quest tracker ---------- */
-  #quest-tracker { position: absolute; right: 14px; top: 200px; width: 240px; font-size: 12px;
+  /* Right HUD column: minimap + quest tracker share one edge and width */
+  #hud-right-rail {
+    position: absolute;
+    right: var(--hud-inset);
+    top: var(--hud-inset);
+    width: var(--hud-right-col-w);
+    display: flex;
+    flex-direction: column;
+    gap: var(--hud-gap);
+    z-index: 6;
+    pointer-events: none;
+  }
+  #hud-right-rail > * { pointer-events: auto; }
+
+  #quest-tracker { position: static; width: 100%; font-size: 12px;
     color: var(--gold); pointer-events: none;
     background: var(--panel-glass); backdrop-filter: var(--hud-blur); -webkit-backdrop-filter: var(--hud-blur);
     border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
@@ -707,7 +738,7 @@
   }
 
   /* ---------- minimap ---------- */
-  #minimap-wrap { position: absolute; right: 12px; top: 10px; width: 178px; text-align: center;
+  #minimap-wrap { position: static; width: 100%; text-align: center;
     background: var(--panel-glass); backdrop-filter: var(--hud-blur); -webkit-backdrop-filter: var(--hud-blur);
     border: 1px solid var(--panel-border); border-radius: var(--radius-xl);
     padding: 8px 10px 10px; box-shadow: var(--hud-shadow); }
@@ -1030,13 +1061,13 @@
 
   /* bags — centred in the bottom gap between the action cluster and micro-menu */
   #bags {
-    --bags-bar-half: 306px;
-    --bags-gap: 12px;
-    --bags-micro-r: calc(16px + 34px + var(--bags-gap));
+    --bags-bar-half: calc(var(--hud-actionbar-w) / 2 + 4px);
+    --bags-gap: var(--hud-gap);
+    --bags-micro-r: calc(var(--hud-inset) + 46px + var(--hud-gap));
     --bags-slot-w: max(180px, calc(100vw - 50% - var(--bags-bar-half) - var(--bags-gap) - var(--bags-micro-r)));
     left: calc((100% + 50% + var(--bags-bar-half) + var(--bags-gap) - var(--bags-micro-r)) / 2);
     right: auto;
-    bottom: 6px;
+    bottom: var(--hud-inset);
     top: auto;
     width: min(310px, var(--bags-slot-w));
     transform: translateX(-50%);
@@ -2831,14 +2862,14 @@
   .realm-pop.offline { color: #888; }
 
   /* ---------- chat ---------- */
-  #chat-input { position: absolute; left: 12px; bottom: 204px; width: 370px; display: none; z-index: 25;
+  #chat-input { position: absolute; left: var(--hud-inset); bottom: 204px; width: min(370px, calc(50vw - 330px)); display: none; z-index: 25;
     background: var(--panel-glass); backdrop-filter: var(--hud-blur); color: var(--color-text-light);
     border: 1px solid var(--panel-border); border-radius: var(--radius-md);
     padding: 8px 11px; font-size: 13px; user-select: text; box-shadow: var(--hud-shadow); }
 
   /* ---------- party frames ---------- */
-  #party-frames { position: absolute; left: 12px; top: 88px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
-  #party-frames.below-target { top: 164px; }
+  #party-frames { position: absolute; left: var(--hud-inset); top: calc(var(--hud-inset) + var(--hud-unit-frame-h)); display: flex; flex-direction: column; gap: 6px; z-index: 5; }
+  #party-frames.below-target { top: calc(var(--hud-inset) + var(--hud-unit-frame-h) * 2); }
   .party-frame { --cls: #7fb8ff; width: 170px; padding: 4px 8px 5px; cursor: pointer;
     transition: opacity 0.2s ease, box-shadow 0.2s ease; }
   .party-frame .pfm-name { font-size: 12px; font-family: var(--title-font); display: flex;
@@ -3682,9 +3713,15 @@
     transform: scale(0.82);
     transform-origin: left top;
   }
-  body.mobile-touch #buff-bar { right: max(10px, env(safe-area-inset-right)); top: max(140px, env(safe-area-inset-top)); max-width: 180px; }
-  body.mobile-touch #minimap-wrap { right: max(8px, env(safe-area-inset-right)); top: max(8px, env(safe-area-inset-top)); transform: scale(0.72); transform-origin: right top; }
-  body.mobile-touch #quest-tracker { right: max(10px, env(safe-area-inset-right)); top: max(150px, env(safe-area-inset-top)); width: 190px; font-size: 11px; }
+  body.mobile-touch #buff-bar { right: max(140px, calc(env(safe-area-inset-right) + 132px)); top: max(var(--hud-inset), env(safe-area-inset-top)); max-width: 180px; }
+  body.mobile-touch #hud-right-rail {
+    right: max(var(--hud-inset), env(safe-area-inset-right));
+    top: max(var(--hud-inset), env(safe-area-inset-top));
+    width: var(--hud-right-col-w);
+    transform: scale(0.72);
+    transform-origin: right top;
+  }
+  body.mobile-touch #quest-tracker { width: 100%; font-size: 11px; }
   body.mobile-touch #meters-window {
     position: fixed;
     left: calc(max(18px, env(safe-area-inset-left)) + 132px);
@@ -4131,8 +4168,13 @@
       top: calc(max(6px, env(safe-area-inset-top)) + 50px);
       transform: scale(0.6);
     }
-    body.mobile-touch #buff-bar { right: calc(98px + env(safe-area-inset-right)); top: max(8px, env(safe-area-inset-top)); max-width: 160px; transform: scale(0.85); transform-origin: right top; }
-    body.mobile-touch #minimap-wrap { right: max(6px, env(safe-area-inset-right)); top: max(6px, env(safe-area-inset-top)); transform: scale(0.46); }
+    body.mobile-touch #buff-bar { right: calc(98px + env(safe-area-inset-right)); top: max(var(--hud-inset), env(safe-area-inset-top)); max-width: 160px; transform: scale(0.85); transform-origin: right top; }
+    body.mobile-touch #hud-right-rail {
+      right: max(6px, env(safe-area-inset-right));
+      top: max(6px, env(safe-area-inset-top));
+      transform: scale(0.46);
+      transform-origin: right top;
+    }
     body.mobile-touch #quest-tracker { display: none; }
     body.mobile-touch #meters-window {
       position: fixed;
@@ -4825,7 +4867,7 @@
 
   @media (max-width: 760px) {
     #community-hud { top: auto; }
-    #quest-tracker { top: 260px; right: 12px; width: 190px; }
+    #hud-right-rail { width: min(var(--hud-right-col-w), calc(100vw - var(--hud-inset) * 2)); }
 
     /* Mobile First Homepage Header and Hamburger Menu */
     .mobile-menu-toggle {
@@ -5312,9 +5354,12 @@
 
     <div id="castbar"><div class="fill"></div><div class="label"></div></div>
 
-    <div id="minimap-wrap">
-      <div id="zone-label" data-i18n="entities.zones.eastbrook_vale.name">Eastbrook Vale</div>
-      <canvas id="minimap" width="162" height="162"></canvas>
+    <div id="hud-right-rail">
+      <div id="minimap-wrap">
+        <div id="zone-label" data-i18n="entities.zones.eastbrook_vale.name">Eastbrook Vale</div>
+        <canvas id="minimap" width="162" height="162"></canvas>
+      </div>
+      <div id="quest-tracker"></div>
     </div>
 
     <div id="community-hud" data-i18n-aria="hud.core.communityLinks" aria-label="Community links">
@@ -5331,8 +5376,6 @@
         <span data-i18n="nav.donate">Donate</span>
       </a>
     </div>
-
-    <div id="quest-tracker"></div>
 
     <div id="bottom-bar">
       <div id="actionbar-row">
