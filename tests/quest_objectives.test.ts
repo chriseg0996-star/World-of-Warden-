@@ -168,3 +168,52 @@ describe('Phase 4b Eastbrook Vale content', () => {
     expect(meta.questsDone.has('q_word_with_lin')).toBe(true);
   });
 });
+
+describe('explore quests in Mirefen and Thornpeak', () => {
+  it('ships zone explore scout quests at POI coordinates', () => {
+    expect(QUESTS.q_scout_chapel.objectives[0]).toMatchObject({
+      type: 'explore',
+      point: { x: 100, z: 435 },
+    });
+    expect(QUESTS.q_scout_stalker_ridge.objectives[0]).toMatchObject({
+      type: 'explore',
+      point: { x: -50, z: 590 },
+    });
+  });
+
+  it('completes q_scout_chapel by reaching the chapel point', () => {
+    const sim = new Sim({ seed: 11, playerClass: 'warrior', noPlayer: true });
+    const pid = sim.addPlayer('warrior', 'Scout');
+    const meta = sim.players.get(pid)!;
+    const player = sim.entities.get(meta.entityId)!;
+    sim.setPlayerLevel(6);
+    const fenwick = [...sim.entities.values()].find((e) => e.kind === 'npc' && e.templateId === 'warden_fenwick')!;
+    player.pos.x = fenwick.pos.x;
+    player.pos.z = fenwick.pos.z;
+    sim.acceptQuest('q_scout_chapel', pid);
+    expect(meta.questLog.get('q_scout_chapel')?.state).toBe('active');
+    const point = QUESTS.q_scout_chapel.objectives[0].point!;
+    player.pos.x = point.x;
+    player.pos.z = point.z;
+    sim.tick();
+    expect(meta.questLog.get('q_scout_chapel')?.state).toBe('ready');
+  });
+
+  it('completes q_scout_stalker_ridge by reaching the ridge point', () => {
+    const sim = new Sim({ seed: 12, playerClass: 'warrior', noPlayer: true });
+    const pid = sim.addPlayer('warrior', 'Ridge');
+    const meta = sim.players.get(pid)!;
+    const player = sim.entities.get(meta.entityId)!;
+    sim.setPlayerLevel(12);
+    const thessaly = [...sim.entities.values()].find((e) => e.kind === 'npc' && e.templateId === 'captain_thessaly')!;
+    player.pos.x = thessaly.pos.x;
+    player.pos.z = thessaly.pos.z;
+    sim.acceptQuest('q_scout_stalker_ridge', pid);
+    expect(meta.questLog.get('q_scout_stalker_ridge')?.state).toBe('active');
+    const point = QUESTS.q_scout_stalker_ridge.objectives[0].point!;
+    player.pos.x = point.x;
+    player.pos.z = point.z;
+    sim.tick();
+    expect(meta.questLog.get('q_scout_stalker_ridge')?.state).toBe('ready');
+  });
+});

@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 
 import { BROWSER_PATH as EDGE } from './browser_path.mjs';
-const URL = process.env.GAME_URL ?? 'http://localhost:5173';
+const URL = process.env.GAME_URL ?? 'http://localhost:5176';
 fs.mkdirSync('tmp', { recursive: true });
 
 const browser = await puppeteer.launch({

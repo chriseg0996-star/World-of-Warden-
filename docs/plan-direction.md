@@ -27,10 +27,10 @@ Goal: the game *feels* like a classic MMO before we widen content.
 2. Window stacking via `openHudWindow` / `closeHudWindow`
 3. Unit tests for swing timer helpers
 
-### Sprint B (1–2 weeks) — Playtest loop (in progress)
+### Sprint B (1–2 weeks) — Playtest loop ✅
 
-1. Level 1→5 warrior + mage smoke paths (offline). ✅ HUD checks in `smoke_browser.mjs`
-2. Fix friction from playtest (tooltip gaps, mobile touch targets, i18n drift).
+1. Level 1→5 warrior + mage smoke paths (offline). HUD checks in `smoke_browser.mjs`.
+2. Dev default port **5176** (5173 often occupied locally). Override with `VITE_PORT` / `GAME_URL`.
 3. Pre-release checklist:
    - `npm run smoke:warrior` — movement, combat, loot, quest, HUD stack/Esc/swing timer
    - `npm run smoke:mage` — casting, polymorph, conjure water
@@ -38,19 +38,24 @@ Goal: the game *feels* like a classic MMO before we widen content.
 
 ---
 
-## Next major tracks (pick order after polish)
+## Current focus — **Track 2: Content breadth** (started)
 
-### Track 1 — **Endgame at 20** (roadmap Phase 2)
+Goal: more classic-MMO feel via data-as-code in `src/sim/content/` — low architecture risk.
 
-PRD: [`docs/prd/max-level-xp-overflow.md`](prd/max-level-xp-overflow.md)
+### Content slice 1 (in progress)
 
-- Virtual levels + prestige ranks with real rewards
-- Leaderboards API + in-game board
-- XP bar overflow styling (partially stubbed in `xp_bar.ts`)
+1. **Explore quests** — one scout quest per zone (Eastbrook, Mirefen, Thornpeak). ✅
+2. Item sets or remaining armor slots (defer if explore quests land first).
+3. Fourth zone band or dungeon depth (later slice).
 
-*Why now:* engine is ready; gives level-20 players a reason to stay.
+### Track 1 — **Endgame at 20** ✅ (Phase 2 shipped)
 
-### Track 2 — **Content breadth**
+Lifetime XP overflow, virtual levels, prestige, milestones, and `/api/leaderboard` are in `main`.
+See `tests/xp.test.ts` and `docs/prd/max-level-xp-overflow.md`.
+
+---
+
+## Next major tracks (after content slice 1)
 
 - More quests per zone (escort, explore — not only kill/collect)
 - Item sets + remaining armor slots

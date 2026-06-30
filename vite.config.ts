@@ -57,7 +57,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // 5173 is often taken by other local Vite apps; 5176 is the Wardenfall default.
+    port: Number(process.env.VITE_PORT) || 5176,
+    strictPort: false,
     proxy: {
       '/api': { target: 'http://127.0.0.1:8787', changeOrigin: true },
       '/admin/api': { target: 'http://127.0.0.1:8787', changeOrigin: true },

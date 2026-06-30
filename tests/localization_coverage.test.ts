@@ -325,6 +325,7 @@ describe("i18n Localization Key Coverage", () => {
     wins: 9,
     winner: "Rook",
     total: 125,
+    known: 87,
     used: 2,
     value: 9,
     xp: 450,

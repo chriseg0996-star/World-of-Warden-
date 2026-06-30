@@ -211,7 +211,7 @@ export const ZONE3_NPCS: Record<string, NpcDef> = {
   captain_thessaly: {
     id: 'captain_thessaly', name: 'Captain Thessaly', title: 'Highwatch Captain',
     pos: { x: 4, z: 664 }, facing: -2.0, color: 0x85929e,
-    questIds: ['q_highwatch_summons', 'q_stalkers', 'q_ogre_bounty', 'q_crushers', 'q_drogmar', 'q_revenants', 'q_revenant_vanguard'],
+    questIds: ['q_highwatch_summons', 'q_scout_stalker_ridge', 'q_stalkers', 'q_ogre_bounty', 'q_crushers', 'q_drogmar', 'q_revenants', 'q_revenant_vanguard'],
     greeting: 'Two hundred years this wall has held, $C. It will not break on my watch — but it groans.',
   },
   brother_aldric_highwatch: {
@@ -266,6 +266,15 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
     completionText: "Aldric's word reaches far. If the priest of the Vale is climbing the mountain himself, then it is as bad as I feared. Welcome to Highwatch, $N.",
     objectives: [{ type: 'collect', itemId: 'highwatch_summons', count: 1, label: 'Highwatch Summons' }],
     xpReward: 500, copperReward: 500, itemRewards: {},
+    minLevel: 12,
+  },
+  q_scout_stalker_ridge: {
+    id: 'q_scout_stalker_ridge', name: 'Walk the Ridge',
+    giverNpcId: 'captain_thessaly', turnInNpcId: 'captain_thessaly',
+    text: 'Before I send patrols south, I want eyes on Stalker Ridge, $N. Follow the mountain road to the crest and see what moves among the cats.',
+    completionText: 'So the ridge can still be walked — for now. That is enough to begin.',
+    objectives: [{ type: 'explore', point: { x: -50, z: 590 }, radius: 16, count: 1, label: 'Scout Stalker Ridge' }],
+    xpReward: 600, copperReward: 300, itemRewards: {},
     minLevel: 12,
   },
   q_stalkers: {
@@ -502,7 +511,7 @@ export const ZONE3_QUESTS: Record<string, QuestDef> = {
 };
 
 export const ZONE3_QUEST_ORDER = [
-  'q_highwatch_summons', 'q_stalkers', 'q_stalker_pelts', 'q_kobold_tunnels', 'q_glowing_wax',
+  'q_highwatch_summons', 'q_scout_stalker_ridge', 'q_stalkers', 'q_stalker_pelts', 'q_kobold_tunnels', 'q_glowing_wax',
   'q_ogre_edges', 'q_ogre_totems', 'q_ogre_bounty', 'q_crushers', 'q_drogmar',
   'q_elementals', 'q_shard_cores', 'q_kazzix', 'q_zealots', 'q_cult_orders',
   'q_necromancers', 'q_revenants', 'q_revenant_vanguard', 'q_wyrm_sigils', 'q_breaking_the_seal',

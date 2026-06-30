@@ -61,9 +61,9 @@ describe('client HTML shell', () => {
   });
 
   it('renders the mobile XP bar under the top-left player card', () => {
-    expect(html).toContain('body.mobile-touch #xpbar {\n    position: fixed;');
+    expect(html).toContain('body.mobile-touch #xpbar-block {\n    position: fixed;');
     expect(html).toContain('left: max(8px, env(safe-area-inset-left));');
-    expect(html).toContain('top: calc(max(8px, env(safe-area-inset-top)) + 70px);');
+    expect(html).toContain('top: calc(max(8px, env(safe-area-inset-top)) + 64px);');
     expect(html).toContain('bottom: auto;');
     expect(html).toContain('width: 246px;');
     expect(html).toContain('height: 6px;\n    display: block;');

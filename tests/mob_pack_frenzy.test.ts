@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { Sim } from '../src/sim/sim';
 import { MOBS } from '../src/sim/data';
+import { swingIntervalMult } from '../src/sim/entity';
 import type { Entity } from '../src/sim/types';
 
 const makeSim = () => new Sim({ seed: 42, playerClass: 'warrior', autoEquip: true });
@@ -52,11 +53,11 @@ describe('pack frenzy on packmate death', () => {
     const [victim, survivor] = wolves(sim);
     survivor.pos = { x: victim.pos.x + 4, z: victim.pos.z, y: victim.pos.y };
     sim.tick();
-    const before = (sim as any).swingIntervalMult(survivor);
+    const before = swingIntervalMult(survivor);
 
     kill(sim, victim);
 
-    const after = (sim as any).swingIntervalMult(survivor);
+    const after = swingIntervalMult(survivor);
     expect(after).toBeCloseTo(before / 1.3, 5);
   });
 

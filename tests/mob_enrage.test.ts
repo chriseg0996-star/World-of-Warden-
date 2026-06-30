@@ -6,6 +6,7 @@ import { Sim } from '../src/sim/sim';
 import { dist2d } from '../src/sim/types';
 import type { Entity } from '../src/sim/types';
 import { MOBS } from '../src/sim/data';
+import { swingIntervalMult } from '../src/sim/entity';
 
 function makeSim(seed = 42) {
   return new Sim({ seed, playerClass: 'warrior', autoEquip: true });
@@ -22,8 +23,8 @@ function anyMob(sim: Sim): Entity {
   return best!;
 }
 
-function swingMult(sim: Sim, e: Entity): number {
-  return (sim as any).swingIntervalMult(e);
+function swingMult(_sim: Sim, e: Entity): number {
+  return swingIntervalMult(e);
 }
 
 describe('enrage frenzy (swing-speed haste)', () => {

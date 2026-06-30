@@ -40,7 +40,7 @@ const QUEST_IDS = [
   'q_necromancers', 'q_revenants', 'q_revenant_vanguard', 'q_wyrm_sigils',
   'q_breaking_the_seal', 'q_voice_below', 'q_sanctum_gate', 'q_korgath', 'q_velkhar',
   'q_gravewyrm',
-  'q_word_with_lin', 'q_scout_pinewood',
+  'q_word_with_lin', 'q_scout_pinewood', 'q_scout_chapel', 'q_scout_stalker_ridge',
 ] as const;
 
 const ZONE_IDS = ['eastbrook_vale', 'mirefen_marsh', 'thornpeak_heights'] as const;
@@ -187,6 +187,8 @@ const OBJECTIVE_SPECS: readonly (readonly ObjectiveSpec[])[] = [
   [{ kind: 'kill', mobId: 'korzul_the_gravewyrm' }],
   [{ kind: 'text', es: 'Habla con la boticaria Lin' }],
   [{ kind: 'text', es: 'Explora el camino de pinos del norte' }],
+  [{ kind: 'text', es: 'Explora la Capilla Ahogada' }],
+  [{ kind: 'text', es: 'Explora la Cresta de los Acechadores' }],
 ];
 
 function normalizeSourceText(text: string): string {
@@ -469,6 +471,8 @@ const esQuestNarratives = {
   q_gravewyrm: [`Ya no queda rito que detener, {playerName}, solo el Wyrm medio despierto. Entra con tus compañeros y termina lo empezado en la capilla.`, `Ha terminado. Los muertos de tres tierras descansan, y cada campana canta tu nombre, {playerName}.`],
   q_word_with_lin: [`La boticaria Lin necesita unas manos firmes, {playerName}. La hallarás en su mesa de trabajo al este de la plaza; ve y escucha lo que quiere.`, `¿Te envía el mariscal? Bien. Tengo trabajo que hacer, pero antes, gracias por venir hasta aquí.`],
   q_scout_pinewood: [`Antes de enviar la patrulla al norte quiero ojos en el camino, {playerName}. Sigue el camino de pinos hacia los cotos de lobos y observa qué se mueve; luego vuelve a informar.`, `Así que el camino aún se puede transitar. Buen trabajo: la patrulla saldrá más segura gracias a ti.`],
+  q_scout_chapel: [`Mis exploradores hablan de luces en la Capilla Ahogada, pero ninguno ha llegado y vuelto con un informe claro. Sigue la calzada al este, {playerName}, mira qué se mueve entre esas ruinas y vuelve a informar.`, `Así que la capilla aún se mantiene en pie, apenas. Bien. Necesitaré tu palabra antes de arriesgar una patrulla por el Matorral de Viudas.`],
+  q_scout_stalker_ridge: [`Antes de enviar patrullas al sur quiero ojos en la Cresta de los Acechadores, {playerName}. Sigue el camino de montaña hasta la cima y mira qué se mueve entre los felinos.`, `Así que la cresta aún se puede transitar, por ahora. Con eso basta para empezar.`],
 } satisfies QuestNarrativeTranslations;
 
 
@@ -535,7 +539,7 @@ const esData: LocaleData = {
     'La montaña despierta', 'Núcleos de la tormenta', 'El señor de fragmentos', 'Cánticos en el viento', 'Órdenes de abajo',
     'El anillo de filacterias', 'Los campos de aparecidos', 'Huesos de la vanguardia', 'Sigilos del Wyrm', 'Romper el sello',
     'La voz de abajo', 'La puerta del Santuario', 'El guardián encadenado', 'El gran nigromante', 'Korzul el Gravewyrm',
-    'Unas palabras con Lin', 'Explorar el camino de pinos',
+    'Unas palabras con Lin', 'Explorar el camino de pinos', 'Ojos en la capilla', 'Recorrer la cresta',
   ],
   objectiveItems: [
     'Piel de lobo',

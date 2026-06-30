@@ -221,7 +221,7 @@ export const ZONE2_NPCS: Record<string, NpcDef> = {
   warden_fenwick: {
     id: 'warden_fenwick', name: 'Warden Fenwick', title: 'Warden of Fenbridge',
     pos: { x: 3, z: 304 }, facing: Math.PI, color: 0x7e5109,
-    questIds: ['q_fenbridge_muster', 'q_prowlers', 'q_deepfen', 'q_deepfen_purge', 'q_trolls', 'q_deacon'],
+    questIds: ['q_fenbridge_muster', 'q_scout_chapel', 'q_prowlers', 'q_deepfen', 'q_deepfen_purge', 'q_trolls', 'q_deacon'],
     greeting: 'Hold at the gate, $C. Past those reeds, the fen does the killing for us.',
   },
   brother_aldric_fen: {
@@ -270,6 +270,15 @@ export const ZONE2_QUESTS: Record<string, QuestDef> = {
     completionText: "Aldric's seal, is it? Then you'll do. The fen has been swallowing my patrols whole, and I need every blade that floats.",
     objectives: [{ type: 'collect', itemId: 'fen_muster_order', count: 1, label: 'Fenbridge Muster Order' }],
     xpReward: 300, copperReward: 200, itemRewards: {},
+    minLevel: 6,
+  },
+  q_scout_chapel: {
+    id: 'q_scout_chapel', name: 'Eyes on the Chapel',
+    giverNpcId: 'warden_fenwick', turnInNpcId: 'warden_fenwick',
+    text: 'My scouts speak of lights at the Drowned Chapel, but none have reached it and returned with a straight account. Walk the causeway east, $N, see what stirs among those ruins, then report.',
+    completionText: 'So the chapel still stands — barely. Good. I will need your word before I risk a patrol through Widow Thicket.',
+    objectives: [{ type: 'explore', point: { x: 100, z: 435 }, radius: 18, count: 1, label: 'Scout the Drowned Chapel' }],
+    xpReward: 400, copperReward: 150, itemRewards: {},
     minLevel: 6,
   },
   q_prowlers: {
@@ -473,7 +482,7 @@ export const ZONE2_QUESTS: Record<string, QuestDef> = {
 };
 
 export const ZONE2_QUEST_ORDER = [
-  'q_fenbridge_muster', 'q_prowlers', 'q_prowler_pelts', 'q_fen_supplies',
+  'q_fenbridge_muster', 'q_scout_chapel', 'q_prowlers', 'q_prowler_pelts', 'q_fen_supplies',
   'q_deepfen', 'q_idols', 'q_deepfen_purge', 'q_widows', 'q_broodmother',
   'q_drowned', 'q_drowned_censers', 'q_no_rest', 'q_trolls', 'q_troll_fetishes',
   'q_grubjaw', 'q_cult_camp', 'q_summoners', 'q_deacon', 'q_bastion_door',
