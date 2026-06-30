@@ -53,6 +53,20 @@ Goal: more classic-MMO feel via data-as-code in `src/sim/content/` — low archi
 - Escort / talk-chain quests
 - Thornpeak item set or dungeon depth
 
+### Graphics slice G1 ✅ (enemy readability)
+
+1. **MOB_KEYS** — zone/dungeon mobs map to role-specific rigs (skeleton warriors, casters, bruisers) instead of generic family fallbacks.
+2. **Elite/rare/boss mods** — render-only scale + tint boost via `mobVisualMods()` (sim `scale` unchanged).
+3. **Combat shadows** — articulated shadow range 25→32 yd so nearby enemies keep grounding.
+
+### Graphics slice G2 (next)
+
+- Terrain material / biome contrast pass
+
+### Graphics slice G3 (later)
+
+- Foliage density and LOD tuning
+
 ### Track 1 — **Endgame at 20** ✅ (Phase 2 shipped)
 
 Lifetime XP overflow, virtual levels, prestige, milestones, and `/api/leaderboard` are in `main`.

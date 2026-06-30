@@ -10,6 +10,7 @@ import { ARENA_LAYOUT, DUNGEON_WALL_X } from '../sim/dungeon_layout';
 import { cameraOcclusion } from '../sim/colliders';
 import type { BiomeId } from '../sim/types';
 import { AnimState, CharacterVisual, createCharacterVisual } from './characters';
+import { mobVisualMods } from './characters/manifest';
 import { isVisuallyDead } from './anim_state';
 import { LocoTrack, newLocoTrack, updateLocomotion } from './locomotion';
 import { buildProps } from './props';
@@ -48,7 +49,7 @@ const VIEW_CREATE_BUDGET_HIGH = 16;
 // hand off to a single-draw static-pose shadow proxy (the merged far-LOD mesh
 // with a colorWrite-off material) so mid-ground NPCs keep their grounding for
 // ~1/7 the cost — the pose freeze is invisible in a shadow blob this far out
-const ENTITY_SHADOW_RANGE_SQ = 25 * 25;
+const ENTITY_SHADOW_RANGE_SQ = 32 * 32;
 const ENTITY_PROXY_SHADOW_RANGE_SQ = 62 * 62;
 // loot sparkles further than this are hidden (sub-pixel, real draw cost)
 const SPARKLE_DRAW_RANGE_SQ = 40 * 40;
@@ -813,7 +814,8 @@ export class Renderer {
       group.add(sparkle);
     } else {
       visual = createCharacterVisual(e);
-      visual.root.scale.multiplyScalar(e.scale);
+      const { scaleMul } = mobVisualMods(e);
+      visual.root.scale.multiplyScalar(e.scale * scaleMul);
       group.add(visual.root);
       height = visual.height;
     }

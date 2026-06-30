@@ -113,7 +113,7 @@ export class CharacterVisual {
   private far = false;
   private bobPhase = Math.random() * Math.PI * 2;
 
-  constructor(key: string, entityColor: number, skinIndex = 0) {
+  constructor(key: string, entityColor: number, skinIndex = 0, tintStrengthMul = 1) {
     const prep = prepareVisual(key);
     this.def = prep.def;
     this.key = key;
@@ -123,7 +123,7 @@ export class CharacterVisual {
 
     // model: yaw/scale/feet normalization wrapper around the skinned clone
     this.model = assembleModel(prep.def);
-    applyMaterials(this.model, prep.def, entityColor, skinTexture(key, skinIndex));
+    applyMaterials(this.model, prep.def, entityColor, skinTexture(key, skinIndex), tintStrengthMul);
     this.model.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (mesh.isMesh) this.originalMaterials.set(mesh, mesh.material);
@@ -148,7 +148,7 @@ export class CharacterVisual {
 
     // far LOD + shadow proxy share the baked idle-pose geometry per key
     if (prep.idleGeo) {
-      this.farMesh = new THREE.Mesh(prep.idleGeo, tintedFarMaterials(prep.def, entityColor, prep.idleSrcMats));
+      this.farMesh = new THREE.Mesh(prep.idleGeo, tintedFarMaterials(prep.def, entityColor, prep.idleSrcMats, tintStrengthMul));
       this.farMaterials = this.farMesh.material;
       this.farMesh.visible = false;
       this.poseWrap.add(this.farMesh);

@@ -400,9 +400,15 @@ function tintFor(def: VisualDef, entityColor: number): number | null {
 
 /** Swap every mesh material in an assembled clone for the shared tinted
  *  (and tier-appropriate) variant. Returns nothing — mutates the clone. */
-export function applyMaterials(root: THREE.Object3D, def: VisualDef, entityColor: number, skinTex: THREE.Texture | null = null): void {
+export function applyMaterials(
+  root: THREE.Object3D,
+  def: VisualDef,
+  entityColor: number,
+  skinTex: THREE.Texture | null = null,
+  tintStrengthMul = 1,
+): void {
   const tint = tintFor(def, entityColor);
-  const strength = def.tintStrength ?? DEFAULT_TINT_STRENGTH;
+  const strength = Math.min(1, (def.tintStrength ?? DEFAULT_TINT_STRENGTH) * tintStrengthMul);
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
@@ -416,9 +422,14 @@ export function applyMaterials(root: THREE.Object3D, def: VisualDef, entityColor
   });
 }
 
-export function tintedFarMaterials(def: VisualDef, entityColor: number, srcMats: THREE.Material[]): THREE.Material[] {
+export function tintedFarMaterials(
+  def: VisualDef,
+  entityColor: number,
+  srcMats: THREE.Material[],
+  tintStrengthMul = 1,
+): THREE.Material[] {
   const tint = tintFor(def, entityColor);
-  const strength = def.tintStrength ?? DEFAULT_TINT_STRENGTH;
+  const strength = Math.min(1, (def.tintStrength ?? DEFAULT_TINT_STRENGTH) * tintStrengthMul);
   return srcMats.map((m) => tintedMaterial(m, tint, strength));
 }
 

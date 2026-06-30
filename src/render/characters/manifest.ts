@@ -343,7 +343,7 @@ export const VISUALS: Record<string, VisualDef> = {
   // -- mob families --------------------------------------------------------
   mob_wolf: {
     url: `${CREATURES}/wolf.glb`, height: 1.6,
-    clips: animal(['Attack']), tint: 'entity', tintStrength: 0.35,
+    clips: animal(['Attack']), tint: 'entity', tintStrength: 0.42,
   },
   mob_boar: {
     url: `${CREATURES}/wild_boar.glb`, height: 1.45,
@@ -351,7 +351,7 @@ export const VISUALS: Record<string, VisualDef> = {
   },
   mob_spider: {
     url: `${CREATURES}/spider.glb`, height: 1.4,
-    clips: SPIDER, tint: 'entity', tintStrength: 0.35,
+    clips: SPIDER, tint: 'entity', tintStrength: 0.4,
   },
   mob_murloc: {
     url: `${CREATURES}/frog.glb`, height: 1.7,
@@ -399,7 +399,7 @@ export const VISUALS: Record<string, VisualDef> = {
   skel_minion: {
     url: `${ENEMIES}/skeleton_minion.glb`, height: 2.5,
     clips: skeletonClips(['1H_Melee_Attack_Chop', '1H_Melee_Attack_Slice_Diagonal']),
-    tint: 'entity', tintStrength: 0.25,
+    tint: 'entity', tintStrength: 0.32,
   },
   skel_warrior: {
     url: `${ENEMIES}/skeleton_warrior.glb`, height: 2.5,
@@ -510,6 +510,16 @@ const MOB_KEYS: Record<string, string> = {
   warlock_voidwalker: 'mob_demonalt',
   wild_boar: 'mob_boar',
   elder_bristleback: 'mob_boar',
+  old_greyjaw: 'mob_wolf',
+  forest_wolf: 'mob_wolf',
+  webwood_spider: 'mob_spider',
+  sableweb_matriarch: 'mob_spider',
+  sableweb_hatchling: 'mob_spider',
+  mudfin_murloc: 'mob_murloc',
+  tunnel_rat: 'mob_kobold',
+  vale_bandit: 'mob_bandit',
+  mogger_lackey: 'mob_bandit',
+  restless_bones: 'skel_minion',
   // gravecaller cult + necromancers: dark-robed casters
   gravecaller_cultist: 'mob_dark_caster',
   gravecaller_summoner: 'mob_dark_caster',
@@ -518,14 +528,40 @@ const MOB_KEYS: Record<string, string> = {
   wyrmcult_necromancer: 'mob_dark_caster',
   vael_the_mistcaller: 'mob_dark_caster',
   grand_necromancer_velkhar: 'mob_dark_caster',
+  tidebound_acolyte: 'mob_dark_caster',
   gorrak: 'mob_bruiser',
   mogger: 'mob_bruiser',
+  // Mirefen open-world
+  mire_prowler: 'mob_wolf',
+  deepfen_murloc: 'mob_murloc',
+  mirejaw_the_ravenous: 'mob_murloc',
+  mirejaw_frenzy: 'mob_murloc',
+  mire_widow: 'mob_spider',
+  mirefen_broodmother: 'mob_spider',
+  drowned_dead: 'skel_warrior',
+  drowned_thrall: 'skel_minion',
+  fen_troll: 'mob_troll',
+  grubjaw: 'mob_troll',
+  nhalia_mourner: 'skel_mage',
+  // Thornpeak open-world
+  ridge_stalker: 'mob_wolf',
+  deeprock_kobold: 'mob_kobold',
+  ironvein_foreman: 'mob_kobold',
+  ironvein_sapper: 'mob_kobold',
+  thornpeak_ogre: 'mob_ogre',
+  ogre_crusher: 'mob_ogre',
+  warlord_drogmar: 'mob_ogre',
+  stormcrag_elemental: 'mob_elemental',
+  shardlord_kazzix: 'mob_elemental',
+  wyrmcult_zealot: 'mob_bruiser',
   // undead variants by role
   boneclad_revenant: 'skel_warrior',
   marrowlord_varkas: 'skel_warrior',
   bastion_revenant: 'skel_warrior',
   knight_commander_olen: 'skel_warrior',
   sanctum_boneguard: 'skel_warrior',
+  varkas_boneguard: 'skel_warrior',
+  raised_bonewalker: 'skel_minion',
   skeleton_warrior: 'skel_warrior',
   skeleton_warrior_add: 'skel_warrior',
   skeleton_archer: 'skel_rogue',
@@ -535,6 +571,9 @@ const MOB_KEYS: Record<string, string> = {
   bone_guardian: 'skel_warrior',
   cult_adept: 'mob_dark_caster',
   crypt_warden: 'skel_boss',
+  sanctum_drakonid: 'mob_dragonkin',
+  korzul_the_gravewyrm: 'mob_dragonkin',
+  korgath_the_bound: 'mob_ogre',
 };
 
 const FAMILY_KEYS: Record<string, string> = {
@@ -588,6 +627,28 @@ export function visualKeyFor(e: Entity): string {
   // npcs — Brother Aldric recurs in every hub under suffixed ids
   if (e.templateId.startsWith('brother_aldric')) return 'npc_mage';
   return NPC_KEYS[e.templateId] ?? 'npc_villager';
+}
+
+/** Render-only scale/tint multipliers so elite/rare/boss silhouettes read in combat. */
+export function mobVisualMods(e: Entity): { scaleMul: number; tintStrengthMul: number } {
+  if (e.kind !== 'mob') return { scaleMul: 1, tintStrengthMul: 1 };
+  const t = MOBS[e.templateId];
+  if (!t) return { scaleMul: 1, tintStrengthMul: 1 };
+  let scaleMul = 1;
+  let tintStrengthMul = 1;
+  if (t.elite) {
+    scaleMul *= 1.08;
+    tintStrengthMul *= 1.15;
+  }
+  if (t.rare) {
+    scaleMul *= 1.05;
+    tintStrengthMul *= 1.12;
+  }
+  if (t.boss) {
+    scaleMul *= 1.04;
+    tintStrengthMul *= 1.1;
+  }
+  return { scaleMul, tintStrengthMul };
 }
 
 /** Every glb the manifest can reference (for preloading). */

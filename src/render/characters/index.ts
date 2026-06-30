@@ -4,7 +4,7 @@
 // the Renderer constructs views.
 import type { Entity } from '../../sim/types';
 import { CharacterVisual } from './visual';
-import { visualKeyFor } from './manifest';
+import { mobVisualMods, visualKeyFor } from './manifest';
 
 export { CharacterVisual } from './visual';
 export type { AnimState } from './visual';
@@ -13,5 +13,11 @@ export { CharacterPreview } from './preview';
 /** Build the visual for an entity (or an explicit shapeshift/polymorph form key). */
 export function createCharacterVisual(e: Entity, formKey?: 'form_sheep' | 'form_bear' | 'form_cat'): CharacterVisual {
   // forms (sheep/bear/cat) are their own models — skins only apply to the base body
-  return new CharacterVisual(formKey ?? visualKeyFor(e), e.color, formKey ? 0 : (e.skin ?? 0));
+  const mods = formKey ? { tintStrengthMul: 1 } : mobVisualMods(e);
+  return new CharacterVisual(
+    formKey ?? visualKeyFor(e),
+    e.color,
+    formKey ? 0 : (e.skin ?? 0),
+    mods.tintStrengthMul,
+  );
 }
