@@ -48,10 +48,11 @@ Goal: more classic-MMO feel via data-as-code in `src/sim/content/` — low archi
 2. **Item sets** — Wolf Runner (Eastbrook quest line) + Fenwalker (Mirefen vendor).
 3. Fourth zone band or dungeon depth (later slice).
 
-### Content slice 2 (next)
+### Content slice 2 (started)
 
-- Escort / talk-chain quests
-- Thornpeak item set or dungeon depth
+- **Cragwalker set** ✅ — Thornpeak vendor set (Stalkerhide Jerkin, Windguard Leggings, Cragwalker Boots at Quartermaster Bree).
+- Escort / talk-chain quests (next)
+- Dungeon depth (later)
 
 ### Graphics slice G1 ✅ (enemy readability)
 

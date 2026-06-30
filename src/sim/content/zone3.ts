@@ -783,15 +783,15 @@ export const ZONE3_ITEMS: Record<string, ItemDef> = {
   },
   stalkerhide_jerkin: {
     id: 'stalkerhide_jerkin', name: 'Stalkerhide Jerkin', kind: 'armor', slot: 'chest', quality: 'common',
-    stats: { armor: 95 }, sellValue: 600, buyValue: 6000,
+    stats: { armor: 95 }, setId: 'cragwalker', sellValue: 600, buyValue: 6000,
   },
   cragwalker_boots: {
     id: 'cragwalker_boots', name: 'Cragwalker Boots', kind: 'armor', slot: 'feet', quality: 'common',
-    stats: { armor: 55 }, sellValue: 400, buyValue: 4000,
+    stats: { armor: 55 }, setId: 'cragwalker', sellValue: 400, buyValue: 4000,
   },
   windguard_leggings: {
     id: 'windguard_leggings', name: 'Windguard Leggings', kind: 'armor', slot: 'legs', quality: 'common',
-    stats: { armor: 70 }, sellValue: 450, buyValue: 4500,
+    stats: { armor: 70 }, setId: 'cragwalker', sellValue: 450, buyValue: 4500,
   },
   // --- junk (gray) ---
   ogre_toe_ring: { id: 'ogre_toe_ring', name: 'Ogre Toe Ring', kind: 'junk', quality: 'poor', sellValue: 25 },

@@ -29,4 +29,12 @@ export const SETS: Record<string, SetDef> = {
       { pieces: 3, stats: { armor: 20, spi: 2 } },
     ],
   },
+  cragwalker: {
+    id: 'cragwalker',
+    name: 'Cragwalker',
+    bonuses: [
+      { pieces: 2, stats: { sta: 5 } },
+      { pieces: 3, stats: { armor: 24, agi: 2 } },
+    ],
+  },
 };

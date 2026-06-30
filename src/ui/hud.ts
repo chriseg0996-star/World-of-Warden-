@@ -142,6 +142,7 @@ const SET_NAME_KEYS: Record<string, TranslationKey> = {
   recruit_vigil: 'itemUi.set.recruitVigil',
   wolf_runner: 'itemUi.set.wolfRunner',
   fenwalker: 'itemUi.set.fenwalker',
+  cragwalker: 'itemUi.set.cragwalker',
 };
 const ITEM_QUALITY_LABEL_KEYS: Record<ItemQuality, TranslationKey> = {
   poor: 'itemUi.quality.poor',

@@ -138,6 +138,28 @@ describe('itemization: set bonuses', () => {
     sim.equipItem('reedwoven_jerkin', pid);
     expect(e.stats.spi).toBe(spiAt1 + 2);
   });
+
+  it('activates the Cragwalker set from Highwatch vendor gear', () => {
+    const sim = makeSim();
+    const pid = sim.addPlayer('rogue', 'Ridge');
+    sim.tick();
+    const e = sim.entities.get(pid)!;
+    const meta = sim.players.get(pid)!;
+
+    (sim as any).addItemSilent('windguard_leggings', 1, meta);
+    sim.equipItem('windguard_leggings', pid);
+    const staAt1 = e.stats.sta;
+    const agiAt1 = e.stats.agi;
+
+    (sim as any).addItemSilent('cragwalker_boots', 1, meta);
+    sim.equipItem('cragwalker_boots', pid);
+    expect(e.stats.sta).toBe(staAt1 + 5);
+    expect(e.stats.agi).toBe(agiAt1);
+
+    (sim as any).addItemSilent('stalkerhide_jerkin', 1, meta);
+    sim.equipItem('stalkerhide_jerkin', pid);
+    expect(e.stats.agi).toBe(agiAt1 + 2);
+  });
 });
 
 describe('itemization: trinkets', () => {
