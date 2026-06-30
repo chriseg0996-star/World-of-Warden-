@@ -354,6 +354,8 @@ export interface NpcDef {
   /** Optional closed loop of world xz points; NPC walks the route at patrolSpeed. */
   patrol?: { x: number; z: number }[];
   patrolSpeed?: number;
+  /** When false, the NPC is spawned only for quests (escort, events). Default true. */
+  worldSpawn?: boolean;
 }
 
 export interface CampDef {
@@ -441,13 +443,14 @@ export function emptyZoneProps(): ZonePropsDef {
 }
 
 export interface QuestObjective {
-  type: 'kill' | 'collect' | 'talk' | 'explore';
+  type: 'kill' | 'collect' | 'talk' | 'explore' | 'escort';
   /** When set on an explore objective, credit on dungeon entry instead of position. */
   dungeonId?: string;
   targetMobId?: string; // for kill
   itemId?: string; // for collect
   targetNpcId?: string; // for talk: the NPC template id to speak with
-  point?: { x: number; z: number }; // for explore: center of the discovery area
+  escortNpcId?: string; // for escort: template id of the NPC to guide
+  point?: { x: number; z: number }; // for explore/escort: center of the discovery or destination area
   radius?: number; // for explore: discovery radius in yards (defaults to EXPLORE_RADIUS)
   count: number;
   label: string;
@@ -571,6 +574,7 @@ export interface Entity {
   forcedTargetId: number | null; // taunt/growl: attack this target while the timer runs
   forcedTargetTimer: number; // seconds left on the forced-attack window
   ownerId: number | null; // controlled pets: owning player's entity id (null = wild)
+  escortOwnerId: number | null; // quest escort NPCs follow this player entity id
   petMode: PetMode; // hunter pet behavior stance
   petTauntTimer: number; // controlled pet Growl cooldown
   pulseTimer: number; // boss aoe pulse countdown

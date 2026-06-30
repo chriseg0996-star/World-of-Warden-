@@ -11,7 +11,7 @@
 // The S3 guard in tests/localization_fixes.test.ts parses src/sim/sim.ts, enumerates
 // every player-facing emit site, and fails if any is no longer recognized by a client
 // matcher — so a new unhandled sim string cannot ship silently.
-import { ITEMS, MOBS } from '../sim/data';
+import { ITEMS, MOBS, NPCS } from '../sim/data';
 import { getLanguage, supportedLanguages, t, formatNumber, type InterpolationValues, type SupportedLanguage } from './i18n';
 import { tEntity } from './entity_i18n';
 
@@ -72,6 +72,7 @@ const baseEnTable = {
   "log.sitEat": "You sit down to eat.",
   "log.sitDrink": "You sit down to drink.",
   "log.quaff": "You quaff {item}.",
+  "log.escortJoins": "{name} joins you.",
   "log.boutDecided": "The bout is decided. Returning to the world…",
   "log.partyLeaves": "{name} leaves the party.",
   "log.partyLeft": "{name} has left the party.",
@@ -182,6 +183,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "log.sitEat": "You sit down to eat.",
     "log.sitDrink": "You sit down to drink.",
     "log.quaff": "You quaff {item}.",
+    "log.escortJoins": "{name} joins you.",
     "log.boutDecided": "The bout is decided. Returning to the world…",
     "log.partyLeaves": "{name} leaves the party.",
     "log.partyLeft": "{name} has left the party.",
@@ -246,6 +248,7 @@ const BASE_DICT: Record<SupportedLanguage, Record<BaseSimMessageKey, string>> = 
     "log.sitEat": "Te sientas a comer.",
     "log.sitDrink": "Te sientas a beber.",
     "log.quaff": "Bebes {item}.",
+    "log.escortJoins": "{name} se une a ti.",
     "log.boutDecided": "El combate está decidido. Regresando al mundo…",
     "log.partyLeaves": "{name} abandona el grupo.",
     "log.partyLeft": "{name} ha abandonado el grupo.",
@@ -373,6 +376,12 @@ function locMob(name: string): string {
   const id = mobNameToId.get(name);
   return id ? tEntity({ kind: 'mob', id, field: 'name' }) : name;
 }
+const npcNameToId = new Map<string, string>();
+for (const [id, npc] of Object.entries(NPCS)) npcNameToId.set(npc.name, id);
+function locNpc(name: string): string {
+  const id = npcNameToId.get(name);
+  return id ? tEntity({ kind: 'npc', id, field: 'name' }) : name;
+}
 function locItemStack(name: string, stackSuffix?: string): string {
   const item = locItem(name);
   if (!stackSuffix) return item;
@@ -439,6 +448,7 @@ const RULES: Rule[] = [
   { re: /^Equipped (.+)\.$/, build: (m) => tSim('log.equipped', { item: locItem(m[1]) }) },
   { re: /^Unequipped (.+)\.$/, build: (m) => tSim('log.unequipped', { item: locItem(m[1]) }) },
   { re: /^You quaff (.+)\.$/, build: (m) => tSim('log.quaff', { item: locItem(m[1]) }) },
+  { re: /^(.+) joins you\.$/, build: (m) => tSim('log.escortJoins', { name: locNpc(m[1]) }) },
   { re: /^(.+) wins (.+) \((\d+)\)$/, build: (m) => tSim('loot.rollWin', { winner: m[1], item: locItem(m[2]), roll: m[3] }) },
   { re: /^(.+) leaves the party\.$/, build: (m) => tSim('log.partyLeaves', { name: m[1] }) },
   { re: /^(.+) has left the party\.$/, build: (m) => tSim('log.partyLeft', { name: m[1] }) },

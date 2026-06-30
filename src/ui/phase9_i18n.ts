@@ -19,6 +19,7 @@ const NPC_IDS = [
   'the_merchant', 'marshal_redbrook', 'trader_wilkes', 'apothecary_lin', 'brother_aldric',
   'smith_haldren', 'fisherman_brandt', 'foreman_odell',
   'innkeeper_eliza', 'hunter_rowan', 'guard_ashford', 'guard_merrick', 'villager_marta', 'villager_cedric',
+  'wounded_scout',
   'warden_fenwick', 'brother_aldric_fen',
   'provisioner_hale', 'herbalist_yara', 'scout_maren', 'captain_thessaly',
   'brother_aldric_highwatch', 'scout_maren_highwatch', 'quartermaster_bree', 'armorer_hode',
@@ -41,6 +42,7 @@ const QUEST_IDS = [
   'q_breaking_the_seal', 'q_voice_below', 'q_sanctum_gate', 'q_korgath', 'q_velkhar',
   'q_gravewyrm',
   'q_word_with_lin', 'q_scout_pinewood', 'q_scout_chapel', 'q_scout_stalker_ridge',
+  'q_escort_to_inn', 'q_fen_courier_chain',
 ] as const;
 
 const ZONE_IDS = ['eastbrook_vale', 'mirefen_marsh', 'thornpeak_heights'] as const;
@@ -189,6 +191,12 @@ const OBJECTIVE_SPECS: readonly (readonly ObjectiveSpec[])[] = [
   [{ kind: 'text', es: 'Explora el camino de pinos del norte' }],
   [{ kind: 'text', es: 'Explora la Capilla Ahogada' }],
   [{ kind: 'text', es: 'Explora la Cresta de los Acechadores' }],
+  [{ kind: 'text', es: 'Escolta al explorador herido a la posada de Eastbrook' }],
+  [
+    { kind: 'text', es: 'Habla con la herborista Yara' },
+    { kind: 'text', es: 'Habla con el hermano Aldric' },
+    { kind: 'text', es: 'Habla con el proveedor Hale' },
+  ],
 ];
 
 function normalizeSourceText(text: string): string {
@@ -473,6 +481,8 @@ const esQuestNarratives = {
   q_scout_pinewood: [`Antes de enviar la patrulla al norte quiero ojos en el camino, {playerName}. Sigue el camino de pinos hacia los cotos de lobos y observa qué se mueve; luego vuelve a informar.`, `Así que el camino aún se puede transitar. Buen trabajo: la patrulla saldrá más segura gracias a ti.`],
   q_scout_chapel: [`Mis exploradores hablan de luces en la Capilla Ahogada, pero ninguno ha llegado y vuelto con un informe claro. Sigue la calzada al este, {playerName}, mira qué se mueve entre esas ruinas y vuelve a informar.`, `Así que la capilla aún se mantiene en pie, apenas. Bien. Necesitaré tu palabra antes de arriesgar una patrulla por el Matorral de Viudas.`],
   q_scout_stalker_ridge: [`Antes de enviar patrullas al sur quiero ojos en la Cresta de los Acechadores, {playerName}. Sigue el camino de montaña hasta la cima y mira qué se mueve entre los felinos.`, `Así que la cresta aún se puede transitar, por ahora. Con eso basta para empezar.`],
+  q_escort_to_inn: [`Un explorador volvió cojeando del camino de pinos con una mordida de lobo aún sangrando. Escóltalo hasta Eliza en la posada antes de que más lobos encuentren el rastro, {playerName}.`, `Lo trajiste respirando. Eliza lo curará; Eastbrook te debe una.`],
+  q_fen_courier_chain: [`Necesito mensajeros que hablen con mi gente sin desenvainar la espada, {playerName}. Lleva mi recuento a Yara en el cobertizo de hierbas, luego a Aldric en el muelle de la capilla y después a Hale en el almacén. Cuando los tres hayan respondido, vuelve conmigo.`, `Tres respuestas y ni una gota de sangre derramada. Así se sostiene Fenbridge.`],
 } satisfies QuestNarrativeTranslations;
 
 
@@ -512,6 +522,7 @@ const esData: LocaleData = {
     ['Guardia Merrick', 'Guardia de la ciudad', 'Ojos abiertos en el camino sur. A los bandidos les encanta una puerta sin vigilancia.'],
     ['Marta', 'Aldeana', 'Un día hermoso para el mercado, si ignoras los aullidos del bosque.'],
     ['Cedric', 'Aldeano', 'La posada sirve buen guiso esta noche. Eliza no deja a un viajero con hambre.'],
+    ['Explorador herido', 'Explorador', 'Con calma, {className}... los lobos me destrozaron la pierna en el camino de pinos. Llévame a la posada.'],
     ['Guardián Fenwick', 'Guardián de Fenbridge', 'Alto en la puerta, {className}. Más allá de los juncos, la ciénaga mata por nosotros.'],
     ['Hermano Aldric', 'Sacerdote del Valle', 'Que la Luz te mantenga sobre el agua, {playerName}. Los muertos de esta ciénaga no duermen: vadean.'],
     ['Proveedor Hale', 'Proveedor', 'Botas secas, pan seco y pólvora seca: en Fenbridge consigues dos de tres en un buen día.'],
@@ -540,6 +551,7 @@ const esData: LocaleData = {
     'El anillo de filacterias', 'Los campos de aparecidos', 'Huesos de la vanguardia', 'Sigilos del Wyrm', 'Romper el sello',
     'La voz de abajo', 'La puerta del Santuario', 'El guardián encadenado', 'El gran nigromante', 'Korzul el Gravewyrm',
     'Unas palabras con Lin', 'Explorar el camino de pinos', 'Ojos en la capilla', 'Recorrer la cresta',
+    'A salvo en la posada', 'Palabra por la calzada',
   ],
   objectiveItems: [
     'Piel de lobo',

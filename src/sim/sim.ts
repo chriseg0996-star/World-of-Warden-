@@ -34,6 +34,10 @@ import {
 
 const LEASH_DISTANCE = 45;
 const EXPLORE_RADIUS = 12; // yards: proximity at which an 'explore' quest objective is discovered
+const ESCORT_FOLLOW_DISTANCE = 4;
+const ESCORT_SPEED = 2.5;
+const ESCORT_TELEPORT_DISTANCE = 45;
+const ESCORT_PLAYER_RANGE = 40; // player must be within this of destination when escort arrives
 const DUNGEON_LEASH_DISTANCE = 70;
 // Classic "trivial con": a wild mob this many levels below the player goes
 // passive and will not auto-aggro from proximity (it still fights back if
@@ -515,6 +519,7 @@ export class Sim {
   readonly devCommands: boolean;
   private pendingMobRespawns: PendingMobRespawn[] = [];
   private npcPatrol = new Map<number, { points: Vec3[]; index: number; pause: number }>();
+  private escortByPlayer = new Map<number, { npcId: number; questId: string }>();
 
   constructor(cfg: SimConfig) {
     this.devCommands = cfg.devCommands ?? false;
@@ -530,6 +535,7 @@ export class Sim {
 
     // NPCs — nudged out of buildings and deep water if their data position is bad
     for (const npcDef of Object.values(NPCS)) {
+      if (npcDef.worldSpawn === false) continue;
       const safe = this.findSafePos(npcDef.pos.x, npcDef.pos.z, WATER_LEVEL + 0.6);
       const npc = createNpc(this.nextId++, npcDef, this.groundPos(safe.x, safe.z));
       this.addEntity(npc);
@@ -746,6 +752,7 @@ export class Sim {
     // with the character and removed from the live world instead of released
     const pet = this.petOf(pid, true);
     if (pet) this.despawnPersistentPet(pet);
+    this.despawnEscortForPlayer(pid);
     for (const m of this.entities.values()) {
       if (m.kind !== 'mob') continue;
       m.threat.delete(pid);
@@ -938,6 +945,7 @@ export class Sim {
   }
 
   private updateNpcPatrol(npc: Entity): void {
+    if (npc.escortOwnerId !== null) return;
     const state = this.npcPatrol.get(npc.id);
     if (!state || state.points.length < 2) return;
     if (state.pause > 0) {
@@ -1236,6 +1244,7 @@ export class Sim {
       if (!p.dead) {
         this.updatePlayerMovement(p, meta);
         this.updateExploreObjectives(p, meta);
+        this.updateEscortObjectives(p, meta);
         this.updateDoorTriggers(p);
         this.updateCasting(p, meta);
         this.updatePlayerAutoAttack(p, meta);
@@ -1251,7 +1260,8 @@ export class Sim {
         this.updateAuras(e);
       } else if (e.kind === 'npc') {
         this.cleanseFriendlyNpcAuras(e);
-        this.updateNpcPatrol(e);
+        if (e.escortOwnerId !== null) this.updateEscortNpc(e);
+        else this.updateNpcPatrol(e);
       } else if (e.kind === 'object') {
         if (!e.lootable) {
           e.respawnTimer -= DT;
@@ -5022,6 +5032,7 @@ export class Sim {
     this.emit({ type: 'log', text: `Quest accepted: ${quest.name}`, color: '#ff0', pid: meta.entityId });
     this.onInventoryChangedForQuests(meta);
     this.updateExploreObjectives(p, meta);
+    this.spawnEscortForQuest(questId, p, meta);
   }
 
   abandonQuest(questId: string, pid?: number): void {
@@ -5029,6 +5040,7 @@ export class Sim {
     if (!r) return;
     const { meta } = r;
     if (!meta.questLog.has(questId)) return;
+    this.despawnEscortForQuest(meta.entityId, questId);
     meta.questLog.delete(questId);
     this.emit({ type: 'log', text: `Quest abandoned: ${QUESTS[questId].name}`, color: '#f66', pid: meta.entityId });
   }
@@ -5051,6 +5063,7 @@ export class Sim {
     for (const obj of quest.objectives) {
       if (obj.type === 'collect' && obj.itemId) this.removeItem(obj.itemId, obj.count, meta.entityId);
     }
+    this.despawnEscortForQuest(meta.entityId, questId);
     qp.state = 'done';
     meta.questLog.delete(questId);
     meta.questsDone.add(questId);
@@ -5073,6 +5086,8 @@ export class Sim {
       let changed = false;
       quest.objectives.forEach((obj, i) => {
         if (obj.type === 'talk' && obj.targetNpcId === npcTemplateId && qp.counts[i] < obj.count) {
+          const priorDone = quest.objectives.slice(0, i).every((_, j) => qp.counts[j] >= quest.objectives[j].count);
+          if (!priorDone) return;
           qp.counts[i]++;
           changed = true;
           meta.counters.questProgress++;
@@ -5087,6 +5102,82 @@ export class Sim {
   // discovery radius. Called per tick after movement (and on quest accept, so a
   // player already standing in the area gets immediate credit). Deterministic:
   // pure position check, no randomness.
+  private spawnEscortForQuest(questId: string, player: Entity, meta: PlayerMeta): void {
+    const quest = QUESTS[questId];
+    const escortObj = quest.objectives.find((o) => o.type === 'escort' && o.escortNpcId);
+    if (!escortObj?.escortNpcId) return;
+    this.despawnEscortForPlayer(meta.entityId);
+    const def = NPCS[escortObj.escortNpcId];
+    if (!def) return;
+    const spawn = this.groundPos(player.pos.x + 1.5, player.pos.z);
+    const npc = createNpc(this.nextId++, def, spawn);
+    npc.escortOwnerId = meta.entityId;
+    npc.questIds = [];
+    this.addEntity(npc);
+    this.escortByPlayer.set(meta.entityId, { npcId: npc.id, questId });
+    this.emit({ type: 'log', text: `${def.name} joins you.`, color: '#8f8', pid: meta.entityId });
+  }
+
+  private despawnEscortForPlayer(playerId: number): void {
+    const state = this.escortByPlayer.get(playerId);
+    if (!state) return;
+    const npc = this.entities.get(state.npcId);
+    if (npc) this.dropEntity(npc.id);
+    this.escortByPlayer.delete(playerId);
+  }
+
+  private despawnEscortForQuest(playerId: number, questId: string): void {
+    const state = this.escortByPlayer.get(playerId);
+    if (!state || state.questId !== questId) return;
+    this.despawnEscortForPlayer(playerId);
+  }
+
+  private updateEscortNpc(npc: Entity): void {
+    const ownerId = npc.escortOwnerId;
+    if (ownerId === null) return;
+    const owner = this.entities.get(ownerId);
+    if (!owner || owner.dead) return;
+    const d = dist2d(npc.pos, owner.pos);
+    if (d > ESCORT_TELEPORT_DISTANCE) {
+      npc.pos = { ...owner.pos };
+      npc.prevPos = { ...npc.pos };
+      npc.pos.x += 1.2;
+      npc.pos.y = groundHeight(npc.pos.x, npc.pos.z, this.cfg.seed);
+      this.rebucket(npc);
+    } else if (d > ESCORT_FOLLOW_DISTANCE) {
+      this.moveToward(npc, owner.pos, ESCORT_SPEED);
+    }
+    npc.facing = angleTo(npc.pos, owner.pos);
+  }
+
+  private updateEscortObjectives(p: Entity, meta: PlayerMeta): void {
+    if (meta.questLog.size === 0) return;
+    for (const qp of meta.questLog.values()) {
+      if (qp.state !== 'active') continue;
+      const quest = QUESTS[qp.questId];
+      const escortState = this.escortByPlayer.get(meta.entityId);
+      const escortNpc = escortState?.questId === qp.questId ? this.entities.get(escortState.npcId) : null;
+      let changed = false;
+      quest.objectives.forEach((obj, i) => {
+        if (obj.type !== 'escort' || !obj.point || qp.counts[i] >= obj.count) return;
+        if (!escortNpc || escortNpc.templateId !== obj.escortNpcId) return;
+        const radius = obj.radius ?? EXPLORE_RADIUS;
+        const edx = escortNpc.pos.x - obj.point.x;
+        const edz = escortNpc.pos.z - obj.point.z;
+        const pdx = p.pos.x - obj.point.x;
+        const pdz = p.pos.z - obj.point.z;
+        if (edx * edx + edz * edz <= radius * radius
+          && pdx * pdx + pdz * pdz <= ESCORT_PLAYER_RANGE * ESCORT_PLAYER_RANGE) {
+          qp.counts[i] = obj.count;
+          changed = true;
+          meta.counters.questProgress++;
+          this.emit({ type: 'questProgress', questId: qp.questId, text: `${obj.label}: ${qp.counts[i]}/${obj.count}`, pid: meta.entityId });
+        }
+      });
+      if (changed) this.checkQuestReady(qp, meta);
+    }
+  }
+
   private updateExploreObjectives(p: Entity, meta: PlayerMeta): void {
     if (meta.questLog.size === 0) return;
     for (const qp of meta.questLog.values()) {

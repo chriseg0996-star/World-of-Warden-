@@ -51,7 +51,7 @@ Goal: more classic-MMO feel via data-as-code in `src/sim/content/` — low archi
 ### Content slice 2 (started)
 
 - **Cragwalker set** ✅ — Thornpeak vendor set (Stalkerhide Jerkin, Windguard Leggings, Cragwalker Boots at Quartermaster Bree).
-- Escort / talk-chain quests (next)
+- Escort / talk-chain quests ✅
 - Dungeon depth (later)
 
 ### Graphics slice G1 ✅ (enemy readability)

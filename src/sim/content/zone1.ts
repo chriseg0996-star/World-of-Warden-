@@ -296,7 +296,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
   innkeeper_eliza: {
     id: 'innkeeper_eliza', name: 'Innkeeper Eliza', title: 'Innkeeper',
     pos: { x: 11, z: -5 }, facing: 2.2, color: 0xc97b63,
-    questIds: [],
+    questIds: ['q_escort_to_inn'],
     vendorItems: ['baked_bread', 'spring_water', 'roasted_boar', 'tough_jerky'],
     greeting: 'Welcome to the Eastbrook Inn, $C. Rest your feet — the road north is unkind tonight.',
     patrol: [{ x: 11, z: -5 }, { x: 9, z: -3 }, { x: 13, z: -2 }, { x: 12, z: -7 }],
@@ -304,7 +304,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
   hunter_rowan: {
     id: 'hunter_rowan', name: 'Hunter Rowan', title: 'Hunter',
     pos: { x: -3, z: 14 }, facing: 0.2, color: 0x6e8b3d,
-    questIds: ['q_wolf_pelts', 'q_report_marshal'],
+    questIds: ['q_wolf_pelts', 'q_report_marshal', 'q_escort_to_inn'],
     greeting: 'Wolves have been bold on the pinewood road. If you are hunting them, I can put your pelts to use.',
     patrol: [{ x: -3, z: 14 }, { x: 2, z: 18 }, { x: -6, z: 20 }, { x: -8, z: 15 }],
   },
@@ -335,6 +335,13 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     questIds: [],
     greeting: 'The inn has good stew tonight. Eliza never lets a traveler go hungry.',
     patrol: [{ x: 10, z: -2 }, { x: 14, z: 0 }, { x: 10, z: 4 }, { x: 7, z: 1 }],
+  },
+  wounded_scout: {
+    id: 'wounded_scout', name: 'Wounded Scout', title: 'Scout',
+    pos: { x: -3, z: 14 }, facing: 0.2, color: 0x8b7355,
+    questIds: [],
+    greeting: 'Easy, $C... wolves tore my leg on the pinewood road. Get me to the inn.',
+    worldSpawn: false,
   },
   fisherman_brandt: {
     id: 'fisherman_brandt', name: 'Fisherman Brandt', title: 'Old Salt',
@@ -620,10 +627,26 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     itemRewards: { warrior: 'road_scout_coif', mage: 'road_scout_coif', rogue: 'road_scout_coif' },
     requiresQuest: 'q_report_marshal',
   },
+  q_escort_to_inn: {
+    id: 'q_escort_to_inn', name: 'Safe at the Inn',
+    giverNpcId: 'hunter_rowan', turnInNpcId: 'innkeeper_eliza',
+    text: 'A scout limped back from the pinewood road with a wolf bite still bleeding. Escort them to Eliza at the inn before more wolves find the trail, $N.',
+    completionText: 'You brought them in breathing. Eliza will patch them up; Eastbrook owes you one.',
+    objectives: [{
+      type: 'escort',
+      escortNpcId: 'wounded_scout',
+      point: { x: 11, z: -5 },
+      radius: 14,
+      count: 1,
+      label: 'Escort the wounded scout to the Eastbrook Inn',
+    }],
+    xpReward: 280, copperReward: 70, itemRewards: {},
+    requiresQuest: 'q_scout_pinewood',
+  },
 };
 
 export const ZONE1_QUEST_ORDER = [
-  'q_wolves', 'q_wolf_pelts', 'q_report_marshal', 'q_word_with_lin', 'q_scout_pinewood', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_murlocs',
+  'q_wolves', 'q_wolf_pelts', 'q_report_marshal', 'q_word_with_lin', 'q_scout_pinewood', 'q_escort_to_inn', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_murlocs',
   'q_supplies', 'q_bandits', 'q_mine', 'q_bones', 'q_ringleader',
   'q_whispers', 'q_names_of_the_dead', 'q_silence_the_call',
   'q_rite', 'q_fc_enter', 'q_fc_guardian', 'q_fc_warden', 'q_sexton', 'q_hollow', 'q_gravecallers_trail',
