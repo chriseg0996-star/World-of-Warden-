@@ -14,6 +14,8 @@
     "desktop:build": "node scripts/prepare_tauri_icons.mjs && tauri build",
     "preview": "vite preview",
     "test": "vitest run",
+    "smoke:warrior": "node scripts/smoke_browser.mjs",
+    "smoke:mage": "node scripts/smoke_mage.mjs",
     "perf:tour": "node scripts/perf_tour.mjs",
     "feel:smoke": "node scripts/feel_smoke.mjs",
     "feel:smoke:online": "node scripts/feel_smoke_online.mjs",

@@ -20,8 +20,9 @@ page.on('console', (msg) => {
   if (msg.type() === 'error') errors.push('CONSOLE: ' + msg.text());
 });
 
-await page.goto(URL, { waitUntil: 'networkidle0', timeout: 30000 });
-await page.click('#btn-offline');
+await page.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 });
+await page.waitForSelector('#btn-offline', { visible: true, timeout: 30000 });
+await page.$eval('#btn-offline', (el) => el.click());
 await new Promise((r) => setTimeout(r, 200));
 await page.type('#char-name', 'Adventurer');
 await page.screenshot({ path: 'tmp/01_start.png' });
@@ -29,7 +30,11 @@ await page.screenshot({ path: 'tmp/01_start.png' });
 // pick warrior
 await page.click('#offline-select .mini-class[data-class="warrior"]');
 await page.click('#btn-start-offline');
-await new Promise((r) => setTimeout(r, 2500));
+await page.waitForFunction(
+  () => Boolean(window.__game?.sim?.player),
+  { timeout: 60000 },
+);
+await new Promise((r) => setTimeout(r, 1500));
 await page.screenshot({ path: 'tmp/02_spawn.png' });
 
 const state0 = await page.evaluate(() => {
@@ -156,6 +161,80 @@ await page.screenshot({ path: 'tmp/09_quest_tracker.png' });
 await page.keyboard.press('b');
 await new Promise((r) => setTimeout(r, 300));
 await page.screenshot({ path: 'tmp/10_bags.png' });
+
+// --- Sprint B HUD checks (talents, window stack + Esc, swing timer) ---
+await page.keyboard.press('b'); // close bags
+await new Promise((r) => setTimeout(r, 150));
+await page.evaluate(() => window.__game.sim.setPlayerLevel(5));
+await page.keyboard.press('n'); // talents
+await page.keyboard.press('p'); // spellbook (stacked — only one should win via closeOtherWindows)
+await new Promise((r) => setTimeout(r, 350));
+const hudStack = await page.evaluate(() => ({
+  talents: document.getElementById('talents-window').style.display,
+  spellbook: document.getElementById('spellbook').style.display,
+  toolbar: !!document.querySelector('.tal-toolbar'),
+}));
+console.log('hud stack (spellbook should win):', JSON.stringify(hudStack));
+const stackOk = hudStack.spellbook === 'block' && hudStack.talents === 'none';
+console.log('panel stacking:', stackOk ? 'OK' : 'FAIL');
+
+await page.keyboard.press('l'); // quest log on top
+await new Promise((r) => setTimeout(r, 250));
+await page.keyboard.press('Escape');
+await new Promise((r) => setTimeout(r, 200));
+const afterEsc = await page.evaluate(() => ({
+  talents: document.getElementById('talents-window').style.display,
+  spellbook: document.getElementById('spellbook').style.display,
+  questlog: document.getElementById('quest-log-window').style.display,
+}));
+console.log('after Esc:', JSON.stringify(afterEsc));
+const escOk = afterEsc.talents === 'none' && afterEsc.spellbook === 'none' && afterEsc.questlog === 'none';
+console.log('Esc closes all:', escOk ? 'OK' : 'FAIL');
+
+const swing = await page.evaluate(() => {
+  const g = window.__game;
+  const sim = g.sim;
+  const p = sim.player;
+  const bar = document.getElementById('castbar');
+  const idleHidden = bar.hidden;
+  let target = null;
+  let best = 1e9;
+  for (const e of sim.entities.values()) {
+    if (e.templateId === 'forest_wolf' && !e.dead) {
+      const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
+      if (d < best) { best = d; target = e; }
+    }
+  }
+  if (!target) return { idleHidden, ok: false, reason: 'no live wolf' };
+  p.pos.x = target.pos.x + 3;
+  p.pos.z = target.pos.z;
+  sim.targetEntity(target.id);
+  p.facing = Math.atan2(target.pos.x - p.pos.x, target.pos.z - p.pos.z);
+  g.input.camYaw = p.facing;
+  sim.startAutoAttack();
+  return { idleHidden, ok: true, auto: p.autoAttack, swingTimer: p.swingTimer };
+});
+await page.waitForFunction(
+  () => {
+    const bar = document.getElementById('castbar');
+    return bar && !bar.hidden && bar.classList.contains('timing-swing');
+  },
+  { timeout: 3000 },
+).catch(() => null);
+const swingBar = await page.evaluate(() => {
+  const bar = document.getElementById('castbar');
+  const p = window.__game.sim.player;
+  return {
+    hidden: bar.hidden,
+    swing: bar.classList.contains('timing-swing'),
+    auto: p.autoAttack,
+    swingTimer: p.swingTimer,
+  };
+});
+console.log('swing timer:', JSON.stringify({ ...swing, ...swingBar }));
+const swingOk = swing.idleHidden && !swingBar.hidden && swingBar.swing && swingBar.auto;
+console.log('swing timer visible on auto-attack:', swingOk ? 'OK' : 'FAIL');
+await page.screenshot({ path: 'tmp/11_hud_sprint_b.png' });
 
 const final = await page.evaluate(() => {
   const g = window.__game;

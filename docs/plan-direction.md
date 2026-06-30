@@ -21,13 +21,20 @@ multi-year track in [`roadmap.md`](roadmap.md).
 
 Goal: the game *feels* like a classic MMO before we widen content.
 
-  docs/plan-direction.md
+### Sprint A (1 week) — HUD polish ✅
 
-### Sprint B (1–2 weeks) — Playtest loop
+1. Talents spec tab + target frame auras + boss/elite styling
+2. Window stacking via `openHudWindow` / `closeHudWindow`
+3. Unit tests for swing timer helpers
 
-1. Level 1→5 warrior + mage smoke paths (offline + online when Docker/Postgres available).
+### Sprint B (1–2 weeks) — Playtest loop (in progress)
+
+1. Level 1→5 warrior + mage smoke paths (offline). ✅ HUD checks in `smoke_browser.mjs`
 2. Fix friction from playtest (tooltip gaps, mobile touch targets, i18n drift).
-3. Wire `scripts/smoke_warrior.mjs` / `smoke_mage.mjs` into a quick pre-release checklist.
+3. Pre-release checklist:
+   - `npm run smoke:warrior` — movement, combat, loot, quest, HUD stack/Esc/swing timer
+   - `npm run smoke:mage` — casting, polymorph, conjure water
+   - `npm test`
 
 ---
 
