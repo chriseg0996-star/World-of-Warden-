@@ -659,7 +659,7 @@ async function startGame(world: IWorld, offlineSim: Sim | null, online: ClientWo
         case 'leaderboard': hud.toggleLeaderboard(); break;
         case 'chat': openChat(); break;
         case 'escape':
-          // close the topmost panel; if nothing was open, open the game menu
+          // close every open panel; if nothing was open, open the game menu
           if (!hud.closeAll()) hud.toggleOptionsMenu();
           break;
       }

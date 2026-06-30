@@ -672,12 +672,6 @@ export class Hud {
     el.style.transform = 'none';
   }
 
-  private topmostOpenWindow(): HTMLElement | null {
-    return [...document.querySelectorAll<HTMLElement>('.window.panel')]
-      .filter((el) => this.isWindowVisible(el))
-      .sort((a, b) => this.windowZValue(b) - this.windowZValue(a))[0] ?? null;
-  }
-
   private closeManagedWindow(el: HTMLElement): void {
     if (this.windowDrag?.el === el) this.windowDrag = null;
     delete el.dataset.windowOpen;
@@ -6418,14 +6412,15 @@ export class Hud {
     }
   }
 
-  // Closes the topmost UI. Returns true if something was closed.
+  // Closes transient overlays, then every open HUD window. Returns true if something was closed.
   closeAll(): boolean {
     const ctx = $('#ctx-menu');
     if (ctx.style.display !== 'none' && ctx.style.display !== '') { this.closeContextMenu(); return true; }
     if (this.emoteWheelOpen) { this.hideEmoteWheel(); return true; }
-    const top = this.topmostOpenWindow();
-    if (!top) return false;
-    this.closeManagedWindow(top);
+    const hadWindows = [...document.querySelectorAll<HTMLElement>('.window.panel')]
+      .some((el) => this.isWindowVisible(el));
+    if (!hadWindows) return false;
+    this.closeOtherWindows();
     return true;
   }
 }
