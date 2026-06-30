@@ -4,6 +4,7 @@ import {
   ITEMS, MOBS, NPCS, PLAYER_START, QUESTS, questRewardItemId, abilitiesKnownAt, instanceOrigin,
   zoneAt, ZONES,
 } from './data';
+import { computeQuestState, isQuestNpcOffer } from './quest_state';
 import { ARENA_SPAWN_A, ARENA_SPAWN_B } from './dungeon_layout';
 import { lineOfSightClear, resolvePosition } from './colliders';
 import { findPath } from './pathfind';
@@ -421,21 +422,7 @@ interface PendingMobRespawn {
 }
 
 // Pure quest-state computation, shared by the sim and the network client.
-export function computeQuestState(
-  questId: string,
-  questLog: Map<string, QuestProgress>,
-  questsDone: Set<string>,
-  playerLevel: number,
-): QuestState {
-  if (questsDone.has(questId)) return 'done';
-  const qp = questLog.get(questId);
-  if (qp) return qp.state === 'ready' ? 'ready' : 'active';
-  const quest = QUESTS[questId];
-  if (!quest) return 'unavailable';
-  if (quest.requiresQuest && !questsDone.has(quest.requiresQuest)) return 'unavailable';
-  if (quest.minLevel && playerLevel < quest.minLevel) return 'unavailable';
-  return 'available';
-}
+export { computeQuestState, guidedQuestIdForZone, isQuestNpcOffer } from './quest_state';
 
 function copyPos(dst: { x: number; y: number; z: number }, src: { x: number; y: number; z: number }): void {
   dst.x = src.x;
@@ -4987,7 +4974,9 @@ export class Sim {
       }
     }
     for (const qid of npc.questIds) {
-      if (QUESTS[qid].giverNpcId === npc.templateId && this.questState(qid, meta.entityId) === 'available') {
+      if (QUESTS[qid].giverNpcId === npc.templateId
+        && this.questState(qid, meta.entityId) === 'available'
+        && isQuestNpcOffer(qid, zoneAt(r.e.pos.z).id, meta.questLog, meta.questsDone, r.e.level, 'giver', npc.templateId)) {
         this.acceptQuest(qid, meta.entityId);
         return;
       }

@@ -4862,6 +4862,8 @@ const phase4En = {
       title: "Quests",
       complete: "Complete",
       availableHint: "Accept from {npc} (!)",
+      returnHint: "Return to {npc} (?)",
+      exploreHint: "Follow the objectives below. Seek townsfolk marked with ! when a new task is ready.",
     },
     log: {
       title: "Quest Log",
@@ -4929,6 +4931,8 @@ const phase4 = {
         title: "Misiones",
         complete: "Completada",
         availableHint: "Acepta de {npc} (!)",
+        returnHint: "Entrega a {npc} (?)",
+        exploreHint: "Sigue los objetivos de abajo. Busca aldeanos con ! cuando haya una nueva tarea.",
       },
       log: {
         title: "Diario de misiones",
@@ -4994,6 +4998,8 @@ const phase4 = {
         title: "Quêtes",
         complete: "Terminée",
         availableHint: "Acceptez auprès de {npc} (!)",
+        returnHint: "Rendez-vous à {npc} (?)",
+        exploreHint: "Suivez les objectifs ci-dessous. Cherchez les villageois marqués ! pour la prochaine tâche.",
       },
       log: {
         title: "Journal de quêtes",
@@ -5060,6 +5066,8 @@ const phase4 = {
         title: "Missioni",
         complete: "Completata",
         availableHint: "Accetta da {npc} (!)",
+        returnHint: "Consegna a {npc} (?)",
+        exploreHint: "Segui gli obiettivi qui sotto. Cerca gli abitanti con ! quando c'è un nuovo incarico.",
       },
       log: {
         title: "Registro missioni",
@@ -5124,6 +5132,8 @@ const phase4 = {
         title: "Quests",
         complete: "Abgeschlossen",
         availableHint: "Annehmen bei {npc} (!)",
+        returnHint: "Abgeben bei {npc} (?)",
+        exploreHint: "Folgt den Zielen unten. Sucht Dorfbewohner mit !, wenn eine neue Aufgabe bereitsteht.",
       },
       log: {
         title: "Questlog",
@@ -5188,6 +5198,8 @@ const phase4 = {
         title: "任务",
         complete: "完成",
         availableHint: "向 {npc} 领取 (!)",
+        returnHint: "向 {npc} 交付 (?)",
+        exploreHint: "按照下方目标进行。有新任务时寻找带 ! 的镇民。",
       },
       log: {
         title: "任务日志",
@@ -5252,6 +5264,8 @@ const phase4 = {
         title: "任務",
         complete: "完成",
         availableHint: "向 {npc} 領取 (!)",
+        returnHint: "向 {npc} 交付 (?)",
+        exploreHint: "依照下方目標進行。有新任務時尋找帶 ! 的鎮民。",
       },
       log: {
         title: "任務日誌",
@@ -5316,6 +5330,8 @@ const phase4 = {
         title: "퀘스트",
         complete: "완료",
         availableHint: "{npc}에게서 수락 (!)",
+        returnHint: "{npc}에게 반납 (?)",
+        exploreHint: "아래 목표를 따르세요. 새 임무가 있으면 ! 표시가 있는 주민을 찾으세요.",
       },
       log: {
         title: "퀘스트 기록",
@@ -5380,6 +5396,8 @@ const phase4 = {
         title: "クエスト",
         complete: "完了",
         availableHint: "{npc}から受注 (!)",
+        returnHint: "{npc}に報告 (?)",
+        exploreHint: "下の目標に従ってください。新しい依頼は ! の村人を探してください。",
       },
       log: {
         title: "クエストログ",
@@ -5444,6 +5462,8 @@ const phase4 = {
         title: "Missões",
         complete: "Concluída",
         availableHint: "Aceite com {npc} (!)",
+        returnHint: "Entregue a {npc} (?)",
+        exploreHint: "Siga os objetivos abaixo. Procure moradores com ! quando houver uma nova tarefa.",
       },
       log: {
         title: "Registro de missões",
@@ -5508,6 +5528,8 @@ const phase4 = {
         title: "Задания",
         complete: "Готово",
         availableHint: "Примите у {npc} (!)",
+        returnHint: "Сдайте {npc} (?)",
+        exploreHint: "Следуйте целям ниже. Ищите жителей с !, когда будет новое задание.",
       },
       log: {
         title: "Журнал заданий",

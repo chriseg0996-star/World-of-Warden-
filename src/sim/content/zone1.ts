@@ -407,6 +407,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     completionText: 'Ah, fine bristly hides! These will fetch a good price.',
     objectives: [{ type: 'collect', itemId: 'boar_hide', count: 5, label: 'Bristly Boar Hide' }],
     xpReward: 350, copperReward: 120, itemRewards: {},
+    requiresQuest: 'q_report_marshal',
   },
   q_spiders: {
     id: 'q_spiders', name: 'Webwood Menace',
@@ -607,6 +608,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     completionText: 'The Marshal sent you? Good. I have work that needs doing — but first, my thanks for coming all this way.',
     objectives: [{ type: 'talk', targetNpcId: 'apothecary_lin', count: 1, label: 'Speak with Apothecary Lin' }],
     xpReward: 200, copperReward: 50, itemRewards: {},
+    requiresQuest: 'q_wolves',
   },
   q_scout_pinewood: {
     id: 'q_scout_pinewood', name: 'Scout the Pinewood Road',
@@ -616,6 +618,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     objectives: [{ type: 'explore', point: { x: -6, z: 40 }, radius: 16, count: 1, label: 'Scout the north pinewood road' }],
     xpReward: 200, copperReward: 50,
     itemRewards: { warrior: 'road_scout_coif', mage: 'road_scout_coif', rogue: 'road_scout_coif' },
+    requiresQuest: 'q_report_marshal',
   },
 };
 

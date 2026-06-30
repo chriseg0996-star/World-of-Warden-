@@ -32,6 +32,7 @@ export const ZONE2_ZONE: ZoneDef = {
     { x: 45, z: 515, label: 'The Sunken Bastion' },
   ],
   welcome: 'Report to Warden Fenwick at the Fenbridge gate.',
+  welcomeQuestId: 'q_fenbridge_muster',
 };
 
 // Causeway north from Eastbrook to Fenbridge, then spokes to each hub.

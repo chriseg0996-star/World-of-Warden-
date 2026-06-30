@@ -145,6 +145,7 @@ describe('Phase 4b Eastbrook Vale content', () => {
 
   it('completes the explore quest by reaching the scout point', () => {
     const { sim, pid, meta, player, marshal } = world();
+    meta.questsDone.add('q_report_marshal');
     player.pos.x = marshal.pos.x; player.pos.z = marshal.pos.z;
     sim.acceptQuest('q_scout_pinewood', pid);
     expect(meta.questLog.get('q_scout_pinewood')?.state).toBe('active');
@@ -157,6 +158,7 @@ describe('Phase 4b Eastbrook Vale content', () => {
 
   it('completes and turns in the talk quest by speaking to Apothecary Lin', () => {
     const { sim, pid, meta, player, marshal, lin } = world();
+    meta.questsDone.add('q_wolves');
     player.pos.x = marshal.pos.x; player.pos.z = marshal.pos.z;
     sim.acceptQuest('q_word_with_lin', pid);
     expect(meta.questLog.get('q_word_with_lin')?.state).toBe('active');

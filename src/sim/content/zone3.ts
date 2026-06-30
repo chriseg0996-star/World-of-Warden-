@@ -30,6 +30,7 @@ export const ZONE3_ZONE: ZoneDef = {
     { x: 0, z: 880, label: 'Gravewyrm Sanctum' },
   ],
   welcome: 'Captain Thessaly holds the wall at Highwatch — barely.',
+  welcomeQuestId: 'q_highwatch_summons',
 };
 
 // Mountain road from Fenbridge up to Highwatch, then spokes.

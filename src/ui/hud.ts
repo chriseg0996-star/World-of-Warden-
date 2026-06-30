@@ -10,6 +10,7 @@ import {
   zoneWelcomeText,
 } from '../sim/data';
 import type { ZoneDef } from '../sim/data';
+import { guidedQuestIdForZone, isQuestNpcOffer } from '../sim/quest_state';
 import type { AbilityDef, EquipSlot, InvSlot, PetMode, PlayerClass, ResourceType, Stats } from '../sim/types';
 import {
   AbilityEffect, Aura, CONSUME_DURATION, Entity, EQUIP_SLOTS, FISHING_CAST_ID, GCD, ItemDef, SimEvent,
@@ -2028,33 +2029,42 @@ export class Hud {
 
   private updateQuestTracker(): void {
     const el = $('#quest-tracker');
-    let html = '';
+    const zone = zoneAt(this.sim.player.pos.z);
+    const guidedId = guidedQuestIdForZone(
+      zone.id, this.sim.questLog, this.sim.questsDone, this.sim.player.level,
+    );
+    let html = `<div class="qt-header">${esc(t('questUi.tracker.title'))}</div>`;
     if (this.sim.questLog.size > 0) {
-      html = `<div class="qt-header">${esc(t('questUi.tracker.title'))}</div>`;
-      for (const qp of this.sim.questLog.values()) {
+      const quests = [...this.sim.questLog.values()];
+      if (guidedId) {
+        quests.sort((a, b) => (a.questId === guidedId ? -1 : b.questId === guidedId ? 1 : 0));
+      }
+      for (const qp of quests) {
         const quest = QUESTS[qp.questId];
-        html += `<div class="qt-title">${esc(questTitle(qp.questId))}${qp.state === 'ready' ? ` <span class="quest-complete">(${esc(t('questUi.tracker.complete'))})</span>` : ''}</div>`;
+        const guided = qp.questId === guidedId;
+        html += `<div class="qt-title${guided ? ' qt-guided' : ''}">${esc(questTitle(qp.questId))}${qp.state === 'ready' ? ` <span class="quest-complete">(${esc(t('questUi.tracker.complete'))})</span>` : ''}</div>`;
         quest.objectives.forEach((obj, i) => {
           const done = qp.counts[i] >= obj.count;
-          html += `<div class="qt-obj${done ? ' done' : ''}">- ${esc(this.questProgressText(questObjectiveLabel(qp.questId, i), qp.counts[i], obj.count))}</div>`;
+          html += `<div class="qt-obj${done ? ' done' : ''}${guided ? ' qt-guided' : ''}">- ${esc(this.questProgressText(questObjectiveLabel(qp.questId, i), qp.counts[i], obj.count))}</div>`;
         });
-      }
-    } else {
-      const zone = zoneAt(this.sim.player.pos.z);
-      const welcomeId = zone.welcomeQuestId;
-      if (welcomeId && this.sim.questState(welcomeId) === 'available') {
-        const quest = QUESTS[welcomeId];
-        html = `<div class="qt-header">${esc(t('questUi.tracker.title'))}</div>`;
-        html += `<div class="qt-title qt-preview">${esc(questTitle(welcomeId))}</div>`;
-        quest.objectives.forEach((obj, i) => {
-          html += `<div class="qt-obj qt-preview">- ${esc(this.questProgressText(questObjectiveLabel(welcomeId, i), 0, obj.count))}</div>`;
-        });
-        if (quest.giverNpcId) {
-          html += `<div class="qt-hint">${esc(t('questUi.tracker.availableHint', { npc: npcDisplayName(quest.giverNpcId) }))}</div>`;
+        if (qp.state === 'ready' && quest.turnInNpcId) {
+          html += `<div class="qt-hint">${esc(t('questUi.tracker.returnHint', { npc: npcDisplayName(quest.turnInNpcId) }))}</div>`;
         }
       }
+    } else if (guidedId && this.sim.questState(guidedId) === 'available') {
+      const quest = QUESTS[guidedId];
+      html += `<div class="qt-title qt-preview qt-guided">${esc(questTitle(guidedId))}</div>`;
+      quest.objectives.forEach((obj, i) => {
+        html += `<div class="qt-obj qt-preview">- ${esc(this.questProgressText(questObjectiveLabel(guidedId, i), 0, obj.count))}</div>`;
+      });
+      if (quest.giverNpcId) {
+        html += `<div class="qt-hint">${esc(t('questUi.tracker.availableHint', { npc: npcDisplayName(quest.giverNpcId) }))}</div>`;
+      }
+    } else {
+      html += `<div class="qt-hint">${esc(t('questUi.tracker.exploreHint'))}</div>`;
     }
     if (el.innerHTML !== html) el.innerHTML = html;
+    el.classList.toggle('qt-empty', this.sim.questLog.size === 0 && !guidedId);
   }
 
   // -------------------------------------------------------------------------
@@ -2179,8 +2189,12 @@ export class Hud {
           ctx.stroke();
         }
       } else if (e.kind === 'npc') {
-        const hasAvail = e.questIds.some((q) => QUESTS[q].giverNpcId === e.templateId && this.sim.questState(q) === 'available');
-        const hasReady = e.questIds.some((q) => QUESTS[q].turnInNpcId === e.templateId && this.sim.questState(q) === 'ready');
+        const hasAvail = e.questIds.some((q) => isQuestNpcOffer(
+          q, zoneAt(p.pos.z).id, this.sim.questLog, this.sim.questsDone, p.level, 'giver', e.templateId,
+        ));
+        const hasReady = e.questIds.some((q) => isQuestNpcOffer(
+          q, zoneAt(p.pos.z).id, this.sim.questLog, this.sim.questsDone, p.level, 'turnIn', e.templateId,
+        ));
         ctx.fillStyle = '#ffd100';
         ctx.font = 'bold 11px Georgia';
         ctx.fillText(hasReady ? '?' : hasAvail ? '!' : '•', mx - 2, my + 3);
@@ -2497,8 +2511,12 @@ export class Hud {
       if (e.kind !== 'npc') continue;
       if (e.pos.z < zone.zMin || e.pos.z >= zone.zMax) continue;
       const { mx, my } = toMap(e.pos.x, e.pos.z);
-      const hasAvail = e.questIds.some((q) => QUESTS[q].giverNpcId === e.templateId && this.sim.questState(q) === 'available');
-      const hasReady = e.questIds.some((q) => QUESTS[q].turnInNpcId === e.templateId && this.sim.questState(q) === 'ready');
+      const hasAvail = e.questIds.some((q) => isQuestNpcOffer(
+        q, zone.id, this.sim.questLog, this.sim.questsDone, p.level, 'giver', e.templateId,
+      ));
+      const hasReady = e.questIds.some((q) => isQuestNpcOffer(
+        q, zone.id, this.sim.questLog, this.sim.questsDone, p.level, 'turnIn', e.templateId,
+      ));
       if (hasAvail || hasReady) {
         ctx.fillStyle = '#ffd100';
         ctx.font = 'bold 15px Georgia';
@@ -3296,8 +3314,13 @@ export class Hud {
     // only offers new quests (at the giver) and turn-ins (at the turn-in NPC)
     const interesting = npc.questIds.filter((q) => {
       const st = this.sim.questState(q);
-      return (st === 'available' && QUESTS[q].giverNpcId === npc.templateId)
-        || (st === 'ready' && QUESTS[q].turnInNpcId === npc.templateId);
+      if (st === 'ready' && QUESTS[q].turnInNpcId === npc.templateId) {
+        return isQuestNpcOffer(q, zoneAt(this.sim.player.pos.z).id, this.sim.questLog, this.sim.questsDone, this.sim.player.level, 'turnIn', npc.templateId);
+      }
+      if (st === 'available' && QUESTS[q].giverNpcId === npc.templateId) {
+        return isQuestNpcOffer(q, zoneAt(this.sim.player.pos.z).id, this.sim.questLog, this.sim.questsDone, this.sim.player.level, 'giver', npc.templateId);
+      }
+      return false;
     });
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'false');
