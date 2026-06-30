@@ -371,6 +371,7 @@ export class Hud {
   // Talents: a local staged allocation the user edits before committing (Apply).
   private talentStage: TalentAllocation | null = null;
   private talentTab: 'class' | 'spec' = 'class';
+  private charSheetTab: 'character' | 'stats' | 'progression' = 'character';
 
   constructor(private sim: IWorld, private renderer: Renderer, private keybinds: Keybinds) {
     this.ignoredChatNames = this.loadIgnoredChatNames();
@@ -464,14 +465,7 @@ export class Hud {
     mapCanvas.addEventListener('pointercancel', endDrag);
     $('#mm-bag').addEventListener('click', () => this.onMicroAction(() => this.toggleBags()));
     $('#mm-social').addEventListener('click', () => this.onMicroAction(() => this.toggleSocial()));
-    $('#mm-options')?.addEventListener('click', () => this.onMicroAction(() => this.toggleOptionsMenu()));
-    $('#mm-hub')?.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      const rail = $('#side-buttons');
-      if (!rail) return;
-      rail.classList.toggle('expanded');
-      this.syncMicroHubLabel();
-    });
+    $('#mm-options')?.addEventListener('click', () => this.toggleOptionsMenu());
     $('#mm-arena').addEventListener('click', () => this.onMicroAction(() => this.toggleArena()));
     $('#mm-leaderboard').addEventListener('click', () => this.onMicroAction(() => this.toggleLeaderboard()));
     const emoteBtn = $('#mm-emote');
@@ -490,13 +484,6 @@ export class Hud {
     musicBtn.addEventListener('click', () => {
       music.setEnabled(!music.enabled);
       styleMusicBtn();
-      this.collapseMicroMenu();
-    });
-    document.getElementById('ui')?.addEventListener('pointerdown', (ev) => {
-      if (!this.isMicroMenuExpanded()) return;
-      const rail = $('#side-buttons');
-      if (!rail || rail.contains(ev.target as Node)) return;
-      this.collapseMicroMenu();
     });
     const startZone = zoneAt(sim.player.pos.z);
     const startZoneName = zoneDisplayName(startZone.id);
@@ -1229,6 +1216,8 @@ export class Hud {
       this.renderMarket();
     }
     if ($('#char-window').style.display === 'block') this.renderChar();
+    if ($('#spellbook').style.display === 'block') this.renderSpellbook();
+    if ($('#talents-window').style.display === 'block') this.renderTalents();
     const dialog = $('#quest-dialog');
     if (dialog.style.display !== 'block' || this.openGossipNpcId === null) return;
     const npc = this.sim.entities.get(this.openGossipNpcId);
@@ -1535,31 +1524,8 @@ export class Hud {
     document.querySelectorAll('#actionbar .drop-target').forEach((el) => el.classList.remove('drop-target'));
   }
 
-  private isMicroMenuExpanded(): boolean {
-    return $('#side-buttons')?.classList.contains('expanded') ?? false;
-  }
-
-  private collapseMicroMenu(): void {
-    const rail = $('#side-buttons');
-    if (!rail?.classList.contains('expanded')) return;
-    rail.classList.remove('expanded');
-    this.syncMicroHubLabel();
-  }
-
-  private syncMicroHubLabel(): void {
-    const hub = $('#mm-hub');
-    if (!hub) return;
-    const key = this.isMicroMenuExpanded() ? 'hud.core.menuHubClose' : 'hud.core.menuHub';
-    const label = t(key);
-    hub.setAttribute('aria-label', label);
-    hub.setAttribute('title', label);
-    const hubLabel = hub.querySelector<HTMLElement>('.micro-label');
-    if (hubLabel) hubLabel.textContent = label;
-  }
-
   private onMicroAction(action: () => void): void {
     action();
-    this.collapseMicroMenu();
   }
 
   // Repaint the keycap on every action button from the current bindings.
@@ -1596,7 +1562,6 @@ export class Hud {
         btn.setAttribute('aria-label', labelText);
       }
     }
-    this.syncMicroHubLabel();
   }
 
   private buildXpTicks(): void {
@@ -3999,38 +3964,82 @@ export class Hud {
     const p = sim.player;
     const cls = CLASSES[sim.cfg.playerClass];
     const className = classDisplayName(cls.id);
-    let html = `<div class="panel-title"><span>${esc(p.name)} <span class="panel-subtitle">${esc(t('itemUi.equipment.levelClass', { level: formatNumber(p.level, { maximumFractionDigits: 0 }), className }))}</span></span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
-    html += `<div class="paperdoll">
-      <div class="equip-col equip-col-left" id="equip-col-left"></div>
-      <div class="char-model-panel">
-        <div id="char-model-preview" class="char-model-preview"></div>
-        <div id="char-skin-row" class="skin-row char-skin-row" role="list" data-i18n-aria="itemUi.equipment.chromaList"></div>
-      </div>
-      <div class="equip-col equip-col-right" id="equip-col-right"></div>
-    </div>
-    <div class="char-sheet-body">`;
+    const tab = this.charSheetTab;
     const wpn = sim.equipment.mainhand ? ITEMS[sim.equipment.mainhand] : null;
     const dps = wpn?.weapon ? ((wpn.weapon.min + wpn.weapon.max) / 2 + (p.attackPower / 14) * wpn.weapon.speed) / wpn.weapon.speed : 0;
-    html += `<div class="char-stats">
-      <span>${esc(t('itemUi.stats.str'))}: <b>${formatNumber(p.stats.str, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.armor'))}: <b>${formatNumber(p.stats.armor, { maximumFractionDigits: 0 })}</b></span>
-      <span>${esc(t('itemUi.stats.agi'))}: <b>${formatNumber(p.stats.agi, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.attackPower'))}: <b>${formatNumber(p.attackPower, { maximumFractionDigits: 0 })}</b></span>
-      <span>${esc(t('itemUi.stats.sta'))}: <b>${formatNumber(p.stats.sta, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.dps'))}: <b>${formatNumber(dps, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</b></span>
-      <span>${esc(t('itemUi.stats.int'))}: <b>${formatNumber(p.stats.int, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.critChance'))}: <b>${formatNumber(p.critChance * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</b></span>
-      <span>${esc(t('itemUi.stats.spi'))}: <b>${formatNumber(p.stats.spi, { maximumFractionDigits: 0 })}</b></span><span>${esc(t('itemUi.stats.dodge'))}: <b>${formatNumber(p.dodgeChance * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</b></span>
-      <span>${esc(t('itemUi.stats.maxHealth'))}: <b>${formatNumber(p.maxHp, { maximumFractionDigits: 0 })}</b></span>
-    </div>`;
-    html += this.talentSummaryHtml();
-    html += this.progressionHtml(p.level);
+    const tabs: Array<{ id: typeof tab; label: TranslationKey }> = [
+      { id: 'character', label: 'itemUi.equipment.tabCharacter' },
+      { id: 'stats', label: 'itemUi.equipment.tabStats' },
+      { id: 'progression', label: 'itemUi.equipment.tabProgression' },
+    ];
+    let html = `<div class="panel-title"><span>${esc(p.name)} <span class="panel-subtitle">${esc(t('itemUi.equipment.levelClass', { level: formatNumber(p.level, { maximumFractionDigits: 0 }), className }))}</span></span><button type="button" class="x-btn" data-close aria-label="${esc(t('hud.options.returnToGame'))}">${svgIcon('close')}</button></div>`;
+    html += `<div class="char-tabs" role="tablist" aria-label="${esc(t('hud.keybinds.actions.char'))}">`;
+    for (const tdef of tabs) {
+      const on = tab === tdef.id;
+      html += `<button type="button" class="char-tab${on ? ' active' : ''}" role="tab" data-tab="${tdef.id}" aria-selected="${on}" tabindex="${on ? '0' : '-1'}">${esc(t(tdef.label))}</button>`;
+    }
     html += `</div>`;
+    html += `<div id="char-panel-character" class="char-tab-panel${tab === 'character' ? ' active' : ''}" role="tabpanel">
+      <div class="paperdoll">
+        <div class="equip-col equip-col-left" id="equip-col-left"></div>
+        <div class="char-model-panel">
+          <div id="char-model-preview" class="char-model-preview"></div>
+          <div id="char-skin-row" class="skin-row char-skin-row" role="list" data-i18n-aria="itemUi.equipment.chromaList"></div>
+        </div>
+        <div class="equip-col equip-col-right" id="equip-col-right"></div>
+      </div>
+    </div>`;
+    html += `<div id="char-panel-stats" class="char-tab-panel${tab === 'stats' ? ' active' : ''}" role="tabpanel">${this.charStatsPanelHtml(p, dps)}</div>`;
+    html += `<div id="char-panel-progression" class="char-tab-panel${tab === 'progression' ? ' active' : ''}" role="tabpanel">${this.talentSummaryHtml()}${this.progressionHtml(p.level)}</div>`;
     el.innerHTML = html;
+    el.querySelectorAll('.char-tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const next = (btn as HTMLElement).dataset.tab as typeof tab;
+        if (!next || next === this.charSheetTab) return;
+        this.charSheetTab = next;
+        this.renderChar();
+      });
+    });
     el.querySelector('[data-act="prestige"]')?.addEventListener('click', () => this.openPrestigeDialog());
-    const leftCol = el.querySelector('#equip-col-left')!;
-    const rightCol = el.querySelector('#equip-col-right')!;
-    for (const key of PAPERDOLL_LEFT_SLOTS) this.appendEquipSlot(leftCol, key);
-    for (const key of PAPERDOLL_RIGHT_SLOTS) this.appendEquipSlot(rightCol, key);
-    this.renderCharPreview();
-    this.renderCharSkinPicker();
+    const leftCol = el.querySelector('#equip-col-left');
+    const rightCol = el.querySelector('#equip-col-right');
+    if (leftCol && rightCol) {
+      for (const key of PAPERDOLL_LEFT_SLOTS) this.appendEquipSlot(leftCol, key);
+      for (const key of PAPERDOLL_RIGHT_SLOTS) this.appendEquipSlot(rightCol, key);
+      this.renderCharPreview();
+      this.renderCharSkinPicker();
+    }
     el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.hideTooltip(); });
+  }
+
+  private charStatsPanelHtml(p: { stats: Stats; attackPower: number; critChance: number; dodgeChance: number; maxHp: number }, dps: number): string {
+    const row = (label: string, value: string): string =>
+      `<div class="char-stat-row"><span class="char-stat-label">${esc(label)}</span><span class="char-stat-val">${value}</span></div>`;
+    const n = (v: number) => formatNumber(v, { maximumFractionDigits: 0 });
+    const pct = (v: number) => `${formatNumber(v * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    return `<div class="char-stat-groups">
+      <div class="char-stat-group">
+        <div class="char-stat-group-title">${esc(t('itemUi.equipment.statsPrimary'))}</div>
+        <div class="char-stat-grid">
+          ${row(t('itemUi.stats.str'), n(p.stats.str))}
+          ${row(t('itemUi.stats.agi'), n(p.stats.agi))}
+          ${row(t('itemUi.stats.sta'), n(p.stats.sta))}
+          ${row(t('itemUi.stats.int'), n(p.stats.int))}
+          ${row(t('itemUi.stats.spi'), n(p.stats.spi))}
+        </div>
+      </div>
+      <div class="char-stat-group">
+        <div class="char-stat-group-title">${esc(t('itemUi.equipment.statsCombat'))}</div>
+        <div class="char-stat-grid">
+          ${row(t('itemUi.stats.attackPower'), n(p.attackPower))}
+          ${row(t('itemUi.stats.dps'), formatNumber(dps, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}
+          ${row(t('itemUi.stats.critChance'), pct(p.critChance))}
+          ${row(t('itemUi.stats.dodge'), pct(p.dodgeChance))}
+          ${row(t('itemUi.stats.armor'), n(p.stats.armor))}
+          ${row(t('itemUi.stats.maxHealth'), n(p.maxHp))}
+        </div>
+      </div>
+    </div>`;
   }
 
   private appendEquipSlot(parent: HTMLElement, slotKey: EquipSlot): void {
@@ -4414,56 +4423,112 @@ export class Hud {
     const cls = CLASSES[sim.cfg.playerClass];
     const className = classDisplayName(cls.id);
     el.setAttribute('aria-label', t('abilityUi.spellbook.title'));
-    el.innerHTML = `<div class="panel-title"><span>${esc(t('abilityUi.spellbook.title'))} <span class="spellbook-class">${esc(t('abilityUi.spellbook.classSubtitle', { className }))}</span></span><button type="button" class="x-btn" data-close aria-label="${esc(t('abilityUi.spellbook.close'))}">${svgIcon('close')}</button></div>`;
+    el.innerHTML = `<div class="panel-title"><span>${esc(t('abilityUi.spellbook.title'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('abilityUi.spellbook.close'))}">${svgIcon('close')}</button></div>`;
+    const body = document.createElement('div');
+    body.className = 'sb-body';
+    el.appendChild(body);
+
+    const entries = cls.abilities.map((abilityId) => {
+      const def = ABILITIES[abilityId];
+      const known = sim.known.find((k) => k.def.id === abilityId) ?? null;
+      return { abilityId, def, known };
+    });
+    const knownEntries = entries.filter((e) => e.known).sort((a, b) => a.def.learnLevel - b.def.learnLevel);
+    const lockedEntries = entries.filter((e) => !e.known).sort((a, b) => a.def.learnLevel - b.def.learnLevel);
+
+    const head = document.createElement('div');
+    head.className = 'sb-head';
+    head.style.setProperty('--class-color', classCss(sim.cfg.playerClass));
+    head.innerHTML = `<img class="sb-crest" src="${iconDataUrl('crest', `class_${sim.cfg.playerClass}`, 48)}" alt="" draggable="false">
+      <div class="sb-meta">
+        <div class="sb-class">${esc(className)}</div>
+        <div class="sb-count">${esc(t('abilityUi.spellbook.learnedCount', { known: knownEntries.length, total: entries.length }))}</div>
+      </div>`;
+    body.appendChild(head);
+
     const list = document.createElement('div');
     list.className = 'spell-list';
     list.setAttribute('role', 'list');
-    el.appendChild(list);
-    let rendered = 0;
-    for (const abilityId of cls.abilities) {
-      const def = ABILITIES[abilityId];
-      const known = sim.known.find((k) => k.def.id === abilityId) ?? null;
-      const row = document.createElement('div');
-      row.className = 'spell-row' + (known ? '' : ' locked');
-      row.tabIndex = 0;
-      row.setAttribute('role', 'listitem');
-      const locked = !known;
-      const summary = known ? describeAbilitySummary(known, sim.player.resourceType) : '';
-      const name = abilityDisplayName(def);
-      const learnLevel = formatAbilityNumber(def.learnLevel);
-      row.setAttribute('aria-label', known
-        ? t('abilityUi.spellbook.knownAbilityAria', { name, rank: formatAbilityNumber(known.rank), summary })
-        : t('abilityUi.spellbook.unlearnedAbilityAria', { name, level: learnLevel }));
-      row.innerHTML = `<div class="spell-icon" style="background-image:url(${iconDataUrl('ability', abilityId)})"></div>
-        <div class="spell-text"><div class="spell-name">${esc(name)}${known && known.rank > 1 ? ` <span class="spell-rank">${esc(t('abilityUi.tooltip.rank', { rank: formatAbilityNumber(known.rank) }))}</span>` : ''}</div>
-        <div class="spell-sub">${locked ? esc(t('abilityUi.spellbook.trainableAtLevel', { level: learnLevel })) : esc(summary)}</div></div>`;
-      if (known) {
-        row.draggable = true;
-        row.addEventListener('dragstart', (e) => {
-          const action = { type: 'ability' as const, id: known.def.id };
-          this.dragAction = { action, sourceIndex: null };
-          this.writeDraggedAction(e.dataTransfer, action);
-          e.dataTransfer!.effectAllowed = 'move';
-          this.hideTooltip();
-        });
-        row.addEventListener('dragend', () => {
-          this.dragAction = null;
-          this.clearActionDropTargets();
-        });
-        this.attachTooltip(row, () => this.abilityTooltip(known));
-      } else {
-        this.attachTooltip(row, () => `<div class="tt-title">${esc(name)}</div><div class="tt-sub">${esc(t('abilityUi.spellbook.learnAtLevel', { level: learnLevel }))}</div>`);
-      }
-      list.appendChild(row);
-      rendered++;
-    }
-    if (rendered === 0) {
+    body.appendChild(list);
+
+    const appendSection = (title: string, items: typeof entries, locked: boolean) => {
+      if (items.length === 0) return;
+      const section = document.createElement('div');
+      section.className = 'sb-section';
+      const heading = document.createElement('div');
+      heading.className = 'sb-section-title';
+      heading.textContent = title;
+      section.appendChild(heading);
+      for (const entry of items) this.appendSpellbookRow(section, entry.def, entry.known, locked, sim.player.resourceType);
+      list.appendChild(section);
+    };
+
+    appendSection(t('abilityUi.spellbook.sectionKnown'), knownEntries, false);
+    appendSection(t('abilityUi.spellbook.sectionTrainable'), lockedEntries, true);
+
+    if (entries.length === 0) {
       const empty = document.createElement('div');
-      empty.className = 'spell-sub';
+      empty.className = 'sb-empty';
       empty.textContent = t('abilityUi.spellbook.empty');
       list.appendChild(empty);
     }
+
+    const foot = document.createElement('div');
+    foot.className = 'sb-foot';
+    foot.textContent = t('abilityUi.spellbook.dragHint');
+    body.appendChild(foot);
+
     el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.hideTooltip(); });
+  }
+
+  private appendSpellbookRow(
+    parent: HTMLElement,
+    def: AbilityDef,
+    known: ResolvedAbility | null,
+    locked: boolean,
+    resourceType: ResourceType | null,
+  ): void {
+    const row = document.createElement('div');
+    row.className = 'spell-row' + (locked ? ' locked' : ' known');
+    row.tabIndex = 0;
+    row.setAttribute('role', 'listitem');
+    const summary = known ? describeAbilitySummary(known, resourceType) : '';
+    const name = abilityDisplayName(def);
+    const learnLevel = formatAbilityNumber(def.learnLevel);
+    row.setAttribute('aria-label', known
+      ? t('abilityUi.spellbook.knownAbilityAria', { name, rank: formatAbilityNumber(known.rank), summary })
+      : t('abilityUi.spellbook.unlearnedAbilityAria', { name, level: learnLevel }));
+    const rankHtml = known && known.rank > 1
+      ? ` <span class="spell-rank">${esc(t('abilityUi.tooltip.rank', { rank: formatAbilityNumber(known.rank) }))}</span>`
+      : '';
+    const sub = locked
+      ? t('abilityUi.spellbook.trainableAtLevel', { level: learnLevel })
+      : summary;
+    const badge = locked
+      ? `<span class="spell-lvl">${esc(learnLevel)}</span>`
+      : (known && known.cost > 0
+        ? `<span class="spell-cost">${esc(formatAbilityNumber(known.cost))}</span>`
+        : '');
+    row.innerHTML = `<div class="spell-icon" style="background-image:url(${iconDataUrl('ability', def.id)})"></div>
+      <div class="spell-text"><div class="spell-name">${esc(name)}${rankHtml}</div><div class="spell-sub">${esc(sub)}</div></div>${badge}`;
+    if (known) {
+      row.draggable = true;
+      row.addEventListener('dragstart', (e) => {
+        const action = { type: 'ability' as const, id: known.def.id };
+        this.dragAction = { action, sourceIndex: null };
+        this.writeDraggedAction(e.dataTransfer, action);
+        e.dataTransfer!.effectAllowed = 'move';
+        this.hideTooltip();
+      });
+      row.addEventListener('dragend', () => {
+        this.dragAction = null;
+        this.clearActionDropTargets();
+      });
+      this.attachTooltip(row, () => this.abilityTooltip(known));
+    } else {
+      this.attachTooltip(row, () => `<div class="tt-title">${esc(name)}</div><div class="tt-desc">${esc(t('abilityUi.spellbook.learnAtLevel', { level: learnLevel }))}</div>`);
+    }
+    parent.appendChild(row);
   }
 
   // -------------------------------------------------------------------------
@@ -6284,11 +6349,18 @@ export class Hud {
 
   // -------------------------------------------------------------------------
 
-  // Historical name retained for the existing call sites. Opening a window no
-  // longer closes its siblings; it only clears transient overlays.
-  private closeOtherWindows(_keep?: string | string[]): void {
+  // Close every open HUD window except those listed in keep (CSS selectors or ids).
+  private closeOtherWindows(keep?: string | string[]): void {
     this.closeContextMenu();
     this.hideTooltip();
+    const keepIds = new Set(
+      (Array.isArray(keep) ? keep : keep ? [keep] : [])
+        .map((sel) => (sel.startsWith('#') ? sel.slice(1) : sel)),
+    );
+    for (const el of document.querySelectorAll<HTMLElement>('.window.panel')) {
+      if (keepIds.has(el.id) || !this.isWindowVisible(el)) continue;
+      this.closeManagedWindow(el);
+    }
   }
 
   // Closes the topmost UI. Returns true if something was closed.

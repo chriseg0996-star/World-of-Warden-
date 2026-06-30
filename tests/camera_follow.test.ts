@@ -123,6 +123,19 @@ describe('camera follow', () => {
     expect(next.camYaw).toBe(1);
   });
 
+  it('does not auto-settle while strafing laterally', () => {
+    const next = updateFollowCameraYaw({
+      camYaw: 1.2,
+      interpFacing: 0,
+      lastInterpFacing: 0,
+      frameDt: 1 / 60,
+      mouselook: false,
+      moving: false,
+      orbiting: false,
+    });
+    expect(next.camYaw).toBe(1.2);
+  });
+
   it('decouples click-to-move turns from the camera and eases only gently', () => {
     const next = updateFollowCameraYaw({
       camYaw: Math.PI,

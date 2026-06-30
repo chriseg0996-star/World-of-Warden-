@@ -891,19 +891,26 @@ const MAX_SIM_STEPS_PER_FRAME = 3;
     const mi = input.readMoveInput();
     const clickMoving = !!input.clickMoveTarget && !input.suspendMovement && !world.player.dead;
     const keyboardTurning = mi.turnLeft || mi.turnRight;
+    const strafing = mi.strafeLeft || mi.strafeRight;
+    // WoW-style: lateral movement keeps the camera fixed; only pure forward/back
+    // (or click-to-move without strafe) eases the orbit back behind the character.
+    const cameraSettling = (mi.forward || mi.back || clickMoving) && !strafing;
+    const manualLook = manualCameraLook();
     const next = updateFollowCameraYaw({
       camYaw: input.camYaw,
       interpFacing,
       frameDt,
       lastInterpFacing,
-      mouselook: input.isMouselookActive(),
-      moving: mi.forward || mi.strafeLeft || mi.strafeRight || clickMoving,
+      mouselook: manualLook,
+      moving: cameraSettling,
       clickMoving,
       orbiting: false,
       snapFollow: keyboardTurning && !input.isMouseCameraMode(),
     });
     input.camYaw = next.camYaw;
-    lastInterpFacing = next.lastInterpFacing; // track through mouselook too — no snap on release
+    // Keep follow state aligned with live mouse yaw so release after a drag
+    // does not snap the orbit.
+    lastInterpFacing = manualLook ? input.camYaw : next.lastInterpFacing;
   }
 
   // Resolve this step's movement input, folding in click-to-move (#95). Returns
@@ -976,11 +983,16 @@ const MAX_SIM_STEPS_PER_FRAME = 3;
     return !!(mi.forward || mi.back || mi.strafeLeft || mi.strafeRight) && !world.player.dead;
   }
 
-  function renderFacingOverride(): number | null {
+  function activeCameraFacing(): number | null {
+    if (world.player.dead) return null;
     if (input.isMouseCameraMode()) {
-      return cameraMoveActive() ? input.camYaw : null;
+      return (input.isDragging() || cameraMoveActive()) ? input.camYaw : null;
     }
-    return input.isMouselookActive() && !world.player.dead ? input.camYaw : null;
+    return input.isMouselookActive() ? input.camYaw : null;
+  }
+
+  function manualCameraLook(): boolean {
+    return input.isMouselookActive() || input.isDragging();
   }
 
   function frame(now: number): void {
@@ -997,18 +1009,16 @@ const MAX_SIM_STEPS_PER_FRAME = 3;
     updateHoverCursor();
     perf.markInputFrame(performance.now());
 
-    const mouselook = input.isMouselookActive() && !world.player.dead;
     const controllerFacing = input.controllerFacingOverride();
-    const renderFacing = renderFacingOverride();
-    const movementFacing = !world.player.dead ? (renderFacing ?? controllerFacing) : null;
 
     if (offlineSim) {
       acc += frameDt;
       let simSteps = 0;
       while (acc >= DT && simSteps < MAX_SIM_STEPS_PER_FRAME) {
-        const { mi, facing } = resolveMove(mouselook, offlineSim.player.pos, offlineSim.player.facing);
+        const lookNow = manualCameraLook() && !world.player.dead;
+        const { mi, facing } = resolveMove(lookNow, offlineSim.player.pos, offlineSim.player.facing);
         Object.assign(offlineSim.moveInput, mi);
-        const stepFacing = movementFacing ?? facing;
+        const stepFacing = activeCameraFacing() ?? controllerFacing ?? facing;
         if (stepFacing !== null) offlineSim.player.facing = stepFacing;
         perf.markInputSent(performance.now());
         const events = perf.time('sim', () => offlineSim.tick());
@@ -1018,12 +1028,21 @@ const MAX_SIM_STEPS_PER_FRAME = 3;
       }
       if (acc > DT * MAX_SIM_STEPS_PER_FRAME) acc = DT * MAX_SIM_STEPS_PER_FRAME;
       const pp = offlineSim.player;
-      updateCamera(frameDt, pp.prevFacing + wrapAngle(pp.facing - pp.prevFacing) * (acc / DT));
+      const faceOverride = activeCameraFacing();
+      if (faceOverride !== null) {
+        pp.facing = faceOverride;
+        pp.prevFacing = faceOverride;
+      }
+      const manualLook = manualCameraLook() && !world.player.dead;
+      const camFacing = manualLook
+        ? input.camYaw
+        : pp.prevFacing + wrapAngle(pp.facing - pp.prevFacing) * (acc / DT);
+      updateCamera(frameDt, camFacing);
       renderer.camYaw = input.camYaw;
       renderer.camPitch = input.camPitch;
       renderer.camDist = input.camDist;
       perf.setNetwork(null);
-      perf.time('renderer', () => renderer.sync(acc / DT, frameDt, movementFacing));
+      perf.time('renderer', () => renderer.sync(acc / DT, frameDt, activeCameraFacing() ?? controllerFacing));
       updateClickMoveMarker();
       perf.markInputVisible(performance.now());
       perf.time('hud', () => hud.update());
@@ -1034,8 +1053,9 @@ const MAX_SIM_STEPS_PER_FRAME = 3;
 
     // online: inputs stream on a timer inside ClientWorld; here we mirror state
     const net = online!;
-    const resolved = resolveMove(mouselook, world.player.pos, world.player.facing);
-    const netFacing = movementFacing ?? resolved.facing;
+    const lookNow = manualCameraLook() && !world.player.dead;
+    const resolved = resolveMove(lookNow, world.player.pos, world.player.facing);
+    const netFacing = activeCameraFacing() ?? controllerFacing ?? resolved.facing;
     Object.assign(net.moveInput, resolved.mi);
     net.setMouselookFacing(netFacing);
     if (net.flushInput()) perf.markInputSent(performance.now());
@@ -1056,12 +1076,20 @@ const MAX_SIM_STEPS_PER_FRAME = 3;
       alpha: Math.round(alpha * 100) / 100,
     });
     const pe = world.player;
-    const camFacing = pe.prevFacing + wrapAngle(pe.facing - pe.prevFacing) * Math.min(1, alpha);
+    const faceOverride = activeCameraFacing();
+    if (faceOverride !== null) {
+      pe.facing = faceOverride;
+      pe.prevFacing = faceOverride;
+    }
+    const manualLook = manualCameraLook() && !world.player.dead;
+    const camFacing = manualLook
+      ? input.camYaw
+      : pe.prevFacing + wrapAngle(pe.facing - pe.prevFacing) * Math.min(1, alpha);
     updateCamera(frameDt, camFacing);
     renderer.camYaw = input.camYaw;
     renderer.camPitch = input.camPitch;
     renderer.camDist = input.camDist;
-    perf.time('renderer', () => renderer.sync(alpha, frameDt, movementFacing));
+    perf.time('renderer', () => renderer.sync(alpha, frameDt, activeCameraFacing() ?? controllerFacing));
     updateClickMoveMarker();
     perf.markInputVisible(performance.now());
     perf.time('hud', () => hud.update());

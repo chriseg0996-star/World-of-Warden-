@@ -617,44 +617,23 @@
   .action-btn.auto-attack .icon-label { filter: brightness(1.12); }
   .action-btn:not(.empty)[draggable="true"] { cursor: grab; }
   .action-btn.drop-target { border-color: #7fd1ff; box-shadow: 0 0 8px #7fd1ff88; }
-  /* micro-menu: bottom-right, stacked upward, sitting just above the
-     Discord/GitHub buttons (both right-aligned to the same edge). */
+  /* micro-menu: WoW-style compact gem buttons, bottom-right icon grid. */
   #side-buttons { position: absolute; right: var(--hud-inset); bottom: var(--hud-inset);
-    display: flex; flex-direction: column; align-items: stretch; gap: 2px; z-index: 19;
-    padding: 4px; border-radius: var(--radius-lg);
-    background: var(--panel-glass); backdrop-filter: var(--hud-blur); -webkit-backdrop-filter: var(--hud-blur);
-    border: 1px solid var(--panel-border); box-shadow: var(--hud-shadow); }
-  #side-buttons:not(.expanded) .micro-btn:not(#mm-options):not(#mm-hub),
-  #side-buttons:not(.expanded) .micro-divider { display: none; }
-  #side-buttons.expanded { padding: 5px; gap: 1px; min-width: 152px; }
-  #side-buttons.expanded #mm-hub { border-color: var(--gold); color: var(--gold); }
-  .micro-divider { height: 1px; margin: 3px 6px; background: var(--hud-hairline); flex: none; }
+    display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-content: flex-end;
+    width: 84px; gap: 2px; z-index: 19; padding: 0; background: none; border: none; box-shadow: none; }
+  .micro-divider { display: none; }
   .micro-btn {
-    width: 36px; height: 32px; border: 1px solid transparent; border-radius: var(--radius-md);
-    background: transparent; color: var(--color-text-muted); cursor: pointer;
-    font-size: 12px; font-weight: 600; position: relative;
+    width: 26px; height: 26px; min-width: 26px; min-height: 26px; flex: 0 0 26px;
+    border: 1px solid rgba(90, 74, 34, 0.55); border-radius: 50%;
+    background: rgba(8, 8, 12, 0.78); color: var(--color-text-muted); cursor: pointer;
+    font-size: 11px; font-weight: 600; position: relative;
     display: inline-flex; align-items: center; justify-content: center; gap: 0;
-    transition: border-color var(--transition-speed), color var(--transition-speed), background var(--transition-speed);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: border-color var(--transition-speed), color var(--transition-speed), background var(--transition-speed), box-shadow var(--transition-speed);
   }
-  #side-buttons.expanded .micro-btn:not(#mm-hub) {
-    width: 100%; min-height: 30px; height: auto; padding: 5px 8px;
-    justify-content: flex-start; gap: 8px;
-  }
-  #side-buttons.expanded .micro-btn .micro-label {
-    display: block; flex: 1 1 auto; text-align: left;
-    font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-    color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  #side-buttons.expanded .micro-btn .keybind {
-    position: static; flex: 0 0 auto; margin-left: auto;
-    font-size: 9px; color: var(--color-text-muted); opacity: 0.8;
-  }
-  #side-buttons:not(.expanded) .micro-btn .micro-label { display: none; }
-  #side-buttons:not(.expanded) #mm-hub .keybind,
-  #side-buttons:not(.expanded) #mm-options .keybind { display: block; }
-  #side-buttons.expanded .micro-btn:hover { background: rgba(255, 209, 0, 0.06); border-color: var(--hud-hairline); color: var(--gold); }
-  #side-buttons.expanded .micro-btn:hover .micro-label { color: var(--gold); }
-  #side-buttons.expanded .micro-btn::before { display: none; }
+  .micro-btn .ui-icon { width: 14px; height: 14px; }
+  .micro-btn .micro-label,
+  .micro-btn .keybind { display: none; }
   /* hover flyout: the button's background grows leftward to reveal its label.
      The panel tucks 6px under the button (z-index:-1) so it reads as one surface. */
   .micro-btn::before {
@@ -676,7 +655,7 @@
   @keyframes tal-pulse { 0%, 100% { box-shadow: 0 0 5px #ffd10066; } 50% { box-shadow: 0 0 12px #ffd100dd; } }
   .micro-btn .keybind { position: absolute; bottom: -1px; right: 2px; font-size: 8px; color: #998; }
   /* music button: a bigger note with a small diagonal slash when audio is off */
-  #mm-music .ui-icon { width: 22px; height: 22px; }
+  #mm-music .ui-icon { width: 15px; height: 15px; }
   .micro-btn.mm-muted::after {
     content: ''; position: absolute; left: 50%; top: 50%; width: 17px; height: 2px; border-radius: 2px;
     background: #f0e8d2; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
@@ -957,39 +936,105 @@
   .char-model-preview { width: 100%; flex: 1 1 auto; min-height: 200px; }
   .char-model-preview canvas { display: block; width: 100% !important; height: 100% !important; }
   .char-skin-row { justify-content: center; align-items: center; margin: 0; padding: 6px 8px 8px; flex-shrink: 0; }
-  .char-sheet-body { margin-top: 10px; }
+  .char-tabs {
+    display: flex; gap: 3px; margin: 6px 0 0; padding: 0 2px;
+    border-bottom: 1px solid var(--hud-hairline);
+  }
+  .char-tab {
+    flex: 1; margin: 0; min-height: 28px; padding: 5px 6px;
+    font-family: var(--font-heading); font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--color-text-muted); background: transparent;
+    border: 1px solid transparent; border-bottom: none;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    cursor: pointer; transition: color .12s, background .12s, border-color .12s;
+  }
+  .char-tab:hover { color: var(--color-text-light); background: rgba(255, 255, 255, 0.03); }
+  .char-tab.active {
+    color: var(--gold); background: rgba(255, 209, 0, 0.07);
+    border-color: var(--panel-border); margin-bottom: -1px; padding-bottom: 6px;
+  }
+  .char-tab-panel { display: none; padding-top: 10px; }
+  .char-tab-panel.active { display: block; }
+  .char-stat-groups { display: flex; flex-direction: column; gap: 12px; }
+  .char-stat-group-title {
+    font-family: var(--font-heading); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold);
+    margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 209, 0, 0.12);
+  }
+  .char-stat-grid { display: flex; flex-direction: column; gap: 2px; }
+  .char-stat-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 5px 8px; border-radius: var(--radius-md); font-size: 11.5px;
+  }
+  .char-stat-row:nth-child(odd) { background: rgba(255, 255, 255, 0.03); }
+  .char-stat-label { color: var(--color-text-muted); }
+  .char-stat-val { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .char-progression { margin-top: 0; border-top: none; padding-top: 0; }
+  .char-progression + .char-progression { margin-top: 12px; border-top: 1px solid var(--hud-hairline); padding-top: 10px; }
   .char-stats {
     font-size: 11.5px; line-height: 1.65; color: var(--color-text-light);
-    border-top: 1px solid var(--hud-hairline); padding-top: 10px;
     display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px;
   }
   .char-stats b { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* spellbook */
-  #spellbook { width: 440px; }
-  .spellbook-class, .spell-rank { color: var(--color-text-muted); font-size: 11px; font-weight: 500; }
-  .spell-list { display: flex; flex-direction: column; gap: 3px; max-height: min(56vh, 420px); overflow-y: auto; padding-right: 2px; }
-  .spell-list::-webkit-scrollbar { width: 6px; }
+  #spellbook { width: min(400px, calc(100vw - 24px)); }
+  .sb-body { display: flex; flex-direction: column; min-height: 0; }
+  .sb-head {
+    display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; padding: 8px 10px;
+    border: 1px solid var(--hud-hairline); border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.28);
+    box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.25);
+  }
+  .sb-crest {
+    width: 44px; height: 44px; flex: none; border-radius: 50%;
+    border: 2px solid var(--class-color, var(--panel-border-strong));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--class-color, var(--gold)) 35%, transparent);
+  }
+  .sb-meta { min-width: 0; flex: 1; }
+  .sb-class { font-family: var(--font-heading); font-size: 12px; font-weight: 600; color: #fff; letter-spacing: 0.04em; }
+  .sb-count { font-size: 10px; color: var(--gold); margin-top: 2px; letter-spacing: 0.04em; }
+  .sb-section { margin-bottom: 8px; }
+  .sb-section-title {
+    font-family: var(--font-heading); font-size: 9.5px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold);
+    opacity: 0.9; margin: 0 2px 4px; padding-bottom: 3px;
+    border-bottom: 1px solid rgba(255, 209, 0, 0.12);
+  }
+  .sb-empty, .sb-foot { font-size: 10.5px; color: var(--color-text-muted); text-align: center; }
+  .sb-foot { margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--hud-hairline); font-style: italic; }
+  .spellbook-class, .spell-rank { color: var(--color-text-muted); font-size: 10px; font-weight: 500; }
+  .spell-list { display: flex; flex-direction: column; gap: 6px; max-height: min(52vh, 380px); overflow-y: auto; padding-right: 2px; }
+  .spell-list::-webkit-scrollbar { width: 5px; }
   .spell-list::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 4px; }
   .spell-row {
-    display: flex; gap: 10px; min-height: 48px; padding: 7px 8px;
+    display: flex; gap: 8px; min-height: 44px; padding: 5px 8px 5px 6px;
     border-radius: var(--radius-md); align-items: center;
     border: 1px solid transparent; transition: background .12s, border-color .12s;
   }
+  .spell-row.known { border-left: 2px solid var(--gold-dim); }
   .spell-row:hover { background: rgba(255, 255, 255, 0.04); border-color: var(--hud-hairline); }
+  .spell-row.known:hover { border-left-color: var(--gold); }
   .spell-row:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; background: rgba(255, 209, 0, 0.06); }
-  .spell-row.locked { opacity: 0.72; }
-  .spell-row.locked .spell-icon { filter: grayscale(1) brightness(0.5); }
+  .spell-row.locked { opacity: 0.58; border-left: 2px solid transparent; }
+  .spell-row.locked .spell-icon { filter: grayscale(1) brightness(0.55); }
   .spell-row.locked .spell-name { color: var(--color-text-muted); }
   .spell-row .spell-text { min-width: 0; flex: 1; }
   .spell-row[draggable="true"] { cursor: grab; }
-  .spell-row .spell-name { font-size: 13px; color: #fff; font-family: var(--font-heading); font-weight: 600; letter-spacing: 0.02em; }
-  .spell-row .spell-sub { font-size: 11px; color: var(--color-text-muted); margin-top: 1px; }
-  .spell-row .spell-name, .spell-row .spell-sub { overflow-wrap: anywhere; }
+  .spell-row .spell-name { font-size: 12px; color: #fff; font-family: var(--font-heading); font-weight: 600; letter-spacing: 0.03em; }
+  .spell-row .spell-sub { font-size: 10px; color: var(--color-text-muted); margin-top: 2px; line-height: 1.35; }
+  .spell-row .spell-name, .spell-row .spell-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spell-cost, .spell-lvl {
+    flex: none; min-width: 22px; text-align: center; font-size: 10px; font-weight: 700;
+    font-variant-numeric: tabular-nums; padding: 2px 5px; border-radius: 8px;
+    border: 1px solid var(--hud-hairline); background: rgba(0, 0, 0, 0.35); color: var(--gold);
+  }
+  .spell-lvl { color: var(--color-text-muted); font-weight: 600; }
   .spell-icon {
-    width: 36px; height: 36px; border-radius: var(--radius-md); flex: none;
+    width: 34px; height: 34px; border-radius: var(--radius-md); flex: none;
     background-color: rgba(0, 0, 0, 0.35); background-size: cover; background-position: center; background-repeat: no-repeat;
-    border: 1px solid var(--hud-hairline); box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--hud-hairline); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.35);
   }
 
   /* quest log */
@@ -1038,26 +1083,26 @@
   .lb-sticky { position: sticky; bottom: 0; margin-top: 6px; border-top: 1px solid #463a1c; background: #160f08; padding-top: 4px; }
 
   /* talents & specializations panel */
-  #talents-window { width: min(600px, calc(100vw - 24px)); }
-  .tal-tabs { display: flex; gap: 5px; margin: 10px 0 8px; }
+  #talents-window { width: min(580px, calc(100vw - 24px)); }
+  .tal-tabs { display: flex; gap: 3px; margin: 8px 0 6px; }
   .tal-tab {
-    position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
-    text-align: center; min-height: 36px; padding: 6px 8px; font-size: 11px; font-weight: 600;
-    font-family: var(--font-heading); letter-spacing: 0.05em; text-transform: uppercase;
+    position: relative; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    text-align: center; min-height: 30px; padding: 5px 8px; font-size: 10px; font-weight: 600;
+    font-family: var(--font-heading); letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--color-text-muted); background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--hud-hairline); border-radius: var(--radius-md); cursor: pointer;
     transition: border-color .12s, background .12s, color .12s;
   }
   .tal-tab.active {
     color: #fff4c7; background: rgba(255, 209, 0, 0.07);
-    border-color: var(--panel-border-strong); box-shadow: none;
+    border-color: var(--panel-border-strong);
   }
-  .tal-tab.active::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; background: var(--gold); border-radius: 2px; }
-  .tal-tab .tt-pts { min-width: 20px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #f4df9f; background: #0f0b06; border: 1px solid #5f4b1a; border-radius: 9px; font-family: var(--body-font); }
-  .tal-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #d8c89a; margin: 2px 2px 6px; }
+  .tal-tab.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--gold); border-radius: 2px; }
+  .tal-tab .tt-pts { min-width: 18px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; color: #f4df9f; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--hud-hairline); border-radius: 8px; font-family: var(--body-font); }
+  .tal-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--color-text-light); margin: 2px 2px 4px; }
   .tal-head b { color: var(--gold); }
-  #tal-body { overflow-x: auto; overflow-y: visible; padding: 0 8px 8px; margin: 0 -8px; }
-  .tal-tree { position: relative; margin: 6px auto; }
+  #tal-body { overflow-x: auto; overflow-y: visible; padding: 0 4px 6px; margin: 0 -4px; }
+  .tal-tree { position: relative; margin: 4px auto; }
   .tal-arrows { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; }
   .tal-node { position: absolute; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #15110a; border: 2px solid #5a4a22; color: #e8dcb0; user-select: none; box-sizing: border-box; z-index: 1; }
   .tal-node .tal-icon { position: absolute; inset: 2px; display: block; background-color: #15110a; background-size: cover; background-position: center; background-repeat: no-repeat; z-index: 1; }
@@ -5594,18 +5639,14 @@
     <div id="social-window" class="window panel"></div>
     <div id="report-window" class="window panel"></div>
     <div id="side-buttons">
-      <button class="micro-btn" id="mm-hub" data-i18n-title="hud.core.menuHub" data-i18n-aria="hud.core.menuHub" title="Game menus" aria-label="Game menus" data-icon="menu"><span class="micro-label" data-i18n="hud.core.menuHub">Game menus</span><span class="keybind">+</span></button>
-      <div class="micro-divider" aria-hidden="true"></div>
       <button class="micro-btn" id="mm-char" data-i18n-title="hud.keybinds.actions.char" data-i18n-aria="hud.keybinds.actions.char" title="Character" aria-label="Character" data-icon="character"><span class="micro-label" data-i18n="hud.keybinds.actions.char">Character</span><span class="keybind">c</span></button>
       <button class="micro-btn" id="mm-spell" data-i18n-title="abilityUi.spellbook.title" data-i18n-aria="abilityUi.spellbook.title" title="Spellbook" aria-label="Spellbook" data-icon="spellbook"><span class="micro-label" data-i18n="abilityUi.spellbook.title">Spellbook</span><span class="keybind">p</span></button>
       <button class="micro-btn" id="mm-talents" data-i18n-title="game.talents.title" data-i18n-aria="game.talents.title" title="Talents" aria-label="Talents" data-icon="talents"><span class="micro-label" data-i18n="game.talents.title">Talents</span><span class="keybind">n</span></button>
       <button class="micro-btn" id="mm-bag" data-i18n-title="itemUi.bags.title" data-i18n-aria="itemUi.bags.title" title="Bags" aria-label="Bags" data-icon="bags"><span class="micro-label" data-i18n="itemUi.bags.title">Bags</span><span class="keybind">b</span></button>
-      <div class="micro-divider" aria-hidden="true"></div>
       <button class="micro-btn" id="mm-quest" data-i18n-title="questUi.log.title" data-i18n-aria="questUi.log.title" title="Quest Log" aria-label="Quest Log" data-icon="questlog"><span class="micro-label" data-i18n="questUi.log.title">Quest Log</span><span class="keybind">l</span></button>
       <button class="micro-btn" id="mm-map" data-i18n-title="hud.keybinds.actions.map" data-i18n-aria="hud.keybinds.actions.map" title="World Map" aria-label="World Map" data-icon="map"><span class="micro-label" data-i18n="hud.keybinds.actions.map">World Map</span><span class="keybind">m</span></button>
       <button class="micro-btn" id="mm-arena" data-i18n-title="hud.keybinds.actions.arena" data-i18n-aria="hud.keybinds.actions.arena" title="Arena (Ashen Coliseum)" aria-label="Arena (Ashen Coliseum)" data-icon="arena"><span class="micro-label" data-i18n="hud.keybinds.actions.arena">Arena</span><span class="keybind">g</span></button>
       <button class="micro-btn" id="mm-leaderboard" data-i18n-title="game.leaderboard.title" data-i18n-aria="game.leaderboard.title" title="Leaderboard" aria-label="Leaderboard" data-icon="leaderboard"><span class="micro-label" data-i18n="game.leaderboard.title">Leaderboard</span><span class="keybind">k</span></button>
-      <div class="micro-divider" aria-hidden="true"></div>
       <button class="micro-btn" id="mm-emote" data-i18n-title="hud.core.emotes" data-i18n-aria="hud.core.emotes" title="Emotes" aria-label="Emotes" data-icon="emote"><span class="micro-label" data-i18n="hud.core.emotes">Emotes</span><span class="keybind">x</span></button>
       <button class="micro-btn" id="mm-music" data-i18n-title="hud.options.music" data-i18n-aria="hud.options.music" title="Music" aria-label="Music" data-icon="music"><span class="micro-label" data-i18n="hud.options.music">Music</span></button>
       <button class="micro-btn" id="mm-social" data-i18n-title="hud.keybinds.actions.social" data-i18n-aria="hud.keybinds.actions.social" title="Friends &amp; Guild" aria-label="Friends &amp; Guild" data-icon="social"><span class="micro-label" data-i18n="hud.keybinds.actions.social">Friends &amp; Guild</span><span class="keybind">o</span></button>

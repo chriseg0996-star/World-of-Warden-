@@ -276,7 +276,9 @@ export class Input {
   }
 
   isMouselookActive(): boolean {
-    if (this.mouseCameraEnabled) return this.touchLookActive;
+    if (this.mouseCameraEnabled) {
+      return this.touchLookActive || ((this.leftDown || this.rightDown) && this.cameraDragActive);
+    }
     return (this.rightDown && this.cameraDragActive) || this.touchLookActive;
   }
 

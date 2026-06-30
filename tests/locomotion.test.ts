@@ -114,6 +114,17 @@ describe('locomotion hysteresis', () => {
     expect(s.backwards).toBe(false);
   });
 
+  it('treats diagonal forward+strafe as forward (no strafe visual flip)', () => {
+    const t = newLocoTrack();
+    const hint = { forward: true, back: false, strafeLeft: true, strafeRight: false };
+    for (let i = 0; i < 10; i++) updateLocomotion(t, 1.5 * FPS, 1.5 * FPS, 0, FPS, hint);
+    const s = updateLocomotion(t, 1.5 * FPS, 1.5 * FPS, 0, FPS, hint);
+    expect(s.moving).toBe(true);
+    expect(s.strafeLeft).toBe(false);
+    expect(s.strafeRight).toBe(false);
+    expect(s.backwards).toBe(false);
+  });
+
   it('treats a teleport snap as not moving', () => {
     const t = newLocoTrack();
     // 50u in one frame = 3000 u/s, far above the teleport cutoff

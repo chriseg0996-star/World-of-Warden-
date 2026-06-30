@@ -39,6 +39,10 @@ function dirFromInput(hint: LocoInputHint): LocoMoveDir | null {
   if (back && !forward && !lat) return 'back';
   if (forward && !back && !lat) return 'forward';
   if (lat && !forward && !back) return strafeRight ? 'strafeRight' : 'strafeLeft';
+  // Diagonal (W+A, etc.): keep forward/back anim — velocity-based strafe flips
+  // frame-to-frame and reads as camera/leg jitter.
+  if (forward && !back) return 'forward';
+  if (back && !forward) return 'back';
   return null;
 }
 
