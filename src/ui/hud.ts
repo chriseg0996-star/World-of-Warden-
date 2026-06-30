@@ -4592,14 +4592,20 @@ export class Hud {
       .reduce((a, n) => a + (stage.ranks[n.id] ?? 0), 0);
 
     el.innerHTML =
-      `<div class="panel-title"><span>${t('game.talents.title')} <span style="color:#998d6a;font-size:11px">${esc(classDisplayName(cls))}</span></span>${close}</div>`
-      + `<div class="tal-head"><span>${t('game.talents.available')}: <b>${Math.max(0, total - spent)}</b> / ${total}</span><span>${t('game.talents.spent')}: <b>${spent}</b></span></div>`
-      + `<div class="tal-help">${esc(t('game.talents.pointSource').replace('{first}', String(FIRST_TALENT_LEVEL)).replace('{cap}', String(MAX_LEVEL)))}</div>`
+      `<div class="panel-title"><span>${t('game.talents.title')} <span class="panel-subtitle">${esc(classDisplayName(cls))}</span></span>${close}</div>`
+      + `<div class="tal-shell">`
+      + this.talentToolbarHtml(stage, total, spent)
+      + `<div class="tal-main">`
+      + `<div class="tal-col-tree">`
       + `<div class="tal-tabs" role="tablist" aria-label="${esc(t('game.talents.title'))}">`
       + `<div class="tal-tab${this.talentTab === 'class' ? ' active' : ''}" role="tab" tabindex="${this.talentTab === 'class' ? '0' : '-1'}" aria-selected="${this.talentTab === 'class'}" aria-controls="tal-body" data-tab="class"><span class="tal-tab-label">${t('game.talents.classTab')}</span><span class="tt-pts">${treeSpent('class')}</span></div>`
       + `<div class="tal-tab${this.talentTab === 'spec' ? ' active' : ''}" role="tab" tabindex="${this.talentTab === 'spec' ? '0' : '-1'}" aria-selected="${this.talentTab === 'spec'}" aria-controls="tal-body" data-tab="spec"><span class="tal-tab-label">${t('game.talents.specTab')}</span><span class="tt-pts">${treeSpent('spec')}</span></div>`
       + `</div><div id="tal-body" role="tabpanel"></div>`
-      + this.talentFooterHtml(stage, total, spent);
+      + `</div>`
+      + this.talentSidebarHtml(stage, ct)
+      + `</div>`
+      + this.talentFooterHtml(stage, total, spent)
+      + `</div>`;
 
     const switchTab = (tab: HTMLElement) => {
       this.talentTab = tab.dataset.tab as 'class' | 'spec';
@@ -4786,33 +4792,82 @@ export class Hud {
     return html;
   }
 
+  private talentToolbarHtml(stage: TalentAllocation, total: number, spent: number): string {
+    const cls = this.sim.cfg.playerClass;
+    const valid = validateAllocation(cls, stage, total).ok;
+    const hasChanges = !this.allocsEqual(stage, this.sim.talents);
+    const avail = Math.max(0, total - spent);
+    return `<div class="tal-toolbar">`
+      + `<div class="tal-points" aria-live="polite">`
+      + `<span class="tal-points-num">${formatNumber(avail, { maximumFractionDigits: 0 })}</span>`
+      + `<span class="tal-points-label">${t('game.talents.available')}</span>`
+      + `<span class="tal-points-sub">${t('game.talents.spent')}: ${formatNumber(spent, { maximumFractionDigits: 0 })} / ${formatNumber(total, { maximumFractionDigits: 0 })}</span>`
+      + `</div>`
+      + (hasChanges ? `<span class="tal-pending">${t('game.talents.unsaved')}</span>` : '')
+      + `<div class="tal-toolbar-actions">`
+      + `<button type="button" class="btn tal-apply tal-primary" data-act="apply"${!hasChanges || !valid ? ' disabled' : ''}>${t('game.talents.apply')}</button>`
+      + `<button type="button" class="btn tal-secondary" data-act="revert"${!hasChanges ? ' disabled' : ''}>${t('game.talents.revertChanges')}</button>`
+      + `<button type="button" class="btn tal-secondary" data-act="clear"${spent <= 0 ? ' disabled' : ''}>${t('game.talents.clear')}</button>`
+      + `</div></div>`;
+  }
+
+  private talentSidebarHtml(stage: TalentAllocation, ct: NonNullable<ReturnType<typeof talentsFor>>): string {
+    const sp = ct.specs.find((s) => s.id === stage.spec);
+    let specLine = `<span>${t('game.talents.noSpec')}</span>`;
+    if (sp) {
+      specLine = `<b>${esc(tTalent({ kind: 'talentSpec', spec: sp, field: 'name' }))}</b>`
+        + `<span> · ${this.roleLabel(sp.role)}</span>`;
+    }
+    return `<aside class="tal-sidebar" aria-label="${esc(t('game.talents.title'))}">`
+      + `<div class="tal-sidebar-title">${t('game.talents.specTab')}</div>`
+      + `<div>${specLine}</div>`
+      + `<div class="tal-sidebar-title">${t('game.talents.rank')}</div>`
+      + `<div class="tal-legend-item"><span class="tal-legend-shape square" aria-hidden="true"></span><span>${t('game.talents.legendActive')}</span></div>`
+      + `<div class="tal-legend-item"><span class="tal-legend-shape circle" aria-hidden="true"></span><span>${t('game.talents.legendPassive')}</span></div>`
+      + `<div class="tal-legend-item"><span class="tal-legend-shape octagon" aria-hidden="true"></span><span>${t('game.talents.legendChoice')}</span></div>`
+      + `<div class="tal-sidebar-title">${t('game.talents.controlsTitle')}</div>`
+      + `<div>${esc(t('game.talents.editHint'))}</div>`
+      + `</aside>`;
+  }
+
   private talentFooterHtml(stage: TalentAllocation, total: number, spent: number): string {
     const cls = this.sim.cfg.playerClass;
     const valid = validateAllocation(cls, stage, total).ok;
     return `<div class="tal-foot">`
-      + `<section class="tal-build-card tal-build-current" aria-label="${esc(t('game.talents.currentBuild'))}">`
-      + `<div class="tal-build-head"><span>${t('game.talents.currentBuild')}</span><span class="tal-loadslot"></span></div>`
+      + `<div class="tal-build-row" aria-label="${esc(t('game.talents.currentBuild'))}">`
+      + `<span class="tal-build-label">${t('game.talents.currentBuild')}</span>`
+      + `<span class="tal-loadslot"></span>`
       + `<div class="tal-build-actions">`
-      + `<button class="btn tal-primary" data-act="save"${valid ? '' : ' disabled'}>${t('game.talents.saveBuild')}</button>`
-      + `<button class="btn tal-secondary" data-act="export">${t('game.talents.export')}</button>`
-      + `<button class="btn tal-secondary" data-act="del"${this.sim.activeLoadout >= 0 ? '' : ' disabled'}>${t('game.talents.deleteBuild')}</button>`
-      + `<button class="btn tal-secondary" data-act="clear"${spent > 0 ? '' : ' disabled'}>${t('game.talents.clear')}</button>`
-      + `</div>`
-      + `<div class="tal-build-help">${t('game.talents.currentBuildHint')}</div>`
-      + `</section>`
-      + `<section class="tal-build-card tal-build-create" aria-label="${esc(t('game.talents.createBuild'))}">`
-      + `<div class="tal-build-head"><span>${t('game.talents.createBuild')}</span></div>`
-      + `<div class="tal-build-actions">`
-      + `<button class="btn tal-primary" data-act="new"${valid ? '' : ' disabled'}>${t('game.talents.newBuild')}</button>`
-      + `<button class="btn tal-secondary" data-act="import">${t('game.talents.import')}</button>`
-      + `</div>`
-      + `<div class="tal-build-help">${t('game.talents.createBuildHint')}</div>`
-      + `</section>`
+      + `<button type="button" class="btn tal-secondary" data-act="save"${valid ? '' : ' disabled'}>${t('game.talents.saveBuild')}</button>`
+      + `<button type="button" class="btn tal-secondary" data-act="export">${t('game.talents.export')}</button>`
+      + `<button type="button" class="btn tal-secondary" data-act="del"${this.sim.activeLoadout >= 0 ? '' : ' disabled'}>${t('game.talents.deleteBuild')}</button>`
+      + `<button type="button" class="btn tal-secondary" data-act="new"${valid ? '' : ' disabled'}>${t('game.talents.newBuild')}</button>`
+      + `<button type="button" class="btn tal-secondary" data-act="import">${t('game.talents.import')}</button>`
+      + `</div></div>`
+      + `<p class="tal-build-help">${t('game.talents.buildHint')}</p>`
       + `</div>`;
   }
 
   private wireTalentFooter(el: HTMLElement, stage: TalentAllocation, total: number): void {
     const cls = this.sim.cfg.playerClass;
+    el.querySelector('[data-act="apply"]')?.addEventListener('click', () => {
+      if (this.allocsEqual(stage, this.sim.talents)) {
+        this.showError(t('game.talents.nothingStaged'));
+        return;
+      }
+      if (!validateAllocation(cls, stage, total).ok) {
+        this.showError(t('game.talents.buildInvalid'));
+        return;
+      }
+      if (!this.sim.applyTalents(cloneAllocation(stage))) return;
+      this.talentStage = cloneAllocation(this.sim.talents);
+      this.renderCharIfOpen();
+      this.renderTalents();
+    });
+    el.querySelector('[data-act="revert"]')?.addEventListener('click', () => {
+      this.talentStage = cloneAllocation(this.sim.talents);
+      this.renderTalents();
+    });
     el.querySelector('[data-act="clear"]')?.addEventListener('click', () => {
       stage.ranks = {}; stage.choices = {};
       this.renderTalents();
