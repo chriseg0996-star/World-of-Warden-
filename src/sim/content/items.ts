@@ -334,11 +334,11 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   },
   wolfhide_gloves: {
     id: 'wolfhide_gloves', name: 'Wolfhide Gloves', kind: 'armor', slot: 'hands', quality: 'uncommon',
-    stats: { armor: 12, agi: 1 }, sellValue: 18,
+    stats: { armor: 12, agi: 1 }, setId: 'wolf_runner', sellValue: 18,
   },
   wolf_runner_boots: {
     id: 'wolf_runner_boots', name: 'Wolf Runner Boots', kind: 'armor', slot: 'feet', quality: 'uncommon',
-    stats: { armor: 14, agi: 1, sta: 1 }, sellValue: 20,
+    stats: { armor: 14, agi: 1, sta: 1 }, setId: 'wolf_runner', sellValue: 20,
   },
   bandit_cudgel: {
     id: 'bandit_cudgel', name: 'Bandit Cudgel', kind: 'weapon', slot: 'mainhand', quality: 'uncommon',
@@ -346,7 +346,7 @@ export const BASE_ITEMS: Record<string, ItemDef> = {
   },
   road_scout_coif: {
     id: 'road_scout_coif', name: 'Road Scout Coif', kind: 'armor', slot: 'head', quality: 'uncommon',
-    stats: { armor: 16, sta: 1 }, sellValue: 18,
+    stats: { armor: 16, sta: 1 }, setId: 'wolf_runner', sellValue: 18,
   },
   pilfered_chain_vest: {
     id: 'pilfered_chain_vest', name: 'Pilfered Chain Vest', kind: 'armor', slot: 'chest', quality: 'uncommon',

@@ -722,15 +722,15 @@ export const ZONE2_ITEMS: Record<string, ItemDef> = {
   },
   reedwoven_jerkin: {
     id: 'reedwoven_jerkin', name: 'Reedwoven Jerkin', kind: 'armor', slot: 'chest', quality: 'common',
-    stats: { armor: 62 }, sellValue: 250, buyValue: 2500,
+    stats: { armor: 62 }, setId: 'fenwalker', sellValue: 250, buyValue: 2500,
   },
   fenwalker_boots: {
     id: 'fenwalker_boots', name: 'Fenwalker Boots', kind: 'armor', slot: 'feet', quality: 'common',
-    stats: { armor: 30 }, sellValue: 150, buyValue: 1500,
+    stats: { armor: 30 }, setId: 'fenwalker', sellValue: 150, buyValue: 1500,
   },
   reedwoven_trousers: {
     id: 'reedwoven_trousers', name: 'Reedwoven Trousers', kind: 'armor', slot: 'legs', quality: 'common',
-    stats: { armor: 40 }, sellValue: 180, buyValue: 1800,
+    stats: { armor: 40 }, setId: 'fenwalker', sellValue: 180, buyValue: 1800,
   },
   // --- junk (gray) ---
   bogiron_nugget: { id: 'bogiron_nugget', name: 'Bogiron Nugget', kind: 'junk', quality: 'poor', sellValue: 12 },

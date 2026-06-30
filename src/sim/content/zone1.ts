@@ -614,7 +614,8 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     text: "Before I send the patrol north, I want eyes on the road, $N. Follow the pinewood road up toward the wolf runs, see what stirs, then report back to me.",
     completionText: 'So the road can still be walked. Good work — the patrol will set out the safer for it.',
     objectives: [{ type: 'explore', point: { x: -6, z: 40 }, radius: 16, count: 1, label: 'Scout the north pinewood road' }],
-    xpReward: 200, copperReward: 50, itemRewards: {},
+    xpReward: 200, copperReward: 50,
+    itemRewards: { warrior: 'road_scout_coif', mage: 'road_scout_coif', rogue: 'road_scout_coif' },
   },
 };
 

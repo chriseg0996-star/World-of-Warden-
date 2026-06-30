@@ -93,6 +93,51 @@ describe('itemization: set bonuses', () => {
     expect(e.stats.str).toBe(baseStr);
     expect(e.stats.sta).toBe(baseSta + 3);
   });
+
+  it('activates the Wolf Runner set from Eastbrook quest gear', () => {
+    const sim = makeSim();
+    const pid = sim.addPlayer('rogue', 'Scout');
+    sim.tick();
+    const e = sim.entities.get(pid)!;
+    const meta = sim.players.get(pid)!;
+
+    (sim as any).addItemSilent('wolfhide_gloves', 1, meta);
+    sim.equipItem('wolfhide_gloves', pid);
+    const agiAt1 = e.stats.agi;
+    expect(e.stats.crit ?? 0).toBe(0);
+
+    (sim as any).addItemSilent('wolf_runner_boots', 1, meta);
+    const agiBeforeBoots = e.stats.agi;
+    sim.equipItem('wolf_runner_boots', pid);
+    expect(e.stats.agi).toBe(agiBeforeBoots + 4 + 1); // 2-set bonus + boots stat
+
+    (sim as any).addItemSilent('road_scout_coif', 1, meta);
+    const critBeforeCoif = e.critChance;
+    sim.equipItem('road_scout_coif', pid);
+    expect(e.critChance).toBeCloseTo(critBeforeCoif + 0.01, 5);
+  });
+
+  it('activates the Fenwalker set from Mirefen vendor gear', () => {
+    const sim = makeSim();
+    const pid = sim.addPlayer('warrior', 'Fen');
+    sim.tick();
+    const e = sim.entities.get(pid)!;
+    const meta = sim.players.get(pid)!;
+
+    (sim as any).addItemSilent('reedwoven_trousers', 1, meta);
+    sim.equipItem('reedwoven_trousers', pid);
+    const staAt1 = e.stats.sta;
+    const spiAt1 = e.stats.spi;
+
+    (sim as any).addItemSilent('fenwalker_boots', 1, meta);
+    sim.equipItem('fenwalker_boots', pid);
+    expect(e.stats.sta).toBe(staAt1 + 4);
+    expect(e.stats.spi).toBe(spiAt1);
+
+    (sim as any).addItemSilent('reedwoven_jerkin', 1, meta);
+    sim.equipItem('reedwoven_jerkin', pid);
+    expect(e.stats.spi).toBe(spiAt1 + 2);
+  });
 });
 
 describe('itemization: trinkets', () => {

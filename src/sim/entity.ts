@@ -96,6 +96,7 @@ export function recalcPlayerStats(e: Entity, cls: PlayerClass, equipment: Player
       s.int += bonus.stats.int ?? 0;
       s.spi += bonus.stats.spi ?? 0;
       s.armor += bonus.stats.armor ?? 0;
+      bonusCrit += bonus.stats.crit ?? 0;
     }
   }
   // Buff auras

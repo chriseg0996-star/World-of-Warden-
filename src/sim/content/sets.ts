@@ -13,4 +13,20 @@ export const SETS: Record<string, SetDef> = {
       { pieces: 3, stats: { armor: 8, str: 2 } },
     ],
   },
+  wolf_runner: {
+    id: 'wolf_runner',
+    name: 'Wolf Runner',
+    bonuses: [
+      { pieces: 2, stats: { agi: 4 } },
+      { pieces: 3, stats: { armor: 12, crit: 0.01 } },
+    ],
+  },
+  fenwalker: {
+    id: 'fenwalker',
+    name: 'Fenwalker',
+    bonuses: [
+      { pieces: 2, stats: { sta: 4 } },
+      { pieces: 3, stats: { armor: 20, spi: 2 } },
+    ],
+  },
 };

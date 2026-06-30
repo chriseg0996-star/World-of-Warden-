@@ -140,6 +140,8 @@ const PAPERDOLL_RIGHT_SLOTS: readonly EquipSlot[] = [
 // Localized display names for item sets (sim carries canonical English; UI localizes here).
 const SET_NAME_KEYS: Record<string, TranslationKey> = {
   recruit_vigil: 'itemUi.set.recruitVigil',
+  wolf_runner: 'itemUi.set.wolfRunner',
+  fenwalker: 'itemUi.set.fenwalker',
 };
 const ITEM_QUALITY_LABEL_KEYS: Record<ItemQuality, TranslationKey> = {
   poor: 'itemUi.quality.poor',

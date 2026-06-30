@@ -42,11 +42,16 @@ Goal: the game *feels* like a classic MMO before we widen content.
 
 Goal: more classic-MMO feel via data-as-code in `src/sim/content/` — low architecture risk.
 
-### Content slice 1 (in progress)
+### Content slice 1 ✅
 
-1. **Explore quests** — one scout quest per zone (Eastbrook, Mirefen, Thornpeak). ✅
-2. Item sets or remaining armor slots (defer if explore quests land first).
+1. **Explore quests** — one scout quest per zone (Eastbrook, Mirefen, Thornpeak).
+2. **Item sets** — Wolf Runner (Eastbrook quest line) + Fenwalker (Mirefen vendor).
 3. Fourth zone band or dungeon depth (later slice).
+
+### Content slice 2 (next)
+
+- Escort / talk-chain quests
+- Thornpeak item set or dungeon depth
 
 ### Track 1 — **Endgame at 20** ✅ (Phase 2 shipped)
 
