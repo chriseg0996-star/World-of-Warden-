@@ -236,4 +236,30 @@ export function createGroundObject(id: number, itemId: string, name: string, pos
   return e;
 }
 
+/** Swing interval multiplier: >1 = slower (thunder clap), haste divides. */
+export function swingIntervalMult(e: Entity): number {
+  let m = 1;
+  for (const a of e.auras) {
+    if (a.kind === 'attackspeed') m *= a.value;
+    if (a.kind === 'buff_haste') m /= a.value;
+  }
+  if (e.enraged) {
+    const h = MOBS[e.templateId]?.enrage?.hasteMult;
+    if (h && h > 0) m /= h;
+  }
+  return m;
+}
+
+/** Seconds between auto-attacks for a player (melee weapon or class ranged). */
+export function playerSwingInterval(e: Entity, cls: PlayerClass): number {
+  const base = CLASSES[cls].ranged?.speed ?? e.weapon.speed;
+  return base * swingIntervalMult(e);
+}
+
+const SWING_TIMER_CLASSES = new Set<PlayerClass>(['warrior', 'rogue', 'paladin', 'hunter', 'shaman', 'druid']);
+
+export function showsSwingTimer(cls: PlayerClass): boolean {
+  return SWING_TIMER_CLASSES.has(cls);
+}
+
 export { MOBS };

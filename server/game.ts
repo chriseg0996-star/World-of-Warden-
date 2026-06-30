@@ -1138,6 +1138,7 @@ export class GameServer {
       target: p.targetId,
       auto: p.autoAttack,
       queued: p.queuedOnSwing,
+      swing: round2(p.swingTimer),
       ap: p.attackPower,
       crit: p.critChance,
       dodge: p.dodgeChance,

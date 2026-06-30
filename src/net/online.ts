@@ -652,6 +652,7 @@ export class ClientWorld implements IWorld {
       e.targetId = s.target ?? null;
       e.autoAttack = !!s.auto;
       e.queuedOnSwing = s.queued ?? null;
+      if (typeof s.swing === 'number') e.swingTimer = s.swing;
       e.stats = s.stats ?? e.stats;
       e.attackPower = s.ap ?? 0;
       e.critChance = s.crit ?? 0.05;

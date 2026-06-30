@@ -12,9 +12,10 @@ import {
 import type { ZoneDef } from '../sim/data';
 import type { AbilityDef, EquipSlot, InvSlot, PetMode, PlayerClass, ResourceType, Stats } from '../sim/types';
 import {
-  AbilityEffect, CONSUME_DURATION, Entity, EQUIP_SLOTS, FISHING_CAST_ID, GCD, ItemDef, SimEvent,
+  AbilityEffect, Aura, CONSUME_DURATION, Entity, EQUIP_SLOTS, FISHING_CAST_ID, GCD, ItemDef, SimEvent,
   dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
 } from '../sim/types';
+import { playerSwingInterval, showsSwingTimer } from '../sim/entity';
 import { xpBarView, formatXp } from './xp_bar';
 import { Meters } from './meters';
 import { terrainHeight, WATER_LEVEL, roadDistance, generateDecorations } from '../sim/world';
@@ -428,7 +429,7 @@ export class Hud {
     $('#mm-talents')?.addEventListener('click', () => this.onMicroAction(() => this.toggleTalents()));
     $('#mm-quest').addEventListener('click', () => this.onMicroAction(() => this.toggleQuestLog()));
     $('#mm-map').addEventListener('click', () => this.onMicroAction(() => this.toggleMap()));
-    $('#map-close').addEventListener('click', () => { $('#map-window').style.display = 'none'; });
+    $('#map-close').addEventListener('click', () => this.closeHudWindow($('#map-window')));
     const mapCanvas = $('#map-canvas') as unknown as HTMLCanvasElement;
     mapCanvas.addEventListener('wheel', (ev) => {
       ev.preventDefault();
@@ -621,6 +622,24 @@ export class Hud {
     const anyOpen = [...document.querySelectorAll<HTMLElement>('.window.panel')]
       .some((win) => this.isWindowVisible(win));
     document.body.classList.toggle('mobile-window-open', anyOpen);
+  }
+
+  /** Open a HUD panel window: close others, render, track z-index for stacking. */
+  private openHudWindow(el: HTMLElement, render?: () => void): void {
+    this.closeOtherWindows(`#${el.id}`);
+    render?.();
+    el.style.display = 'block';
+    this.syncWindowOpenState(el);
+  }
+
+  /** Close a HUD panel window and clear open-state tracking. */
+  private closeHudWindow(el: HTMLElement, afterClose?: () => void): void {
+    if (this.windowDrag?.el === el) this.windowDrag = null;
+    el.style.display = 'none';
+    afterClose?.();
+    this.hideTooltip();
+    delete el.dataset.windowOpen;
+    this.syncAnyWindowOpenState();
   }
 
   private placeNewWindow(el: HTMLElement): void {
@@ -1570,6 +1589,56 @@ export class Hud {
     return null;
   }
 
+  private renderTimingBar(p: Entity): void {
+    const hide = (): void => {
+      this.castbarEl.hidden = true;
+      this.castbarEl.classList.remove('channel', 'timing-swing');
+      this.setWidth(this.castbarFillEl, '0%');
+      this.setText(this.castbarLabelEl, '');
+    };
+
+    if (p.castingAbility) {
+      this.castbarEl.hidden = false;
+      this.castbarEl.classList.remove('timing-swing');
+      this.castbarEl.classList.toggle('channel', p.channeling);
+      const frac = p.channeling
+        ? p.castRemaining / Math.max(0.01, p.castTotal)
+        : 1 - p.castRemaining / Math.max(0.01, p.castTotal);
+      this.setWidth(this.castbarFillEl, `${(Math.max(0, Math.min(1, frac)) * 100).toFixed(1)}%`);
+      this.setText(this.castbarLabelEl, castDisplayName(p.castingAbility));
+      return;
+    }
+
+    if (p.eating || p.drinking) {
+      this.castbarEl.hidden = false;
+      this.castbarEl.classList.remove('timing-swing');
+      this.castbarEl.classList.add('channel');
+      const c = p.eating && p.drinking
+        ? (p.eating.remaining >= p.drinking.remaining ? p.eating : p.drinking)
+        : (p.eating ?? p.drinking)!;
+      this.setWidth(this.castbarFillEl, `${((c.remaining / CONSUME_DURATION) * 100).toFixed(1)}%`);
+      this.setText(this.castbarLabelEl, p.eating && p.drinking ? t('hud.core.eatingDrinking') : p.eating ? t('hud.core.eating') : t('hud.core.drinking'));
+      return;
+    }
+
+    const cls = this.sim.cfg.playerClass;
+    if (showsSwingTimer(cls) && (p.autoAttack || p.queuedOnSwing)) {
+      const interval = playerSwingInterval(p, cls);
+      if (interval > 0.01) {
+        this.castbarEl.hidden = false;
+        this.castbarEl.classList.remove('channel');
+        this.castbarEl.classList.add('timing-swing');
+        const remaining = Math.max(0, p.swingTimer);
+        const frac = remaining <= 0 ? 1 : 1 - remaining / interval;
+        this.setWidth(this.castbarFillEl, `${(Math.max(0, Math.min(1, frac)) * 100).toFixed(1)}%`);
+        this.setText(this.castbarLabelEl, p.queuedOnSwing ? castDisplayName(p.queuedOnSwing) : t('hud.core.nextSwing'));
+        return;
+      }
+    }
+
+    hide();
+  }
+
   private renderPetBar(): void {
     const bar = $('#petbar') as HTMLElement;
     const pet = this.ownPet();
@@ -1696,10 +1765,14 @@ export class Hud {
     if (target && target.kind !== 'object') {
       this.setDisplay(this.targetFrameEl, 'flex');
       this.targetFrameEl.classList.add('has-target');
-      this.targetFrameEl.classList.toggle('elite', !!MOBS[target.templateId]?.elite);
-      this.setText(this.targetEliteTagEl, MOBS[target.templateId]?.boss ? t('hud.core.boss') : t('hud.core.elite'));
+      const mobDef = target.kind === 'mob' ? MOBS[target.templateId] : null;
+      const isBoss = !!mobDef?.boss;
+      const isElite = !!mobDef?.elite;
+      this.targetFrameEl.classList.toggle('boss', isBoss);
+      this.targetFrameEl.classList.toggle('elite', isElite && !isBoss);
+      this.setText(this.targetEliteTagEl, isBoss ? t('hud.core.boss') : isElite ? t('hud.core.elite') : '');
       this.setText(this.targetNameEl, entityDisplayName(target));
-      this.setText(this.targetLevelEl, MOBS[target.templateId]?.boss ? '☠' : String(target.level));
+      this.setText(this.targetLevelEl, isBoss ? '☠' : String(target.level));
       this.setTransform(this.targetHpEl, `scaleX(${target.hp / Math.max(1, target.maxHp)})`);
       this.setText(this.targetHpTextEl, target.dead ? t('hud.core.dead') : `${target.hp} / ${target.maxHp}`);
       const targetNameColor = target.hostile ? 'var(--color-hostile)' : 'var(--color-friendly)';
@@ -1711,7 +1784,7 @@ export class Hud {
           : `family_${MOBS[target.templateId]?.family ?? 'humanoid'}`;
         this.drawPortrait(this.targetPortraitEl, crestId);
       }
-      this.renderAuras(this.targetDebuffsEl, target, 'debuffs');
+      this.renderTargetAuras(target);
       // combo points
       if (p.resourceType === 'energy') {
         this.setDisplay(this.comboRowEl, 'flex');
@@ -1730,33 +1803,12 @@ export class Hud {
       }
     } else {
       this.setDisplay(this.targetFrameEl, 'none');
-      this.targetFrameEl.classList.remove('has-target');
+      this.targetFrameEl.classList.remove('has-target', 'elite', 'boss');
       this.lastPortraitTarget = -999;
     }
 
-    // cast bar
-    if (p.castingAbility) {
-      this.setDisplay(this.castbarEl, 'block');
-      this.castbarEl.classList.toggle('channel', p.channeling);
-      const frac = p.channeling
-        ? p.castRemaining / Math.max(0.01, p.castTotal)
-        : 1 - p.castRemaining / Math.max(0.01, p.castTotal);
-      this.setWidth(this.castbarFillEl, `${(frac * 100).toFixed(1)}%`);
-      this.setText(this.castbarLabelEl, castDisplayName(p.castingAbility));
-    } else if (p.eating || p.drinking) {
-      this.setDisplay(this.castbarEl, 'block');
-      this.castbarEl.classList.add('channel');
-      const c = p.eating && p.drinking
-        ? (p.eating.remaining >= p.drinking.remaining ? p.eating : p.drinking)
-        : (p.eating ?? p.drinking)!;
-      this.setWidth(this.castbarFillEl, `${((c.remaining / CONSUME_DURATION) * 100).toFixed(1)}%`);
-      this.setText(this.castbarLabelEl, p.eating && p.drinking ? t('hud.core.eatingDrinking') : p.eating ? t('hud.core.eating') : t('hud.core.drinking'));
-    } else {
-      this.setDisplay(this.castbarEl, 'none');
-      this.castbarEl.classList.remove('channel');
-      this.setWidth(this.castbarFillEl, '0%');
-      this.setText(this.castbarLabelEl, '');
-    }
+    // cast / swing timing bar (anchored above the XP bar in the action cluster)
+    this.renderTimingBar(p);
 
     // action bar
     this.renderPetBar();
@@ -1935,15 +1987,29 @@ export class Hud {
     if (this.optionsOpen && this.optionsView === 'interface') this.refreshGraphicsAdaptiveNote();
   }
 
-  private renderAuras(el: HTMLElement, e: Entity, mode: 'all' | 'debuffs'): void {
+  private isDebuffAura(kind: Aura['kind']): boolean {
+    return ['dot', 'slow', 'root', 'stun', 'incapacitate', 'polymorph', 'attackspeed', 'debuff_ap', 'sunder', 'mortal_wound'].includes(kind);
+  }
+
+  private isBuffAura(kind: Aura['kind']): boolean {
+    return ['hot', 'buff_ap', 'buff_armor', 'buff_int', 'buff_dodge', 'buff_speed', 'buff_haste', 'buff_sta', 'buff_allstats', 'absorb', 'imbue', 'thorns', 'form_bear', 'form_cat', 'defensive_stance', 'righteous_fury'].includes(kind);
+  }
+
+  private renderTargetAuras(target: Entity): void {
+    const mode = (target.hostile || target.kind === 'mob') ? 'debuffs' as const : 'buffs' as const;
+    this.renderAuras(this.targetDebuffsEl, target, mode);
+  }
+
+  private renderAuras(el: HTMLElement, e: Entity, mode: 'all' | 'debuffs' | 'buffs'): void {
     // cheap diff: rebuild only when the aura set changes
     const sig = e.auras.map((a) => a.id + Math.ceil(a.remaining)).join('|');
     if ((el as any).__sig === sig) return;
     (el as any).__sig = sig;
     el.innerHTML = '';
     for (const a of e.auras) {
-      const isDebuff = ['dot', 'slow', 'root', 'stun', 'incapacitate', 'polymorph', 'attackspeed', 'debuff_ap'].includes(a.kind);
+      const isDebuff = this.isDebuffAura(a.kind);
       if (mode === 'debuffs' && !isDebuff) continue;
+      if (mode === 'buffs' && !this.isBuffAura(a.kind)) continue;
       const d = document.createElement('div');
       d.className = 'buff' + (isDebuff ? ' debuff' : '');
       d.style.backgroundImage = `url(${iconDataUrl('aura', ABILITIES[a.id] ? a.id : `aura_${a.kind}`)})`;
@@ -2322,12 +2388,10 @@ export class Hud {
 
   toggleMap(): void {
     const el = $('#map-window');
-    if (el.style.display === 'block') { el.style.display = 'none'; return; }
-    this.closeOtherWindows('#map-window');
+    if (el.style.display === 'block') { this.closeHudWindow(el); return; }
     this.mapZoom = 1; // always open at the full-zone view, following the player
     this.mapCenter = null;
-    el.style.display = 'block';
-    this.updateMapWindow();
+    this.openHudWindow(el, () => this.updateMapWindow());
   }
 
   // scroll-wheel / button zoom for the world map (clamped to [1, MAP_MAX_ZOOM])
@@ -3946,10 +4010,8 @@ export class Hud {
 
   toggleChar(): void {
     const el = $('#char-window');
-    if (el.style.display === 'block') { el.style.display = 'none'; this.hideTooltip(); return; }
-    this.closeOtherWindows('#char-window');
-    this.renderChar();
-    el.style.display = 'block';
+    if (el.style.display === 'block') { this.closeHudWindow(el); return; }
+    this.openHudWindow(el, () => this.renderChar());
   }
 
   renderChar(): void {
@@ -4003,7 +4065,7 @@ export class Hud {
       this.renderCharPreview();
       this.renderCharSkinPicker();
     }
-    el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.hideTooltip(); });
+    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeHudWindow(el));
   }
 
   private charStatsPanelHtml(p: { stats: Stats; attackPower: number; critChance: number; dodgeChance: number; maxHp: number }, dps: number): string {
@@ -4405,10 +4467,8 @@ export class Hud {
 
   toggleSpellbook(): void {
     const el = $('#spellbook');
-    if (el.style.display === 'block') { el.style.display = 'none'; this.hideTooltip(); return; }
-    this.closeOtherWindows('#spellbook');
-    this.renderSpellbook();
-    el.style.display = 'block';
+    if (el.style.display === 'block') { this.closeHudWindow(el); return; }
+    this.openHudWindow(el, () => this.renderSpellbook());
   }
 
   renderSpellbook(): void {
@@ -4472,7 +4532,7 @@ export class Hud {
     foot.textContent = t('abilityUi.spellbook.dragHint');
     body.appendChild(foot);
 
-    el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.hideTooltip(); });
+    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeHudWindow(el));
   }
 
   private appendSpellbookRow(
@@ -4535,11 +4595,9 @@ export class Hud {
 
   toggleTalents(): void {
     const el = $('#talents-window');
-    if (el.style.display === 'block') { el.style.display = 'none'; this.hideTooltip(); this.talentStage = null; return; }
-    this.closeOtherWindows('#talents-window');
+    if (el.style.display === 'block') { this.closeHudWindow(el, () => { this.talentStage = null; }); return; }
     this.talentStage = cloneAllocation(this.sim.talents);
-    this.renderTalents();
-    el.style.display = 'block';
+    this.openHudWindow(el, () => this.renderTalents());
   }
 
   private roleLabel(role: Role): string {
@@ -4609,7 +4667,7 @@ export class Hud {
       tab.addEventListener('click', () => switchTab(tab as HTMLElement));
       tab.addEventListener('keydown', (e) => this.keyboardActivate(e as KeyboardEvent, () => switchTab(tab as HTMLElement)));
     });
-    el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.hideTooltip(); this.talentStage = null; });
+    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeHudWindow(el, () => { this.talentStage = null; }));
 
     const body = el.querySelector('#tal-body') as HTMLElement;
     if (this.talentTab === 'class') {
@@ -4622,7 +4680,8 @@ export class Hud {
   }
 
   private renderSpecTab(body: HTMLElement, ct: NonNullable<ReturnType<typeof talentsFor>>, stage: TalentAllocation): void {
-    const picker = document.createElement('div'); picker.className = 'tal-specs';
+    const picker = document.createElement('div');
+    picker.className = 'tal-specs';
     picker.setAttribute('role', 'radiogroup');
     picker.setAttribute('aria-label', t('game.talents.specTab'));
     for (const sp of ct.specs) {
@@ -4646,12 +4705,35 @@ export class Hud {
       picker.appendChild(card);
     }
     body.appendChild(picker);
+
     const sp = ct.specs.find((s) => s.id === stage.spec);
-    if (!sp) { const e = document.createElement('div'); e.className = 'tal-empty'; e.textContent = t('game.talents.chooseSpec'); body.appendChild(e); return; }
-    const m = document.createElement('div'); m.className = 'tal-mastery';
-    m.innerHTML = `<b>${t('game.talents.mastery')}: ${esc(tTalent({ kind: 'talentMastery', spec: sp, field: 'name' }))}</b> — ${esc(tTalent({ kind: 'talentMastery', spec: sp, field: 'description' }))}`;
-    body.appendChild(m);
-    const tree = document.createElement('div'); tree.className = 'tal-tree'; body.appendChild(tree);
+    if (!sp) {
+      const e = document.createElement('div');
+      e.className = 'tal-empty';
+      e.textContent = t('game.talents.chooseSpec');
+      body.appendChild(e);
+      return;
+    }
+
+    const sigDef = ABILITIES[sp.signature];
+    const detail = document.createElement('div');
+    detail.className = 'tal-spec-detail';
+    detail.innerHTML = `<div class="tsd-head">`
+      + `<div class="tsd-icon" style="background-image:url(${iconDataUrl('ability', sp.signature)})"></div>`
+      + `<div><div class="tsd-title">${esc(tTalent({ kind: 'talentSpec', spec: sp, field: 'name' }))}</div>`
+      + `<div class="tsd-role">${this.roleLabel(sp.role)}</div></div></div>`
+      + `<div class="tsd-mastery"><b>${esc(t('game.talents.mastery'))}:</b> ${esc(tTalent({ kind: 'talentMastery', spec: sp, field: 'name' }))} — ${esc(tTalent({ kind: 'talentMastery', spec: sp, field: 'description' }))}</div>`
+      + `<div class="tsd-signature"><b>${esc(t('game.talents.signature'))}:</b> ${esc(sigDef ? abilityDisplayName(sigDef) : sp.signature)}</div>`;
+    body.appendChild(detail);
+
+    const treeLabel = document.createElement('div');
+    treeLabel.className = 'tal-spec-tree-label';
+    treeLabel.textContent = t('game.talents.specTree');
+    body.appendChild(treeLabel);
+
+    const tree = document.createElement('div');
+    tree.className = 'tal-tree';
+    body.appendChild(tree);
     this.renderTalentTree(tree, ct, stage, 'spec', sp.id);
   }
 
@@ -4964,14 +5046,11 @@ export class Hud {
     const el = $('#quest-log-window');
     if (el.style.display === 'block') { this.closeQuestLog(); return; }
     this.questLogReturnFocus = this.currentFocusableElement() ?? $('#mm-quest');
-    this.closeOtherWindows('#quest-log-window');
-    this.renderQuestLog();
-    el.style.display = 'block';
+    this.openHudWindow(el, () => this.renderQuestLog());
   }
 
   private closeQuestLog(restoreFocus = true): void {
-    $('#quest-log-window').style.display = 'none';
-    this.hideTooltip();
+    this.closeHudWindow($('#quest-log-window'));
     const target = this.questLogReturnFocus ?? $('#mm-quest');
     this.questLogReturnFocus = null;
     if (restoreFocus) this.restoreFocus(target, $('#mm-quest'));

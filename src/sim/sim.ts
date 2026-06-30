@@ -7,7 +7,7 @@ import {
 import { ARENA_SPAWN_A, ARENA_SPAWN_B } from './dungeon_layout';
 import { lineOfSightClear, resolvePosition } from './colliders';
 import { findPath } from './pathfind';
-import { createGroundObject, createMob, createNpc, createPlayer, recalcPlayerStats, PlayerEquipment } from './entity';
+import { createGroundObject, createMob, createNpc, createPlayer, recalcPlayerStats, PlayerEquipment, swingIntervalMult } from './entity';
 import {
   computeTalentModifiers, emptyAllocation, emptyModifiers, talentsFor, talentPointsAtLevel,
   validateAllocation, cloneAllocation, pointsSpent, FIRST_TALENT_LEVEL, MAX_LOADOUTS,
@@ -1423,22 +1423,6 @@ export class Sim {
       id: aspectId,
       sourceId: owner.id,
     });
-  }
-
-  // swing interval multiplier: >1 = slower (thunder clap), haste divides
-  private swingIntervalMult(e: Entity): number {
-    let m = 1;
-    for (const a of e.auras) {
-      if (a.kind === 'attackspeed') m *= a.value;
-      if (a.kind === 'buff_haste') m /= a.value;
-    }
-    // Enrage frenzy: an enraged mob swings faster (mirrors the inline dmgMult
-    // applied in mobSwing). Composes with any slow/haste auras above.
-    if (e.enraged) {
-      const h = MOBS[e.templateId]?.enrage?.hasteMult;
-      if (h && h > 0) m /= h;
-    }
-    return m;
   }
 
   isSwimming(e: Entity): boolean {
@@ -3136,7 +3120,7 @@ export class Sim {
     if (ranged && d <= ranged.maxRange && d >= (ranged.wand ? 0 : ranged.minRange)) {
       if (!this.hasLineOfSight(p, t)) return;
       this.rangedSwing(p, t, ranged);
-      p.swingTimer = ranged.speed * this.swingIntervalMult(p);
+      p.swingTimer = ranged.speed * swingIntervalMult(p);
       return;
     }
     if (d > MELEE_RANGE) return;
@@ -3164,7 +3148,7 @@ export class Sim {
     }
     const connected = this.meleeSwing(p, t, bonus, abilityName, { threatFlat, threatMult });
     if (connected) this.rollGearProcs(p);
-    p.swingTimer = p.weapon.speed * this.swingIntervalMult(p);
+    p.swingTimer = p.weapon.speed * swingIntervalMult(p);
   }
 
   // Chance-on-hit gear procs (e.g. trinkets), rolled per connecting auto-attack
@@ -3923,7 +3907,7 @@ export class Sim {
         mob.swingTimer -= DT;
         if (mob.swingTimer <= 0) {
           this.mobSwing(mob, target);
-          mob.swingTimer = mob.weapon.speed * this.swingIntervalMult(mob);
+          mob.swingTimer = mob.weapon.speed * swingIntervalMult(mob);
         }
         // Boss/miniboss pulse mechanic.
         const pulse = MOBS[mob.templateId]?.aoePulse;
@@ -4232,7 +4216,7 @@ export class Sim {
         if (pet.swingTimer <= 0) {
           if (ranged) this.petRangedAttack(pet, target, ranged);
           else this.mobSwing(pet, target);
-          pet.swingTimer = pet.weapon.speed * this.swingIntervalMult(pet);
+          pet.swingTimer = pet.weapon.speed * swingIntervalMult(pet);
         }
       }
       return;
@@ -7213,7 +7197,7 @@ export class Sim {
     // ranged classes (hunter auto shot, caster wands) swing at their ranged
     // speed; everyone else uses the equipped weapon's speed
     const base = CLASSES[meta.cls].ranged?.speed ?? p.weapon.speed;
-    const interval = base * this.swingIntervalMult(p);
+    const interval = base * swingIntervalMult(p);
     const next = p.swingTimer <= 0 ? 'now' : `in ${p.swingTimer.toFixed(1)}s`;
     return `Auto-attack is on against ${t.name} — next swing ${next} (${interval.toFixed(1)}s swing).`;
   }
