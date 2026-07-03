@@ -496,6 +496,57 @@ export const VISUALS: Record<string, VisualDef> = {
     show: [],
     tint: 'entity', tintStrength: 0.35,
   },
+  // Eastbrook hub — each service NPC gets a distinct silhouette (no weapons on
+  // civilians; guards/knights keep arms). Fixed tints read at town scale.
+  npc_merchant: {
+    url: `${PLAYERS}/paladin.glb`, height: HUMANOID_H,
+    clips: kaykit(['1H_Melee_Attack_Chop']),
+    show: [],
+    attach: [],
+    tint: 0xd4af37, tintStrength: 0.38,
+  },
+  npc_innkeeper: {
+    url: `${PLAYERS}/rogue.glb`, height: HUMANOID_H,
+    clips: kaykit(['1H_Melee_Attack_Chop']),
+    show: [],
+    attach: [],
+    tint: 0xc97b63, tintStrength: 0.42,
+  },
+  npc_trader: {
+    url: `${PLAYERS}/druid.glb`, height: HUMANOID_H,
+    clips: kaykit(['1H_Melee_Attack_Chop']),
+    show: [],
+    attach: [],
+    tint: 0x1e8449, tintStrength: 0.32,
+  },
+  npc_apothecary: {
+    url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,
+    clips: kaykit(['2H_Melee_Attack_Chop']),
+    show: ['Mage_Hat'],
+    attach: [],
+    tint: 0x7d3c98, tintStrength: 0.48,
+  },
+  npc_chaplain: {
+    url: `${PLAYERS}/mage.glb`, height: HUMANOID_H,
+    clips: kaykit(['2H_Melee_Attack_Chop']),
+    show: [],
+    attach: [{ url: `${WEAPONS}/staff.glb`, bone: 'handslot.r' }],
+    tint: 0xf6f1e2, tintStrength: 0.78,
+  },
+  npc_fisher: {
+    url: `${PLAYERS}/ranger.glb`, height: HUMANOID_H,
+    clips: kaykit(['1H_Melee_Attack_Chop']),
+    show: [],
+    attach: [],
+    tint: 0x2471a3, tintStrength: 0.36,
+  },
+  npc_foreman: {
+    url: `${PLAYERS}/barbarian.glb`, height: HUMANOID_H,
+    clips: kaykit(['1H_Melee_Attack_Chop']),
+    show: [],
+    attach: [{ url: `${WEAPONS}/axe_1handed.glb`, bone: 'handslot.r' }],
+    tint: 0xa04000, tintStrength: 0.35,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -591,27 +642,26 @@ const FAMILY_KEYS: Record<string, string> = {
 };
 
 const NPC_KEYS: Record<string, string> = {
+  the_merchant: 'npc_merchant',
   marshal_redbrook: 'npc_knight',
   hunter_rowan: 'npc_scout',
   guard_ashford: 'npc_knight',
   guard_merrick: 'npc_knight',
-  innkeeper_eliza: 'npc_villager',
-  villager_marta: 'npc_villager',
-  villager_cedric: 'npc_villager',
+  innkeeper_eliza: 'npc_innkeeper',
   warden_fenwick: 'npc_knight',
   captain_thessaly: 'npc_knight',
   loremaster_caddis: 'npc_mage',
   smith_haldren: 'npc_smith',
   armorer_hode: 'npc_smith',
-  foreman_odell: 'npc_smith',
+  foreman_odell: 'npc_foreman',
   scout_maren: 'npc_scout',
   scout_maren_highwatch: 'npc_scout',
-  apothecary_lin: 'npc_villager_robed',
-  herbalist_yara: 'npc_villager_robed',
-  trader_wilkes: 'npc_villager',
-  fisherman_brandt: 'npc_villager',
-  provisioner_hale: 'npc_villager',
-  quartermaster_bree: 'npc_villager',
+  apothecary_lin: 'npc_apothecary',
+  herbalist_yara: 'npc_apothecary',
+  trader_wilkes: 'npc_trader',
+  fisherman_brandt: 'npc_fisher',
+  provisioner_hale: 'npc_trader',
+  quartermaster_bree: 'npc_trader',
 };
 
 export function visualKeyFor(e: Entity): string {
@@ -625,7 +675,7 @@ export function visualKeyFor(e: Entity): string {
     return (family && FAMILY_KEYS[family]) || 'mob_bandit';
   }
   // npcs — Brother Aldric recurs in every hub under suffixed ids
-  if (e.templateId.startsWith('brother_aldric')) return 'npc_mage';
+  if (e.templateId.startsWith('brother_aldric')) return 'npc_chaplain';
   return NPC_KEYS[e.templateId] ?? 'npc_villager';
 }
 
