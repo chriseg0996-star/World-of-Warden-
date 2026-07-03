@@ -318,7 +318,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
   guard_merrick: {
     id: 'guard_merrick', name: 'Guard Merrick', title: 'Town Guard',
     pos: { x: -10, z: 0 }, facing: Math.PI / 2, color: 0x85929e,
-    questIds: [],
+    questIds: ['q_hold_south_gate'],
     greeting: 'Eyes up on the south road. Bandits love an unwatched gate.',
     patrol: [{ x: -10, z: 0 }, { x: -10, z: -8 }, { x: 4, z: -8 }, { x: 4, z: 0 }],
   },
@@ -576,6 +576,22 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     itemRewards: { warrior: 'redbrook_blade', mage: 'apprentice_staff', rogue: 'keen_dirk' },
     requiresQuest: 'q_wolves',
   },
+  q_hold_south_gate: {
+    id: 'q_hold_south_gate', name: 'Hold the South Gate',
+    giverNpcId: 'guard_merrick', turnInNpcId: 'guard_merrick',
+    text: 'The cutthroats you thinned out are done skulking, $N — my scouts say the rest mean to rush the south gate in force. Stand on the gate road and drive them off when they come. Eastbrook holds, or it burns.',
+    completionText: 'Not one of them set foot past the gate. The Marshal will hear how you held the line, $N.',
+    objectives: [{
+      type: 'defend',
+      targetMobId: 'vale_bandit',
+      point: { x: -2, z: -20 },
+      radius: 14,
+      count: 6,
+      label: 'Drive off the bandit raid at the south gate',
+    }],
+    xpReward: 650, copperReward: 300, itemRewards: {},
+    requiresQuest: 'q_bandits',
+  },
   q_ringleader: {
     id: 'q_ringleader', name: 'The Ringleader',
     giverNpcId: 'marshal_redbrook', turnInNpcId: 'marshal_redbrook',
@@ -647,7 +663,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
 
 export const ZONE1_QUEST_ORDER = [
   'q_wolves', 'q_wolf_pelts', 'q_report_marshal', 'q_word_with_lin', 'q_scout_pinewood', 'q_escort_to_inn', 'q_boars', 'q_spiders', 'q_greyjaw', 'q_murlocs',
-  'q_supplies', 'q_bandits', 'q_mine', 'q_bones', 'q_ringleader',
+  'q_supplies', 'q_bandits', 'q_hold_south_gate', 'q_mine', 'q_bones', 'q_ringleader',
   'q_whispers', 'q_names_of_the_dead', 'q_silence_the_call',
   'q_rite', 'q_fc_enter', 'q_fc_guardian', 'q_fc_warden', 'q_sexton', 'q_hollow', 'q_gravecallers_trail',
   'q_mogger_tracks', 'q_mogger',

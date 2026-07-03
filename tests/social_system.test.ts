@@ -74,6 +74,9 @@ class FakeDb implements SocialDb {
   }
   async removeGuildMember(c: number): Promise<void> { this.members.delete(c); }
   async setGuildRank(c: number, rank: GuildRank): Promise<void> { const m = this.members.get(c); if (m) m.rank = rank; }
+  private motds = new Map<number, string>();
+  async getGuildMotd(guildId: number): Promise<string> { return this.motds.get(guildId) ?? ''; }
+  async setGuildMotd(guildId: number, motd: string): Promise<void> { this.motds.set(guildId, motd); }
   async guildMembers(guildId: number): Promise<(CharInfo & { rank: GuildRank })[]> {
     return [...this.members.entries()]
       .filter(([, m]) => m.guildId === guildId)

@@ -56,6 +56,7 @@ export interface GuildView {
   name: string;
   rank: GuildRank;
   members: GuildMemberEntry[];
+  motd: string;
 }
 
 export interface SocialSnapshot {
@@ -90,6 +91,9 @@ export interface SocialDb {
   removeGuildMember(charId: number): Promise<void>;
   setGuildRank(charId: number, rank: GuildRank): Promise<void>;
   guildMembers(guildId: number): Promise<(CharInfo & { rank: GuildRank })[]>;
+  // guild Message of the Day ('' when unset)
+  getGuildMotd(guildId: number): Promise<string>;
+  setGuildMotd(guildId: number, motd: string): Promise<void>;
 }
 
 export interface SocialActor {
@@ -161,7 +165,10 @@ export class SocialService {
     ]);
     let guild: GuildView | null = null;
     if (membership) {
-      const members = await this.db.guildMembers(membership.guildId);
+      const [members, motd] = await Promise.all([
+        this.db.guildMembers(membership.guildId),
+        this.db.getGuildMotd(membership.guildId),
+      ]);
       guild = {
         id: membership.guildId,
         name: membership.guildName,
@@ -169,6 +176,7 @@ export class SocialService {
         members: members
           .map((m) => ({ ...m, ...this.presence(m.id) }))
           .sort((a, b) => rankOrder(a.rank) - rankOrder(b.rank) || a.name.localeCompare(b.name)),
+        motd,
       };
     }
     return {
@@ -457,6 +465,24 @@ export class SocialService {
     if (targetMembership.rank === rank) { this.err(actor.characterId, `${target.name} is already ${RANK_LABEL[rank]}.`); return; }
     await this.db.setGuildRank(target.id, rank);
     await this.broadcastGuild(membership.guildId, [{ type: 'log', text: `${target.name} is now ${RANK_LABEL[rank]}.`, color: '#40ff7f' }]);
+    await this.pushGuild(membership.guildId);
+  }
+
+  // Set (or clear, with an empty string) the guild Message of the Day.
+  // Officers and the Guild Master only; broadcast so every member sees it.
+  async guildSetMotd(actor: SocialActor, rawText: string): Promise<void> {
+    const membership = await this.db.guildMembership(actor.characterId);
+    if (!membership) { this.err(actor.characterId, 'You are not in a guild.'); return; }
+    if (membership.rank === 'member') { this.err(actor.characterId, 'Only officers and the Guild Master may set the message of the day.'); return; }
+    const motd = String(rawText ?? '').trim().slice(0, GUILD_MESSAGE_MAX);
+    await this.db.setGuildMotd(membership.guildId, motd);
+    await this.broadcastGuild(membership.guildId, [{
+      type: 'log',
+      text: motd
+        ? `${actor.name} sets the guild message of the day: ${motd}`
+        : `${actor.name} clears the guild message of the day.`,
+      color: '#40ff7f',
+    }]);
     await this.pushGuild(membership.guildId);
   }
 

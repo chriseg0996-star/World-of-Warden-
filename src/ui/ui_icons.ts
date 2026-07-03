@@ -20,7 +20,8 @@ export type UiIconName =
   | 'chat' | 'interact' | 'emote'
   // hand-authored geometrics
   | 'close' | 'prev' | 'next' | 'more' | 'meters'
-  | 'whisper' | 'music' | 'talents' | 'skull' | 'jump' | 'autorun' | 'nameplates' | 'vibrate';
+  | 'whisper' | 'music' | 'talents' | 'skull' | 'jump' | 'autorun' | 'nameplates' | 'vibrate'
+  | 'edit';
 
 // Inner SVG markup per icon (one or more <path>). Default fill rule is nonzero
 // (correct for game-icons.net art incl. overlaps); the two hand-authored cut-out
@@ -45,6 +46,7 @@ const ICONS: Record<UiIconName, string> = {
   emote: '<path fill-rule="evenodd" d="M256 52c-100 0-181 67-181 149 0 51 32 96 81 123-4 36-25 67-59 92 53-13 98-38 126-70 11 2 22 3 33 3 100 0 181-66 181-148S356 52 256 52zm-2 84c-39 0-71 24-74 61h45c2-14 12-23 28-23 15 0 25 8 25 21 0 12-8 20-23 30-27 18-39 35-38 65h43c0-17 7-26 27-40 25-17 39-34 39-58 0-35-29-56-72-56zm-15 178v43h45v-43h-45z"/>',
   // ── hand-authored geometrics ─────────────────────────────────────────────
   close: '<path d="M115 80 256 221 397 80 432 115 291 256 432 397 397 432 256 291 115 432 80 397 221 256 80 115Z"/>',
+  edit: '<path d="M96 356 316 136l60 60L156 416 84 428ZM340 112l32-32 60 60-32 32Z"/>',
   prev: '<path d="M336 96 136 256 336 416Z"/>',
   next: '<path d="M176 96 376 256 176 416Z"/>',
   more: '<path d="M94 256a34 34 0 1 0 68 0 34 34 0 1 0-68 0M222 256a34 34 0 1 0 68 0 34 34 0 1 0-68 0M350 256a34 34 0 1 0 68 0 34 34 0 1 0-68 0Z"/>',

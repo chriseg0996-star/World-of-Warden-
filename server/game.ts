@@ -790,6 +790,16 @@ export class GameServer {
       case 'stopattack': sim.stopAutoAttack(pid); break;
       case 'interact': sim.interact(pid); break;
       case 'loot': if (typeof msg.id === 'number') sim.lootCorpse(msg.id, pid); break;
+      case 'lootItem':
+        if (typeof msg.id === 'number' && (typeof msg.item === 'string' || msg.item === null)) {
+          sim.lootCorpseItem(msg.id, msg.item, pid);
+        }
+        break;
+      case 'lootRoll':
+        if (typeof msg.roll === 'number' && (msg.choice === 'need' || msg.choice === 'greed' || msg.choice === 'pass')) {
+          sim.lootRoll(msg.roll, msg.choice, pid);
+        }
+        break;
       case 'pickup': if (typeof msg.id === 'number') sim.pickUpObject(msg.id, pid); break;
       case 'accept': if (typeof msg.quest === 'string') { sim.acceptQuest(msg.quest, pid); this.resyncQuests(session); } break;
       case 'turnin': if (typeof msg.quest === 'string') { sim.turnInQuest(msg.quest, pid); this.resyncQuests(session); } break;
@@ -802,7 +812,12 @@ export class GameServer {
           sim.discardItem(msg.item, typeof msg.count === 'number' ? msg.count : undefined, pid);
         }
         break;
-      case 'buy': if (typeof msg.npc === 'number' && typeof msg.item === 'string') sim.buyItem(msg.npc, msg.item, pid); break;
+      case 'buy':
+        if (typeof msg.npc === 'number' && typeof msg.item === 'string') {
+          sim.buyItem(msg.npc, msg.item, typeof msg.count === 'number' ? msg.count : 1, pid);
+        }
+        break;
+      case 'who': this.sendWhoInfo(session); break;
       case 'sell':
         if (typeof msg.item === 'string') {
           sim.sellItem(msg.item, typeof msg.count === 'number' ? msg.count : undefined, pid);
@@ -915,6 +930,7 @@ export class GameServer {
       case 'guild_demote': if (typeof msg.name === 'string') void this.social.guildSetRank(this.actorFor(session), msg.name, 'member').catch(logSocialErr); break;
       case 'guild_transfer': if (typeof msg.name === 'string') void this.social.guildTransferLeader(this.actorFor(session), msg.name).catch(logSocialErr); break;
       case 'guild_disband': void this.social.guildDisband(this.actorFor(session)).catch(logSocialErr); break;
+      case 'guild_motd': if (typeof msg.text === 'string') void this.social.guildSetMotd(this.actorFor(session), msg.text).catch(logSocialErr); break;
       // arena (Ashen Coliseum 1v1 queue)
       case 'arena_queue': sim.arenaQueueJoin(pid); break;
       case 'arena_leave': sim.arenaQueueLeave(pid); break;
@@ -1489,6 +1505,14 @@ export class GameServer {
       });
     }
     this.send(session, { t: 'events', list });
+  }
+
+  // Structured /who answer for the Social window's Who tab (the chat command
+  // keeps its log-text form above; this powers the panel).
+  private sendWhoInfo(session: ClientSession): void {
+    if (!session.blockListLoaded) return;
+    const rows = this.whoRosterFor(session);
+    this.send(session, { t: 'who', total: rows.length, rows: rows.slice(0, WHO_RESULT_LIMIT) });
   }
 
   private whoRosterFor(viewer: ClientSession): WhoRosterRow[] {

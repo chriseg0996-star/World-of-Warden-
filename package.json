@@ -4,6 +4,9 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "description": "Wardenfall — a WoW-Classic-style micro-MMO + headless RL training environment",
   "scripts": {
     "dev": "vite",

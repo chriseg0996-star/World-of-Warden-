@@ -1,11 +1,12 @@
 import type { ResolvedAbility } from '../sim/sim';
-import { OVERHEAD_EMOTES, isOverheadEmoteId, type FriendInfo, type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId } from '../world_api';
+import { OVERHEAD_EMOTES, isOverheadEmoteId, type FriendInfo, type IWorld, type LeaderboardEntry, type MarketInfo, type MarketListingView, type OverheadEmoteId } from '../world_api';
 import { Renderer } from '../render/renderer';
 import { CharacterPreview } from '../render/characters';
 import { skinCount } from '../render/characters/manifest';
 import { emoteIconUrl } from './emote_icons';
 import {
-  ABILITIES, CLASSES, DUNGEON_LIST, DUNGEON_X_THRESHOLD, ITEMS, MOBS, NPCS, PROPS, QUESTS, SETS,
+  ABILITIES, CAMPS, CLASSES, DUNGEON_LIST, DUNGEON_X_THRESHOLD, GROUND_OBJECTS, ITEMS, MOBS, NPCS,
+  PROPS, QUESTS, SETS,
   WORLD_MAX_X, WORLD_MAX_Z, WORLD_MIN_X, WORLD_MIN_Z, ZONES, dungeonAt, questRewardItem, zoneAt,
   zoneWelcomeText,
 } from '../sim/data';
@@ -14,7 +15,8 @@ import { guidedQuestIdForZone, isQuestNpcOffer } from '../sim/quest_state';
 import type { AbilityDef, EquipSlot, InvSlot, PetMode, PlayerClass, ResourceType, Stats } from '../sim/types';
 import {
   AbilityEffect, Aura, CONSUME_DURATION, Entity, EQUIP_SLOTS, FISHING_CAST_ID, GCD, ItemDef, SimEvent,
-  dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige, xpUntilNextPrestige,
+  armorReduction, dist2d, xpForLevel, MAX_LEVEL, MELEE_RANGE, MILESTONES, virtualLevel, canPrestige,
+  xpUntilNextPrestige,
 } from '../sim/types';
 import { playerSwingInterval, showsSwingTimer } from '../sim/entity';
 import { xpBarView, formatXp } from './xp_bar';
@@ -24,7 +26,8 @@ import type { Decoration } from '../sim/world';
 import { TOWN_RADIUS } from '../sim/content/zone1';
 import { audio } from '../game/audio';
 import { music, musicZoneForLocation } from '../game/music';
-import { iconDataUrl, iconCanvas, QUALITY_COLOR, raidMarkerDataUrl, RAID_MARKER_NAMES } from './icons';
+import { classIconUrl, drawClassPortrait, drawCrestPortrait, preloadClassIcons } from './class_icons';
+import { iconDataUrl, QUALITY_COLOR, raidMarkerDataUrl, RAID_MARKER_NAMES } from './icons';
 import { svgIcon } from './ui_icons';
 import { Keybinds, BIND_ACTIONS, BIND_CATEGORIES, isReservedCode, keyLabel } from '../game/keybinds';
 import { Settings, GameSettings, BoolSettingKey, NumericSettingKey, SETTING_RANGES, clickMoveButtonLabel, normalizeClickMoveButton } from '../game/settings';
@@ -274,6 +277,14 @@ export class Hud {
   private emoteWheelSlots: OverheadEmoteId[] = [];
   private emoteWheelEl: HTMLDivElement | null = null;
   private emoteWheelPinned = false;
+  private bagsQuery = '';
+  private bagsSorted = false;
+  private sbQuery = '';
+  private lastLootSig = '';
+  // pending Need/Greed/Pass windows, keyed by roll id (started via SimEvents)
+  private lootRollsUi = new Map<number, { itemId: string; seconds: number; startedAt: number }>();
+  private untrackedQuests = new Set<string>();
+  private mapFocusQuestId: string | null = null;
   private chatLogEl = $('#chatlog');
   private combatLogEl = $('#combatlog');
   private errorEl = $('#error-msg');
@@ -321,6 +332,8 @@ export class Hud {
   private questDialogReturnFocus: HTMLElement | null = null;
   private questLogReturnFocus: HTMLElement | null = null;
   private lastPortraitTarget = -999;
+  private lastPlayerPortraitClass = '';
+  private pfPortraitEl = $('#pf-portrait') as unknown as HTMLCanvasElement;
   // trading: locally staged offer, pushed to the server on change
   private stagedTrade: { items: InvSlot[]; copper: number } = { items: [], copper: 0 };
   private tradeWasOpen = false;
@@ -338,6 +351,9 @@ export class Hud {
   private marketTab: 'browse' | 'sell' | 'collect' = 'browse';
   private marketSellItem: string | null = null; // bag item staged for listing
   private lastMarketSig = '';
+  private marketQuery = '';
+  private marketSort: 'name' | 'priceAsc' | 'priceDesc' | 'unit' = 'name';
+  private marketCategory: 'all' | 'weapon' | 'armor' | 'consumable' | 'other' = 'all';
   // all-time ladder, fetched best-effort from the server (online only)
   private arenaAllTime: { name: string; class: string; level: number; rating: number; wins: number; losses: number }[] | null = null;
   private arenaLbFetchedAt = 0;
@@ -353,7 +369,7 @@ export class Hud {
   private windowObserver: MutationObserver | null = null;
   private windowZ = 50;
   private ignoredChatNames = new Set<string>();
-  private socialTab: 'friends' | 'guild' | 'ignore' = 'friends';
+  private socialTab: 'friends' | 'guild' | 'ignore' | 'who' = 'friends';
   // split signatures: structural changes (tab, guild membership) rebuild the
   // whole panel; content-only changes (a friend's presence) refresh just the
   // list, so an open typeahead / half-typed name survives a snapshot
@@ -376,6 +392,7 @@ export class Hud {
   // Talents: a local staged allocation the user edits before committing (Apply).
   private talentStage: TalentAllocation | null = null;
   private talentTab: 'class' | 'spec' = 'class';
+  private talentBuildsOpen = false;
   private charSheetTab: 'character' | 'stats' | 'progression' = 'character';
 
   constructor(private sim: IWorld, private renderer: Renderer, private keybinds: Keybinds) {
@@ -384,6 +401,8 @@ export class Hud {
     this.bindLogTabs();
     this.initWindowManagement();
     this.emoteWheelSlots = this.loadEmoteWheelSlots();
+    try { this.bagsSorted = localStorage.getItem('wf_bag_sort') === '1'; } catch { /* storage unavailable */ }
+    this.untrackedQuests = this.loadUntrackedQuests();
     this.loadSlotMap();
     this.seedStarterHotbar();
     this.buildActionBar();
@@ -391,11 +410,13 @@ export class Hud {
     this.buildXpTicks();
     document.addEventListener('woc:languagechange', () => this.refreshLocalizedDynamicUi());
     $('#pf-name').textContent = sim.player.name;
+    this.lastPlayerPortraitClass = sim.cfg.playerClass;
     $('#player-frame').style.setProperty('--class-color', classCss(sim.cfg.playerClass));
-    this.drawPortrait($('#pf-portrait') as unknown as HTMLCanvasElement, `class_${sim.cfg.playerClass}`);
+    preloadClassIcons();
+    drawClassPortrait(this.pfPortraitEl, sim.cfg.playerClass);
     const mm = $('#minimap') as unknown as HTMLCanvasElement;
     this.minimapCtx = mm.getContext('2d')!;
-    this.minimapBg = this.renderTerrainCanvas(136, { minX: WORLD_MIN_X, maxX: WORLD_MAX_X, minZ: WORLD_MIN_Z, maxZ: WORLD_MAX_Z });
+    this.minimapBg = this.renderTerrainCanvas(127, { minX: WORLD_MIN_X, maxX: WORLD_MAX_X, minZ: WORLD_MIN_Z, maxZ: WORLD_MAX_Z });
     mm.style.cursor = 'pointer';
     mm.title = t('controls.worldMap');
     mm.addEventListener('click', () => this.toggleMap());
@@ -707,7 +728,7 @@ export class Hud {
       case 'vendor-window': this.closeVendor(); break;
       case 'loot-window': this.closeLoot(); break;
       case 'quest-dialog': this.closeQuestDialog(); break;
-      case 'talents-window': el.style.display = 'none'; this.talentStage = null; this.hideTooltip(); break;
+      case 'talents-window': el.style.display = 'none'; this.talentStage = null; this.talentBuildsOpen = false; this.hideTooltip(); break;
       case 'emote-editor': this.closeEmoteEditor(); break;
       default: el.style.display = 'none'; this.hideTooltip(); break;
     }
@@ -764,7 +785,7 @@ export class Hud {
   }
 
   private emoteLabel(id: OverheadEmoteId): string {
-    return OVERHEAD_EMOTES.find((e) => e.id === id)?.label ?? id;
+    return t(`game.emotes.names.${id}`);
   }
 
   private emoteWheelKeyLabel(): string {
@@ -822,7 +843,7 @@ export class Hud {
       this.emoteWheelEl = el;
     }
     const slots = this.emoteWheelSlots.filter(isOverheadEmoteId).slice(0, EMOTE_WHEEL_LIMIT);
-    el.innerHTML = `<div class="emote-wheel-ring"></div><button class="emote-wheel-edit" data-edit>Edit</button>`;
+    el.innerHTML = `<div class="emote-wheel-ring"></div><button class="emote-wheel-edit" data-edit>${esc(t('game.emotes.edit'))}</button>`;
     slots.forEach((id, i) => {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -902,7 +923,7 @@ export class Hud {
 
   private renderEmoteEditor(): void {
     const el = $('#emote-editor');
-    el.innerHTML = `<div class="panel-title"><span>Emotes</span><span class="x-btn" data-close>${svgIcon('close')}</span></div>`;
+    el.innerHTML = `<div class="panel-title"><span>${esc(t('game.emotes.editorTitle'))}</span><span class="x-btn" data-close>${svgIcon('close')}</span></div>`;
     const count = document.createElement('div');
     count.className = 'emote-editor-count';
     const grid = document.createElement('div');
@@ -928,7 +949,7 @@ export class Hud {
       icon.src = emoteIconUrl(def.id);
       icon.alt = '';
       const label = document.createElement('span');
-      label.textContent = def.label;
+      label.textContent = this.emoteLabel(def.id);
       btn.append(icon, label);
       btn.addEventListener('click', () => {
         audio.click();
@@ -947,7 +968,7 @@ export class Hud {
     footer.className = 'emote-editor-footer';
     const done = document.createElement('button');
     done.className = 'btn';
-    done.textContent = 'Done';
+    done.textContent = t('game.emotes.done');
     done.addEventListener('click', () => this.closeEmoteEditor());
     footer.append(count, done);
     el.append(grid, footer);
@@ -958,20 +979,10 @@ export class Hud {
   // Portraits, icons, tooltips, money
   // -------------------------------------------------------------------------
 
-  // Portrait = the procedural crest for a class (`class_<id>`), mob family
-  // (`family_<id>`) or status (`status_npc`), painted by icons.ts and blitted in.
-  private drawPortrait(canvas: HTMLCanvasElement, crestId: string): void {
-    const ctx = canvas.getContext('2d')!;
-    const s = canvas.width;
-    const render = Math.max(s, 108);
-    const src = iconCanvas('crest', crestId, render);
-    ctx.clearRect(0, 0, s, s);
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(src, 0, 0, s, s);
-    ctx.restore();
+  // Player portraits use character-select PNGs; NPCs/mobs use procedural crests.
+  private entityCrestId(target: Entity): string {
+    if (target.kind === 'npc') return 'status_npc';
+    return `family_${MOBS[target.templateId]?.family ?? 'humanoid'}`;
   }
 
   private itemIcon(item: ItemDef): string {
@@ -1226,7 +1237,7 @@ export class Hud {
     this.touchQuestTracker();
     const log = $('#quest-log-window');
     if (log.style.display === 'block') this.renderQuestLog();
-    if ($('#bags').style.display === 'block') this.renderBags();
+    if ($('#bags').style.display === 'flex') this.renderBags();
     if (this.openVendorNpcId !== null && $('#vendor-window').style.display === 'block') this.renderVendor();
     if (this.marketOpen) {
       this.lastMarketSig = '';
@@ -1476,11 +1487,6 @@ export class Hud {
           btn.classList.remove('drop-target', 'oor', 'queued', 'unusable');
           this.hideTooltip();
         };
-        btn.addEventListener('contextmenu', (e) => {
-          if (!e.shiftKey) return;
-          e.preventDefault();
-          clearSlot();
-        });
         btn.addEventListener('keydown', (e) => {
           if (!e.shiftKey || (e.key !== 'Delete' && e.key !== 'Backspace')) return;
           e.preventDefault();
@@ -1527,9 +1533,7 @@ export class Hud {
         btn.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           if (this.hotbarActions[slot - 1] === null) return;
-          this.hotbarActions = clearHotbarSlot(this.hotbarActions, slot - 1);
-          this.saveSlotMap();
-          this.hideTooltip();
+          clearSlot();
         });
       }
       bar.appendChild(btn);
@@ -1704,7 +1708,7 @@ export class Hud {
       addButton(commands, 'rejuvenation', t('hud.pet.healPet'), petTooltip(t('hud.pet.healPet'), t('hud.pet.healPetDesc')), () => {
         this.pendingPetFeed = true;
         this.lastPetBarSig = '';
-        $('#bags').style.display = 'block';
+        $('#bags').style.display = 'flex';
         this.renderBags();
       }, { active: this.pendingPetFeed });
     }
@@ -1752,6 +1756,11 @@ export class Hud {
     document.getElementById('mobile-talents')?.classList.toggle('has-points', talGlow);
 
     // player frame
+    if (sim.cfg.playerClass !== this.lastPlayerPortraitClass) {
+      this.lastPlayerPortraitClass = sim.cfg.playerClass;
+      $('#player-frame').style.setProperty('--class-color', classCss(sim.cfg.playerClass));
+      drawClassPortrait(this.pfPortraitEl, sim.cfg.playerClass);
+    }
     this.setText(this.pfLevelEl, String(p.level));
     this.setTransform(this.pfHpEl, `scaleX(${p.hp / Math.max(1, p.maxHp)})`);
     this.setText(this.pfHpTextEl, `${p.hp} / ${p.maxHp}`);
@@ -1783,10 +1792,11 @@ export class Hud {
       if (this.targetNameEl.style.color !== targetNameColor) this.targetNameEl.style.color = targetNameColor;
       if (this.lastPortraitTarget !== target.id) {
         this.lastPortraitTarget = target.id;
-        const crestId = target.kind === 'npc'
-          ? 'status_npc'
-          : `family_${MOBS[target.templateId]?.family ?? 'humanoid'}`;
-        this.drawPortrait(this.targetPortraitEl, crestId);
+        if (target.kind === 'player') {
+          drawClassPortrait(this.targetPortraitEl, target.templateId);
+        } else {
+          drawCrestPortrait(this.targetPortraitEl, this.entityCrestId(target));
+        }
       }
       this.renderTargetAuras(target);
       // combo points
@@ -1967,7 +1977,9 @@ export class Hud {
       if (this.openLootMobId !== null) {
         const mob = sim.entities.get(this.openLootMobId);
         if (!mob || !mob.lootable || dist2d(p.pos, mob.pos) > 7) this.closeLoot();
+        else this.refreshLoot();
       }
+      if (this.lootRollsUi.size > 0) this.expireLootRolls();
       if (this.openVendorNpcId !== null) {
         const npc = sim.entities.get(this.openVendorNpcId);
         if (!npc || dist2d(p.pos, npc.pos) > 8) this.closeVendor();
@@ -2027,6 +2039,24 @@ export class Hud {
     }
   }
 
+  private loadUntrackedQuests(): Set<string> {
+    try {
+      const raw: unknown = JSON.parse(localStorage.getItem('wf_untracked_quests') ?? '[]');
+      return new Set(Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string') : []);
+    } catch { return new Set(); }
+  }
+
+  private saveUntrackedQuests(): void {
+    try { localStorage.setItem('wf_untracked_quests', JSON.stringify([...this.untrackedQuests])); } catch { /* storage unavailable */ }
+  }
+
+  private setQuestTracked(questId: string, tracked: boolean): void {
+    if (tracked) this.untrackedQuests.delete(questId);
+    else this.untrackedQuests.add(questId);
+    this.saveUntrackedQuests();
+    this.touchQuestTracker();
+  }
+
   private updateQuestTracker(): void {
     const el = $('#quest-tracker');
     const zone = zoneAt(this.sim.player.pos.z);
@@ -2035,7 +2065,10 @@ export class Hud {
     );
     let html = `<div class="qt-header">${esc(t('questUi.tracker.title'))}</div>`;
     if (this.sim.questLog.size > 0) {
-      const quests = [...this.sim.questLog.values()];
+      // untracked quests stay off the on-screen tracker; the guided quest is
+      // the new-player breadcrumb and always shows
+      const quests = [...this.sim.questLog.values()]
+        .filter((qp) => qp.questId === guidedId || !this.untrackedQuests.has(qp.questId));
       if (guidedId) {
         quests.sort((a, b) => (a.questId === guidedId ? -1 : b.questId === guidedId ? 1 : 0));
       }
@@ -2146,7 +2179,7 @@ export class Hud {
 
   private updateMinimap(): void {
     const ctx = this.minimapCtx;
-    const S = 158;
+    const S = 148;
     const p = this.sim.player;
     $('#zone-label').textContent = zoneDisplayName(zoneAt(p.pos.z).id);
     ctx.clearRect(0, 0, S, S);
@@ -2422,6 +2455,63 @@ export class Hud {
     if ($('#map-window').style.display === 'block') this.updateMapWindow();
   }
 
+  /**
+   * Best-known world positions for a quest's unfinished objectives, resolved
+   * from static content: explicit points, dungeon doors, NPC homes, mob camps,
+   * and ground-object spawns (plus camps of mobs that drop a collect item).
+   * When the quest is ready, the single pin is the turn-in NPC.
+   */
+  private questObjectivePins(questId: string): Array<{ x: number; z: number }> {
+    const quest = QUESTS[questId];
+    if (!quest) return [];
+    const qp = this.sim.questLog.get(questId);
+    if (qp?.state === 'ready') {
+      const npc = NPCS[quest.turnInNpcId];
+      return npc ? [npc.pos] : [];
+    }
+    const pins: Array<{ x: number; z: number }> = [];
+    quest.objectives.forEach((obj, i) => {
+      if (qp && qp.counts[i] >= obj.count) return;
+      if (obj.point) { pins.push(obj.point); return; }
+      if (obj.dungeonId) {
+        const d = DUNGEON_LIST.find((dg) => dg.id === obj.dungeonId);
+        if (d) pins.push(d.doorPos);
+        return;
+      }
+      if (obj.type === 'talk' && obj.targetNpcId) {
+        const npc = NPCS[obj.targetNpcId];
+        if (npc) pins.push(npc.pos);
+        return;
+      }
+      if ((obj.type === 'kill' || obj.type === 'defend') && obj.targetMobId) {
+        for (const c of CAMPS) if (c.mobId === obj.targetMobId) pins.push(c.center);
+        return;
+      }
+      if (obj.type === 'collect' && obj.itemId) {
+        for (const g of GROUND_OBJECTS) {
+          if (g.itemId === obj.itemId) pins.push(...g.positions.slice(0, 3));
+        }
+        const dropMobs = new Set(Object.keys(MOBS).filter((id) => MOBS[id].loot.some((l) => l.itemId === obj.itemId)));
+        if (dropMobs.size > 0) {
+          for (const c of CAMPS) if (dropMobs.has(c.mobId)) pins.push(c.center);
+        }
+      }
+    });
+    return pins.slice(0, 8);
+  }
+
+  /** Open the world map centred on a quest's first objective pin. */
+  private showQuestOnMap(questId: string): void {
+    const pins = this.questObjectivePins(questId);
+    if (pins.length === 0) { this.showError(t('game.questLog.noPin')); return; }
+    this.mapFocusQuestId = questId;
+    const mapEl = $('#map-window');
+    if (mapEl.style.display !== 'block') this.toggleMap();
+    this.mapZoom = 2;
+    this.mapCenter = { x: pins[0].x, z: pins[0].z };
+    this.updateMapWindow();
+  }
+
   // The map window shows the zone band the player is standing in (each band
   // is a square); POIs and dungeon portals come from the zone/dungeon data.
   private updateMapWindow(): void {
@@ -2506,6 +2596,33 @@ export class Hud {
       ctx.font = 'bold 13px Georgia';
       ctx.fillStyle = '#ffe9a0';
     }
+    // quest objective pins for tracked active quests (gold dots; the focused
+    // quest from "Show on map" draws bigger with a halo ring)
+    ctx.save();
+    for (const qp of this.sim.questLog.values()) {
+      const focus = qp.questId === this.mapFocusQuestId;
+      if (!focus && this.untrackedQuests.has(qp.questId)) continue;
+      for (const pin of this.questObjectivePins(qp.questId)) {
+        if (pin.z < zone.zMin || pin.z >= zone.zMax || pin.x > WORLD_MAX_X) continue;
+        const { mx, my } = toMap(pin.x, pin.z);
+        if (mx < 0 || mx > S || my < 0 || my > S) continue;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#3a2a00';
+        ctx.fillStyle = focus ? '#ffe066' : '#f0b429';
+        ctx.beginPath();
+        ctx.arc(mx, my, focus ? 6 : 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        if (focus) {
+          ctx.strokeStyle = '#ffe066';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(mx, my, 10, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
     // npcs
     for (const e of this.sim.entities.values()) {
       if (e.kind !== 'npc') continue;
@@ -2752,6 +2869,16 @@ export class Hud {
         case 'vendor': {
           if ($('#bags').style.display !== 'none') this.renderBags();
           if (this.openVendorNpcId !== null) this.renderVendor();
+          break;
+        }
+        case 'lootRollStart': {
+          this.lootRollsUi.set(ev.rollId, { itemId: ev.itemId, seconds: ev.seconds, startedAt: performance.now() });
+          this.renderLootRolls();
+          audio.questAccept();
+          break;
+        }
+        case 'lootRollEnd': {
+          if (this.lootRollsUi.delete(ev.rollId)) this.renderLootRolls();
           break;
         }
         case 'error': this.showError(this.localizeErrorText(ev.text)); break;
@@ -3449,18 +3576,58 @@ export class Hud {
     this.closeOtherWindows('#loot-window');
     this.openLootMobId = mobId;
     const el = $('#loot-window');
+    this.renderLoot();
+    el.style.left = `${Math.min(window.innerWidth - 260, Math.max(10, screenX - 115))}px`;
+    el.style.top = `${Math.min(window.innerHeight - 280, Math.max(10, screenY - 30))}px`;
+    el.style.transform = 'none'; // loot pops at the cursor, not the centred slot
+    el.style.display = 'block';
+  }
+
+  // A cheap identity of the corpse's remaining loot; the window re-renders in
+  // place when a row is taken (locally or by a party member online).
+  private lootSig(mob: Entity): string {
+    if (!mob.loot) return '';
+    return JSON.stringify([mob.loot.copper, mob.loot.items]);
+  }
+
+  // (Re)build the loot window's contents. Each row is a button: click a row to
+  // loot just that item (or the coins); Take All still sweeps everything.
+  private renderLoot(): void {
+    if (this.openLootMobId === null) return;
+    const mobId = this.openLootMobId;
+    const mob = this.sim.entities.get(mobId);
+    if (!mob?.loot) { this.closeLoot(); return; }
+    const visibleItems = mob.loot.items.filter((s) => !s.personalFor || s.personalFor.includes(this.sim.playerId));
+    if (mob.loot.copper <= 0 && visibleItems.length === 0) { this.closeLoot(); return; }
+    this.lastLootSig = this.lootSig(mob);
+    const el = $('#loot-window');
+    this.hideTooltip();
     let html = `<div class="panel-title"><span>${esc(entityDisplayName(mob))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('itemUi.loot.close'))}">${svgIcon('close')}</button></div>`;
     if (mob.loot.copper > 0) {
-      html += `<div class="loot-item"><img class="item-icon q-common" src="${iconDataUrl('item', 'coin_gold')}" alt="" draggable="false"><span>${this.moneyHtml(mob.loot.copper)}</span></div>`;
+      const money = formatLocalizedMoney(mob.loot.copper);
+      html += `<button type="button" class="loot-item" data-money="1" aria-label="${esc(t('game.loot.lootMoneyAria', { money }))}"><img class="item-icon q-common" src="${iconDataUrl('item', 'coin_gold')}" alt="" draggable="false"><span>${this.moneyHtml(mob.loot.copper)}</span></button>`;
     }
     for (const s of visibleItems) {
       const item = ITEMS[s.itemId];
-      html += `<div class="loot-item" data-item="${s.itemId}">${this.itemIcon(item)}<span style="font-size:12px">${esc(itemDisplayName(item))}${s.count > 1 ? ' x' + s.count : ''}</span></div>`;
+      const itemName = itemDisplayName(item);
+      const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
+      const countLabel = s.count > 1
+        ? ` ${esc(t('itemUi.bags.stackCount', { count: formatNumber(s.count, { maximumFractionDigits: 0 }) }))}`
+        : '';
+      html += `<button type="button" class="loot-item" data-item="${s.itemId}" aria-label="${esc(t('game.loot.lootItemAria', { item: itemName }))}">${this.itemIcon(item)}<span style="font-size:12px;color:${qColor}">${esc(itemName)}${countLabel}</span></button>`;
     }
     el.innerHTML = html;
     el.querySelectorAll('[data-item]').forEach((row) => {
       const itemId = (row as HTMLElement).dataset.item!;
       this.attachTooltip(row as HTMLElement, () => this.itemTooltip(ITEMS[itemId]));
+      row.addEventListener('click', () => {
+        this.sim.lootCorpseItem(mobId, itemId);
+        this.refreshLoot();
+      });
+    });
+    el.querySelector('[data-money]')?.addEventListener('click', () => {
+      this.sim.lootCorpseItem(mobId, null);
+      this.refreshLoot();
     });
     const btn = document.createElement('button');
     btn.className = 'btn';
@@ -3468,16 +3635,83 @@ export class Hud {
     btn.addEventListener('click', () => { this.sim.lootCorpse(mobId); this.closeLoot(); });
     el.appendChild(btn);
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeLoot());
-    el.style.left = `${Math.min(window.innerWidth - 260, Math.max(10, screenX - 115))}px`;
-    el.style.top = `${Math.min(window.innerHeight - 280, Math.max(10, screenY - 30))}px`;
-    el.style.transform = 'none'; // loot pops at the cursor, not the centred slot
-    el.style.display = 'block';
+  }
+
+  // Re-render the open loot window when the corpse's remaining loot changed
+  // (offline this is immediate; online it follows the next snapshot).
+  private refreshLoot(): void {
+    if (this.openLootMobId === null) return;
+    const mob = this.sim.entities.get(this.openLootMobId);
+    if (!mob || !mob.lootable || !mob.loot) { this.closeLoot(); return; }
+    if (this.lootSig(mob) !== this.lastLootSig) this.renderLoot();
   }
 
   closeLoot(): void {
     $('#loot-window').style.display = 'none';
     this.openLootMobId = null;
     this.hideTooltip();
+  }
+
+  // -------------------------------------------------------------------------
+  // Group loot: Need / Greed / Pass roll windows (one small panel per pending
+  // roll, stacked on the right). Opened by 'lootRollStart' events; closed by
+  // an answer, the 'lootRollEnd' event, or the local timer running out.
+  // -------------------------------------------------------------------------
+
+  private renderLootRolls(): void {
+    const host = document.getElementById('loot-rolls');
+    if (!host) return;
+    this.hideTooltip();
+    host.innerHTML = '';
+    for (const [rollId, roll] of this.lootRollsUi) {
+      const item = ITEMS[roll.itemId];
+      if (!item) continue;
+      const itemName = itemDisplayName(item);
+      const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
+      const panel = document.createElement('div');
+      panel.className = 'loot-roll panel';
+      panel.setAttribute('role', 'group');
+      panel.setAttribute('aria-label', t('game.loot.rollAria', { item: itemName }));
+      const elapsed = Math.max(0, (performance.now() - roll.startedAt) / 1000);
+      panel.innerHTML =
+        `<div class="loot-roll-head">${this.itemIcon(item)}<span class="loot-roll-name" style="color:${qColor}">${esc(itemName)}</span></div>`
+        + `<div class="loot-roll-timer"><div class="loot-roll-timer-fill" style="animation-duration:${roll.seconds}s;animation-delay:-${elapsed.toFixed(2)}s"></div></div>`;
+      const row = document.createElement('div');
+      row.className = 'loot-roll-btns';
+      const mk = (choice: 'need' | 'greed' | 'pass', label: string, aria: string) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `btn loot-roll-btn lr-${choice}`;
+        b.textContent = label;
+        b.setAttribute('aria-label', aria);
+        b.addEventListener('click', () => {
+          this.sim.lootRoll(rollId, choice);
+          this.lootRollsUi.delete(rollId);
+          this.renderLootRolls();
+          audio.click();
+        });
+        row.appendChild(b);
+      };
+      mk('need', t('game.loot.need'), t('game.loot.needAria', { item: itemName }));
+      mk('greed', t('game.loot.greed'), t('game.loot.greedAria', { item: itemName }));
+      mk('pass', t('game.loot.pass'), t('game.loot.passAria', { item: itemName }));
+      panel.appendChild(row);
+      this.attachTooltip(panel.querySelector('.loot-roll-head') as HTMLElement, () => this.itemTooltip(item));
+      host.appendChild(panel);
+    }
+  }
+
+  // Drop windows whose timer ran out locally (the sim auto-passes server-side).
+  private expireLootRolls(): void {
+    const now = performance.now();
+    let changed = false;
+    for (const [rollId, roll] of [...this.lootRollsUi]) {
+      if (now - roll.startedAt > roll.seconds * 1000) {
+        this.lootRollsUi.delete(rollId);
+        changed = true;
+      }
+    }
+    if (changed) this.renderLootRolls();
   }
 
   // -------------------------------------------------------------------------
@@ -3502,8 +3736,9 @@ export class Hud {
     // collapses the scrolled list — drop the tooltip and restore the scroll
     this.hideTooltip();
     const scrollTop = el.scrollTop;
-    let html = `<div class="panel-title"><span>${esc(t('itemUi.vendor.goodsTitle', { name: entityDisplayName(npc) }))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('itemUi.vendor.close'))}">${svgIcon('close')}</button></div>`;
+    let html = `<div class="panel-title"><span>${esc(t('itemUi.vendor.goodsTitle', { name: entityDisplayName(npc) }))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('itemUi.vendor.close'))}">${svgIcon('close')}</button></div><div class="vendor-scroll"></div>`;
     el.innerHTML = html;
+    const scroll = el.querySelector('.vendor-scroll')!;
     for (const itemId of npc.vendorItems) {
       const item = ITEMS[itemId];
       if (!item?.buyValue) continue;
@@ -3514,24 +3749,50 @@ export class Hud {
       const itemName = itemDisplayName(item);
       row.setAttribute('aria-label', t('itemUi.vendor.buyAria', { item: itemName, price }));
       row.innerHTML = `${this.itemIcon(item)}<span class="vi-name">${esc(itemName)}</span><span class="vi-price">${this.moneyHtml(item.buyValue)}</span>`;
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (ev) => {
+        if (ev.shiftKey) {
+          this.showBuyQuantityPrompt(npc.id, itemId);
+          return;
+        }
         this.sim.buyItem(npc.id, itemId);
         if ($('#bags').style.display !== 'none') this.renderBags();
         this.renderVendor();
       });
-      this.attachTooltip(row, () => this.itemTooltip(item) + `<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuy'))}</div>`);
-      el.appendChild(row);
+      this.attachTooltip(row, () => this.itemTooltip(item)
+        + `<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuy'))}</div>`
+        + `<div class="tt-sub">${esc(t('game.vendor.shiftBuyHint'))}</div>`);
+      scroll.appendChild(row);
+    }
+    // one-click grey-item cleanup: sell every junk stack in the bags
+    const junk = this.sim.inventory.filter((s) => {
+      const def = ITEMS[s.itemId];
+      return def && def.quality === 'poor' && def.kind !== 'quest' && def.sellValue > 0 && s.count > 0;
+    });
+    if (junk.length > 0) {
+      const total = junk.reduce((n, s) => n + (ITEMS[s.itemId]?.sellValue ?? 0) * s.count, 0);
+      const junkBtn = document.createElement('button');
+      junkBtn.type = 'button';
+      junkBtn.className = 'btn vendor-junk-btn';
+      junkBtn.textContent = t('game.vendor.sellJunk', { money: formatLocalizedMoney(total) });
+      junkBtn.setAttribute('aria-label', t('game.vendor.sellJunkAria', { money: formatLocalizedMoney(total) }));
+      junkBtn.addEventListener('click', () => {
+        for (const s of junk) this.sim.sellItem(s.itemId, s.count);
+        if ($('#bags').style.display !== 'none') this.renderBags();
+        this.renderVendor();
+        audio.coin();
+      });
+      scroll.appendChild(junkBtn);
     }
     const buybackTitle = document.createElement('div');
     buybackTitle.className = 'vendor-section-title';
     buybackTitle.textContent = t('itemUi.vendor.buybackTitle');
-    el.appendChild(buybackTitle);
+    scroll.appendChild(buybackTitle);
     const buyback = this.sim.vendorBuyback.filter((s) => ITEMS[s.itemId] && s.count > 0);
     if (buyback.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'vendor-empty';
       empty.textContent = t('itemUi.vendor.buybackEmpty');
-      el.appendChild(empty);
+      scroll.appendChild(empty);
     }
     for (const s of buyback) {
       const item = ITEMS[s.itemId]!;
@@ -3544,18 +3805,18 @@ export class Hud {
       row.innerHTML = `${this.itemIcon(item)}<span class="vi-name">${esc(itemName)}${s.count > 1 ? ` x${s.count}` : ''}</span><span class="vi-price">${this.moneyHtml(item.sellValue)}</span>`;
       row.addEventListener('click', () => {
         this.sim.buyBackItem(s.itemId);
-        if ($('#bags').style.display === 'block') this.renderBags();
+        if ($('#bags').style.display === 'flex') this.renderBags();
         this.renderVendor();
       });
       this.attachTooltip(row, () => this.itemTooltip(item) + `<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuyback'))}</div>`);
-      el.appendChild(row);
+      scroll.appendChild(row);
     }
     const hint = document.createElement('div');
     hint.className = 'vendor-hint';
     hint.textContent = t('itemUi.vendor.hint');
     el.appendChild(hint);
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeVendor());
-    el.style.display = 'block';
+    el.style.display = 'flex';
     el.scrollTop = scrollTop;
   }
 
@@ -3593,6 +3854,8 @@ export class Hud {
     if (!this.marketOpen) return;
     this.marketOpen = false;
     this.marketSellItem = null;
+    this.marketQuery = '';
+    this.marketCategory = 'all';
     $('#market-window').style.display = 'none';
     this.hideTooltip();
     if ($('#bags').style.display !== 'none') this.renderBags();
@@ -3678,41 +3941,135 @@ export class Hud {
   }
 
   private renderMarketBrowse(body: HTMLElement, info: MarketInfo): void {
+    const hadSearchFocus = document.activeElement instanceof HTMLInputElement && document.activeElement.id === 'mkt-search';
     if (info.listings.length === 0) {
       body.innerHTML = `<div class="mkt-empty">${esc(t('itemUi.market.emptyBrowse'))}</div>`;
       return;
     }
     body.innerHTML = `<div class="mkt-note">${esc(t('itemUi.market.browseNote'))}</div>`;
-    for (const l of info.listings) {
-      const item = ITEMS[l.itemId];
-      if (!item) continue;
-      const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
-      const row = document.createElement('div');
-      row.className = 'mkt-row';
-      const itemName = itemDisplayName(item);
-      const each = l.count > 1 ? `<br><span class="seller">${esc(t('itemUi.market.each', { money: formatLocalizedMoney(Math.ceil(l.price / l.count)) }))}</span>` : '';
-      const stack = l.count > 1 ? ` <span class="stack">${esc(t('itemUi.market.stackCount', { count: formatNumber(l.count, { maximumFractionDigits: 0 }) }))}</span>` : '';
-      row.innerHTML =
-        `${this.itemIcon(item)}`
-        + `<span class="mkt-name"><span class="nm" style="color:${qColor}">${esc(itemName)}${stack}</span>`
-        + `<span class="seller${l.house ? ' house' : ''}">${esc(l.house ? t('itemUi.market.merchantStock') : l.sellerName)}</span></span>`
-        + `<span class="mkt-price">${this.moneyHtml(l.price)}${each}</span>`;
-      const btn = document.createElement('button');
-      btn.className = 'mkt-btn' + (l.mine ? ' cancel' : '');
-      btn.textContent = l.mine ? t('itemUi.market.reclaim') : t('itemUi.market.buy');
-      btn.setAttribute('aria-label', t(l.mine ? 'itemUi.market.reclaimAria' : 'itemUi.market.buyAria', {
-        item: itemName,
-        price: formatLocalizedMoney(l.price),
-      }));
-      btn.addEventListener('click', () => {
-        if (l.mine) this.sim.marketCancel(l.id);
-        else this.sim.marketBuy(l.id);
-        audio.click();
-      });
-      row.appendChild(btn);
-      this.attachTooltip(row, () => this.itemTooltip(item));
-      body.appendChild(row);
+    // search + sort toolbar (client-side over the streamed listings)
+    const toolbar = document.createElement('div');
+    toolbar.className = 'mkt-toolbar';
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.id = 'mkt-search';
+    search.placeholder = t('game.market.searchPlaceholder');
+    search.setAttribute('aria-label', t('game.market.searchAria'));
+    search.autocomplete = 'off';
+    search.spellcheck = false;
+    search.value = this.marketQuery;
+    const sortSel = document.createElement('select');
+    sortSel.className = 'mkt-sort';
+    sortSel.setAttribute('aria-label', t('game.market.sortAria'));
+    const catSel = document.createElement('select');
+    catSel.className = 'mkt-cat';
+    catSel.setAttribute('aria-label', t('game.market.filterAria'));
+    const catOptions: Array<{ id: typeof this.marketCategory; label: string }> = [
+      { id: 'all', label: t('game.market.filterAll') },
+      { id: 'weapon', label: t('game.market.filterWeapon') },
+      { id: 'armor', label: t('game.market.filterArmor') },
+      { id: 'consumable', label: t('game.market.filterConsumable') },
+      { id: 'other', label: t('game.market.filterOther') },
+    ];
+    for (const opt of catOptions) {
+      const o = document.createElement('option');
+      o.value = opt.id;
+      o.textContent = opt.label;
+      o.selected = this.marketCategory === opt.id;
+      catSel.appendChild(o);
     }
+    const sortOptions: Array<{ id: 'name' | 'priceAsc' | 'priceDesc' | 'unit'; label: string }> = [
+      { id: 'name', label: t('game.market.sortName') },
+      { id: 'priceAsc', label: t('game.market.sortPriceAsc') },
+      { id: 'priceDesc', label: t('game.market.sortPriceDesc') },
+      { id: 'unit', label: t('game.market.sortUnit') },
+    ];
+    for (const opt of sortOptions) {
+      const o = document.createElement('option');
+      o.value = opt.id;
+      o.textContent = opt.label;
+      o.selected = this.marketSort === opt.id;
+      sortSel.appendChild(o);
+    }
+    toolbar.append(search, catSel, sortSel);
+    body.appendChild(toolbar);
+    const rowsHost = document.createElement('div');
+    rowsHost.className = 'mkt-rows';
+    body.appendChild(rowsHost);
+
+    const buildRows = (): void => {
+      this.hideTooltip();
+      rowsHost.innerHTML = '';
+      const q = this.marketQuery.trim().toLowerCase();
+      let listings = info.listings.filter((l) => {
+        if (!ITEMS[l.itemId]) return false;
+        const def = ITEMS[l.itemId];
+        if (this.marketCategory === 'weapon' && def.kind !== 'weapon') return false;
+        if (this.marketCategory === 'armor' && def.kind !== 'armor') return false;
+        if (this.marketCategory === 'consumable' && def.kind !== 'food' && def.kind !== 'drink' && def.kind !== 'potion') return false;
+        if (this.marketCategory === 'other' && (def.kind === 'weapon' || def.kind === 'armor' || def.kind === 'food' || def.kind === 'drink' || def.kind === 'potion')) return false;
+        if (!q) return true;
+        const name = itemDisplayName(ITEMS[l.itemId]).toLowerCase();
+        const seller = (l.house ? t('itemUi.market.merchantStock') : l.sellerName).toLowerCase();
+        return name.includes(q) || seller.includes(q);
+      });
+      const byName = (a: MarketListingView, b: MarketListingView) =>
+        itemDisplayName(ITEMS[a.itemId]).localeCompare(itemDisplayName(ITEMS[b.itemId]));
+      if (this.marketSort === 'priceAsc') listings = listings.sort((a, b) => a.price - b.price || byName(a, b));
+      else if (this.marketSort === 'priceDesc') listings = listings.sort((a, b) => b.price - a.price || byName(a, b));
+      else if (this.marketSort === 'unit') listings = listings.sort((a, b) => a.price / a.count - b.price / b.count || byName(a, b));
+      else listings = listings.sort((a, b) => byName(a, b) || a.price - b.price);
+      if (listings.length === 0) {
+        rowsHost.innerHTML = `<div class="mkt-empty">${esc(t('game.market.noMatches'))}</div>`;
+        return;
+      }
+      for (const l of listings) {
+        const item = ITEMS[l.itemId];
+        if (!item) continue;
+        const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
+        const row = document.createElement('div');
+        row.className = 'mkt-row';
+        const itemName = itemDisplayName(item);
+        const each = l.count > 1 ? `<br><span class="seller">${esc(t('itemUi.market.each', { money: formatLocalizedMoney(Math.ceil(l.price / l.count)) }))}</span>` : '';
+        const stack = l.count > 1 ? ` <span class="stack">${esc(t('itemUi.market.stackCount', { count: formatNumber(l.count, { maximumFractionDigits: 0 }) }))}</span>` : '';
+        row.innerHTML =
+          `${this.itemIcon(item)}`
+          + `<span class="mkt-name"><span class="nm" style="color:${qColor}">${esc(itemName)}${stack}</span>`
+          + `<span class="seller${l.house ? ' house' : ''}">${esc(l.house ? t('itemUi.market.merchantStock') : l.sellerName)}</span></span>`
+          + `<span class="mkt-price">${this.moneyHtml(l.price)}${each}</span>`;
+        const btn = document.createElement('button');
+        btn.className = 'mkt-btn' + (l.mine ? ' cancel' : '');
+        btn.textContent = l.mine ? t('itemUi.market.reclaim') : t('itemUi.market.buy');
+        btn.setAttribute('aria-label', t(l.mine ? 'itemUi.market.reclaimAria' : 'itemUi.market.buyAria', {
+          item: itemName,
+          price: formatLocalizedMoney(l.price),
+        }));
+        btn.addEventListener('click', () => {
+          if (l.mine) this.sim.marketCancel(l.id);
+          else this.sim.marketBuy(l.id);
+          audio.click();
+        });
+        row.appendChild(btn);
+        this.attachTooltip(row, () => this.itemTooltip(item));
+        rowsHost.appendChild(row);
+      }
+    };
+    search.addEventListener('input', () => {
+      this.marketQuery = search.value;
+      buildRows();
+    });
+    sortSel.addEventListener('change', () => {
+      this.marketSort = sortSel.value as typeof this.marketSort;
+      buildRows();
+      audio.click();
+    });
+    catSel.addEventListener('change', () => {
+      this.marketCategory = catSel.value as typeof this.marketCategory;
+      buildRows();
+      audio.click();
+    });
+    buildRows();
+    if (hadSearchFocus) search.focus();
   }
 
   private renderMarketSell(body: HTMLElement, info: MarketInfo): void {
@@ -3804,7 +4161,8 @@ export class Hud {
 
   toggleBags(): void {
     const el = $('#bags');
-    if (el.style.display !== 'none') { el.style.display = 'none'; this.hideTooltip(); audio.bagClose(); return; }
+    // inline display starts '' before the first open — only 'flex' means open
+    if (el.style.display === 'flex') { el.style.display = 'none'; this.bagsQuery = ''; this.hideTooltip(); audio.bagClose(); return; }
     this.closeOtherWindows('#bags');
     this.renderBags();
     el.style.display = 'flex';
@@ -3822,13 +4180,15 @@ export class Hud {
   onSocialChanged(): void {
     if (!$('#social-window').classList.contains('open')) return;
     const struct = this.socialStructSig();
+    // whoInfo lives outside socialInfo but renders in the same window's Who tab
+    const contentSig = () => JSON.stringify([this.sim.socialInfo, this.sim.whoInfo]);
     if (struct !== this.lastSocialStruct) {
       this.lastSocialStruct = struct;
-      this.lastSocialContent = JSON.stringify(this.sim.socialInfo);
+      this.lastSocialContent = contentSig();
       this.renderSocial();
       return;
     }
-    const content = JSON.stringify(this.sim.socialInfo);
+    const content = contentSig();
     if (content !== this.lastSocialContent) {
       this.lastSocialContent = content;
       this.refreshSocialList();
@@ -3851,87 +4211,213 @@ export class Hud {
   renderBags(): void {
     const el = $('#bags');
     const sim = this.sim;
+    const hadSearchFocus = document.activeElement instanceof HTMLInputElement && document.activeElement.id === 'bag-search';
     el.innerHTML = `<div class="panel-title"><span>${esc(t('itemUi.bags.title'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('itemUi.bags.close'))}">${svgIcon('close')}</button></div>`;
+    const toolbar = document.createElement('div');
+    toolbar.className = 'bag-toolbar';
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.id = 'bag-search';
+    search.placeholder = t('game.bags.searchPlaceholder');
+    search.setAttribute('aria-label', t('game.bags.searchAria'));
+    search.value = this.bagsQuery;
     const grid = document.createElement('div');
     grid.className = 'bag-grid';
-    if (sim.inventory.length === 0) {
-      grid.innerHTML = `<div class="bag-empty">${esc(t('itemUi.bags.empty'))}</div>`;
-    }
-    for (const s of [...sim.inventory]) {
-      const item = ITEMS[s.itemId];
-      if (!item) continue;
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'bag-item';
-      const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
-      const itemName = itemDisplayName(item);
-      row.setAttribute('aria-label', t('itemUi.bags.itemAria', {
-        item: itemName,
-        count: formatNumber(s.count, { maximumFractionDigits: 0 }),
-      }));
-      row.innerHTML = `${this.itemIcon(item)}<span style="color:${qColor}">${esc(itemName)}</span><span class="bi-count">${s.count > 1 ? esc(t('itemUi.bags.stackCount', { count: formatNumber(s.count, { maximumFractionDigits: 0 }) })) : ''}</span>`;
-      row.addEventListener('click', (ev) => {
-        if (this.tradeOpen) {
-          this.addItemToTrade(s.itemId);
-        } else if (this.marketOpen && this.marketTab === 'sell') {
-          if (item.kind === 'quest') { this.showError(t('itemUi.errors.noQuestItems')); return; }
-          this.marketSellItem = s.itemId;
-          this.renderMarket();
-        } else if (this.vendorOpen) {
-          this.sellBagItem(s, ev);
-        } else if (this.pendingPetFeed) {
-          if (item.kind !== 'food') { this.showError('Your pet can only eat food.'); return; }
-          this.sim.feedPet(s.itemId);
-          this.pendingPetFeed = false;
-          this.lastPetBarSig = '';
-          this.renderBags();
-        } else if (item.kind === 'quest') {
-          this.showDiscardItemPrompt(s.itemId, Math.max(1, Math.floor(s.count)));
-        } else {
-          this.sim.useItem(s.itemId);
-          this.renderBags();
-          this.renderCharIfOpen();
-        }
-      });
-      row.addEventListener('contextmenu', (ev) => {
-        if (!this.vendorOpen || (!ev.ctrlKey && !ev.metaKey)) return;
-        ev.preventDefault();
-        this.sellBagItem(s, ev);
-      });
-      if (!this.tradeOpen && !this.vendorOpen && this.isHotbarItemId(s.itemId)) {
-        row.draggable = true;
-        row.addEventListener('dragstart', (e) => {
-          const action = { type: 'item' as const, id: s.itemId };
-          this.dragAction = { action, sourceIndex: null };
-          this.writeDraggedAction(e.dataTransfer, action);
-          e.dataTransfer!.effectAllowed = 'copy';
-          this.hideTooltip();
-        });
-        row.addEventListener('dragend', () => {
-          this.dragAction = null;
-          this.clearActionDropTargets();
-        });
-      }
-      this.attachTooltip(row, () => {
-        let extra = '';
-        if (this.tradeOpen) extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickTradeOffer'))}</div>`;
-        else if (this.marketOpen && this.marketTab === 'sell') extra = item.kind === 'quest' ? `<div class="tt-sub">${esc(t('itemUi.tooltip.cannotMarket'))}</div>` : `<div class="tt-sub">${esc(t('itemUi.tooltip.clickMarketList'))}</div>`;
-        else if (this.vendorOpen) extra = item.kind === 'quest' ? `<div class="tt-sub">${esc(t('itemUi.tooltip.cannotVendor'))}</div>` : `<div class="tt-sub">${esc(t('itemUi.tooltip.clickSell'))}</div>`;
-        else if (item.kind === 'quest') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickDestroy'))}</div>`;
-        else if (item.kind === 'weapon' || item.kind === 'armor') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickEquip'))}</div>`;
-        else if (item.kind === 'food' || item.kind === 'drink') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickConsume'))}</div>`;
-        else if (item.kind === 'potion') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickUseInstant'))}</div>`;
-        else if (item.use) extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickUse'))}</div>`;
-        return this.itemTooltip(item) + extra;
-      });
-      grid.appendChild(row);
-    }
+    search.addEventListener('input', () => {
+      this.bagsQuery = search.value;
+      this.renderBagGrid(grid);
+    });
+    const sortBtn = document.createElement('button');
+    sortBtn.type = 'button';
+    sortBtn.className = 'bag-sort-btn';
+    sortBtn.textContent = t('game.bags.sort');
+    sortBtn.setAttribute('aria-label', t('game.bags.sortAria'));
+    sortBtn.setAttribute('aria-pressed', this.bagsSorted ? 'true' : 'false');
+    sortBtn.classList.toggle('active', this.bagsSorted);
+    sortBtn.addEventListener('click', () => {
+      audio.click();
+      this.bagsSorted = !this.bagsSorted;
+      try { localStorage.setItem('wf_bag_sort', this.bagsSorted ? '1' : '0'); } catch { /* storage unavailable */ }
+      sortBtn.setAttribute('aria-pressed', this.bagsSorted ? 'true' : 'false');
+      sortBtn.classList.toggle('active', this.bagsSorted);
+      this.renderBagGrid(grid);
+    });
+    toolbar.append(search, sortBtn);
+    el.appendChild(toolbar);
+    this.renderBagGrid(grid);
     el.appendChild(grid);
     const money = document.createElement('div');
     money.className = 'money';
     money.innerHTML = this.moneyHtml(sim.copper);
     el.appendChild(money);
-    el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.hideTooltip(); });
+    el.querySelector('[data-close]')?.addEventListener('click', () => { el.style.display = 'none'; this.bagsQuery = ''; this.hideTooltip(); });
+    if (hadSearchFocus) {
+      search.focus();
+      const end = search.value.length;
+      search.setSelectionRange?.(end, end);
+    }
+  }
+
+  /** View-level ordering for the sorted bag grid: gear first, then usables, quest goods, junk. */
+  private static readonly BAG_KIND_ORDER: Record<string, number> = {
+    weapon: 0, armor: 1, tool: 2, potion: 3, food: 4, drink: 5, quest: 6, junk: 7,
+  };
+  private static readonly BAG_QUALITY_ORDER: Record<string, number> = {
+    legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4, poor: 5,
+  };
+
+  private renderBagGrid(grid: HTMLElement): void {
+    const sim = this.sim;
+    grid.innerHTML = '';
+    let slots = [...sim.inventory].filter((s) => !!ITEMS[s.itemId]);
+    const query = this.bagsQuery.trim().toLowerCase();
+    if (query) {
+      slots = slots.filter((s) => itemDisplayName(ITEMS[s.itemId]).toLowerCase().includes(query));
+    }
+    if (this.bagsSorted) {
+      slots.sort((a, b) => {
+        const ia = ITEMS[a.itemId];
+        const ib = ITEMS[b.itemId];
+        const ka = Hud.BAG_KIND_ORDER[ia.kind] ?? 8;
+        const kb = Hud.BAG_KIND_ORDER[ib.kind] ?? 8;
+        if (ka !== kb) return ka - kb;
+        const qa = Hud.BAG_QUALITY_ORDER[ia.quality ?? 'common'] ?? 4;
+        const qb = Hud.BAG_QUALITY_ORDER[ib.quality ?? 'common'] ?? 4;
+        if (qa !== qb) return qa - qb;
+        return itemDisplayName(ia).localeCompare(itemDisplayName(ib));
+      });
+    }
+    if (sim.inventory.length === 0) {
+      grid.appendChild(Object.assign(document.createElement('div'), { className: 'bag-empty', textContent: t('itemUi.bags.empty') }));
+    } else if (slots.length === 0) {
+      grid.appendChild(Object.assign(document.createElement('div'), { className: 'bag-empty', textContent: t('game.bags.noMatches') }));
+    }
+    for (const s of slots) grid.appendChild(this.bagTile(s));
+    // pad the grid with empty sockets to full rows so it reads as a bag
+    const cols = 6;
+    const filled = slots.length;
+    const total = Math.max(cols * 2, Math.ceil(Math.max(1, filled) / cols) * cols);
+    for (let i = filled; i < total; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'bag-slot-empty';
+      empty.setAttribute('aria-hidden', 'true');
+      grid.appendChild(empty);
+    }
+  }
+
+  private bagTile(s: InvSlot): HTMLButtonElement {
+    const item = ITEMS[s.itemId];
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'bag-item';
+    const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
+    tile.style.borderColor = qColor;
+    const itemName = itemDisplayName(item);
+    tile.setAttribute('aria-label', t('itemUi.bags.itemAria', {
+      item: itemName,
+      count: formatNumber(s.count, { maximumFractionDigits: 0 }),
+    }));
+    tile.innerHTML = `${this.itemIcon(item)}<span class="bi-count">${s.count > 1 ? esc(formatNumber(s.count, { maximumFractionDigits: 0 })) : ''}</span>`;
+    tile.addEventListener('click', (ev) => {
+      if (this.tradeOpen) {
+        this.addItemToTrade(s.itemId);
+      } else if (this.marketOpen && this.marketTab === 'sell') {
+        if (item.kind === 'quest') { this.showError(t('itemUi.errors.noQuestItems')); return; }
+        this.marketSellItem = s.itemId;
+        this.renderMarket();
+      } else if (this.vendorOpen) {
+        this.sellBagItem(s, ev);
+      } else if (this.pendingPetFeed) {
+        if (item.kind !== 'food') { this.showError('Your pet can only eat food.'); return; }
+        this.sim.feedPet(s.itemId);
+        this.pendingPetFeed = false;
+        this.lastPetBarSig = '';
+        this.renderBags();
+      } else if (item.kind === 'quest') {
+        this.showDiscardItemPrompt(s.itemId, Math.max(1, Math.floor(s.count)));
+      } else {
+        this.sim.useItem(s.itemId);
+        this.renderBags();
+        this.renderCharIfOpen();
+      }
+    });
+    tile.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      // power users keep the old shortcut: ctrl+right-click at a vendor sells the stack
+      if (this.vendorOpen && (ev.ctrlKey || ev.metaKey)) { this.sellBagItem(s, ev); return; }
+      this.hideTooltip();
+      this.openBagItemMenu(s, ev.clientX, ev.clientY);
+    });
+    if (!this.tradeOpen && !this.vendorOpen && this.isHotbarItemId(s.itemId)) {
+      tile.draggable = true;
+      tile.addEventListener('dragstart', (e) => {
+        const action = { type: 'item' as const, id: s.itemId };
+        this.dragAction = { action, sourceIndex: null };
+        this.writeDraggedAction(e.dataTransfer, action);
+        e.dataTransfer!.effectAllowed = 'copy';
+        this.hideTooltip();
+      });
+      tile.addEventListener('dragend', () => {
+        this.dragAction = null;
+        this.clearActionDropTargets();
+      });
+    }
+    this.attachTooltip(tile, () => {
+      let extra = '';
+      if (this.tradeOpen) extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickTradeOffer'))}</div>`;
+      else if (this.marketOpen && this.marketTab === 'sell') extra = item.kind === 'quest' ? `<div class="tt-sub">${esc(t('itemUi.tooltip.cannotMarket'))}</div>` : `<div class="tt-sub">${esc(t('itemUi.tooltip.clickMarketList'))}</div>`;
+      else if (this.vendorOpen) extra = item.kind === 'quest' ? `<div class="tt-sub">${esc(t('itemUi.tooltip.cannotVendor'))}</div>` : `<div class="tt-sub">${esc(t('itemUi.tooltip.clickSell'))}</div>`;
+      else if (item.kind === 'quest') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickDestroy'))}</div>`;
+      else if (item.kind === 'weapon' || item.kind === 'armor') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickEquip'))}</div>`;
+      else if (item.kind === 'food' || item.kind === 'drink') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickConsume'))}</div>`;
+      else if (item.kind === 'potion') extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickUseInstant'))}</div>`;
+      else if (item.use) extra = `<div class="tt-sub">${esc(t('itemUi.tooltip.clickUse'))}</div>`;
+      return this.itemTooltip(item) + extra;
+    });
+    return tile;
+  }
+
+  /** Right-click menu on a bag item: contextual actions instead of memorized click chords. */
+  private openBagItemMenu(s: InvSlot, x: number, y: number): void {
+    const item = ITEMS[s.itemId];
+    if (!item) return;
+    const el = $('#ctx-menu');
+    const count = Math.max(1, Math.floor(s.count));
+    const qColor = QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff';
+    const entry = (act: string, label: string) => `<div class="ctx-item" data-act="${act}">${esc(label)}</div>`;
+    let html = `<div class="ctx-title" style="color:${qColor}">${esc(itemDisplayName(item))}</div>`;
+    if (this.tradeOpen) {
+      html += entry('trade', t('game.bags.ctxTrade'));
+    } else if (this.marketOpen && this.marketTab === 'sell') {
+      if (item.kind !== 'quest') html += entry('market', t('game.bags.ctxMarket'));
+    } else if (this.vendorOpen) {
+      if (item.kind !== 'quest') {
+        html += entry('sell-one', t('game.bags.ctxSellOne'));
+        if (count > 1) {
+          html += entry('sell-stack', t('game.bags.ctxSellStack', { count: formatNumber(count, { maximumFractionDigits: 0 }) }));
+          html += entry('sell-some', t('game.bags.ctxSellSome'));
+        }
+      }
+    } else if (item.kind === 'weapon' || item.kind === 'armor') {
+      html += entry('use', t('game.bags.ctxEquip'));
+    } else if (item.kind === 'potion' || item.kind === 'food' || item.kind === 'drink' || item.use) {
+      html += entry('use', t('game.bags.ctxUse'));
+    }
+    html += entry('destroy', t('game.bags.ctxDestroy'));
+    html += entry('close', t('game.bags.ctxCancel'));
+    el.innerHTML = html;
+    el.style.left = `${Math.min(window.innerWidth - 170, x)}px`;
+    el.style.top = `${Math.min(window.innerHeight - 240, y)}px`;
+    el.style.display = 'block';
+    this.bindContextMenuActions((act) => {
+      if (act === 'trade') this.addItemToTrade(s.itemId);
+      else if (act === 'market') { this.marketSellItem = s.itemId; this.renderMarket(); }
+      else if (act === 'sell-one') this.sim.sellItem(s.itemId, 1);
+      else if (act === 'sell-stack') this.sim.sellItem(s.itemId, count);
+      else if (act === 'sell-some') this.showSellQuantityPrompt(s.itemId, count);
+      else if (act === 'use') { this.sim.useItem(s.itemId); this.renderBags(); this.renderCharIfOpen(); }
+      else if (act === 'destroy') this.showDiscardItemPrompt(s.itemId, count);
+    });
   }
 
   private sellBagItem(slot: InvSlot, ev: MouseEvent): void {
@@ -4030,6 +4516,87 @@ export class Hud {
     window.setTimeout(() => { input.focus(); input.select(); }, 0);
   }
 
+  // Shift+click on a vendor row: buy several at once.
+  private showBuyQuantityPrompt(npcId: number, itemId: string): void {
+    document.querySelectorAll('.buy-quantity-prompt').forEach((el) => el.remove());
+    const item = ITEMS[itemId];
+    if (!item?.buyValue) return;
+    const maxCount = Math.max(1, Math.min(100, Math.floor(this.sim.copper / item.buyValue)));
+    const stack = $('#prompt-stack');
+    const prompt = document.createElement('div');
+    prompt.className = 'prompt panel buy-quantity-prompt';
+    prompt.innerHTML = `<div class="prompt-text">${esc(t('game.vendor.buyQtyTitle', { item: itemDisplayName(item) }))}</div>`;
+    const input = document.createElement('input');
+    input.className = 'prompt-number';
+    input.type = 'number';
+    input.setAttribute('aria-label', t('game.vendor.buyQtyInput'));
+    input.min = '1';
+    input.max = String(maxCount);
+    input.step = '1';
+    input.value = '1';
+    const confirm = document.createElement('button');
+    confirm.className = 'btn';
+    confirm.textContent = t('game.vendor.buyQtyConfirm');
+    const cancel = document.createElement('button');
+    cancel.className = 'btn';
+    cancel.textContent = t('game.vendor.buyQtyCancel');
+    const close = () => prompt.remove();
+    const submit = () => {
+      const count = Math.max(1, Math.min(maxCount, Math.floor(Number(input.value) || 0)));
+      this.sim.buyItem(npcId, itemId, count);
+      close();
+      if ($('#bags').style.display !== 'none') this.renderBags();
+      if (this.openVendorNpcId !== null) this.renderVendor();
+    };
+    confirm.addEventListener('click', submit);
+    cancel.addEventListener('click', close);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submit();
+      else if (e.key === 'Escape') close();
+    });
+    prompt.append(input, confirm, cancel);
+    stack.appendChild(prompt);
+    window.setTimeout(() => { input.focus(); input.select(); }, 0);
+  }
+
+  // Officers+ edit the guild Message of the Day; an empty submit clears it.
+  private showGuildMotdPrompt(): void {
+    document.querySelectorAll('.gmotd-prompt').forEach((el) => el.remove());
+    const stack = $('#prompt-stack');
+    const prompt = document.createElement('div');
+    prompt.className = 'prompt panel gmotd-prompt';
+    prompt.innerHTML = `<div class="prompt-text">${esc(t('game.social.motdPromptTitle'))}</div>`;
+    const input = document.createElement('input');
+    input.className = 'prompt-input';
+    input.type = 'text';
+    input.maxLength = 200;
+    input.setAttribute('aria-label', t('game.social.motdPromptTitle'));
+    input.placeholder = t('game.social.motdPlaceholder');
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.value = (this.sim.socialInfo?.guild?.motd ?? '').trim();
+    const confirm = document.createElement('button');
+    confirm.className = 'btn';
+    confirm.textContent = t('game.social.motdSave');
+    const cancel = document.createElement('button');
+    cancel.className = 'btn';
+    cancel.textContent = t('game.vendor.buyQtyCancel');
+    const close = () => prompt.remove();
+    const submit = () => {
+      this.sim.guildSetMotd(input.value.trim());
+      close();
+    };
+    confirm.addEventListener('click', submit);
+    cancel.addEventListener('click', close);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submit();
+      else if (e.key === 'Escape') close();
+    });
+    prompt.append(input, confirm, cancel);
+    stack.appendChild(prompt);
+    window.setTimeout(() => { input.focus(); input.select(); }, 0);
+  }
+
   // -------------------------------------------------------------------------
   // Character window
   // -------------------------------------------------------------------------
@@ -4070,8 +4637,9 @@ export class Hud {
         </div>
         <div class="equip-col equip-col-right" id="equip-col-right"></div>
       </div>
+      ${this.setSummaryHtml()}
     </div>`;
-    html += `<div id="char-panel-stats" class="char-tab-panel${tab === 'stats' ? ' active' : ''}" role="tabpanel">${this.charStatsPanelHtml(p, dps)}</div>`;
+    html += `<div id="char-panel-stats" class="char-tab-panel${tab === 'stats' ? ' active' : ''}" role="tabpanel">${this.charStatsPanelHtml(p, wpn, dps)}</div>`;
     html += `<div id="char-panel-progression" class="char-tab-panel${tab === 'progression' ? ' active' : ''}" role="tabpanel">${this.talentSummaryHtml()}${this.progressionHtml(p.level)}</div>`;
     el.innerHTML = html;
     el.querySelectorAll('.char-tab').forEach((btn) => {
@@ -4094,11 +4662,21 @@ export class Hud {
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeHudWindow(el));
   }
 
-  private charStatsPanelHtml(p: { stats: Stats; attackPower: number; critChance: number; dodgeChance: number; maxHp: number }, dps: number): string {
+  private charStatsPanelHtml(p: Entity, wpn: ItemDef | null, dps: number): string {
     const row = (label: string, value: string): string =>
       `<div class="char-stat-row"><span class="char-stat-label">${esc(label)}</span><span class="char-stat-val">${value}</span></div>`;
     const n = (v: number) => formatNumber(v, { maximumFractionDigits: 0 });
     const pct = (v: number) => `${formatNumber(v * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    let weaponRows = '';
+    if (wpn?.weapon) {
+      weaponRows = row(t('game.charPane.weaponDamage'), esc(t('game.charPane.weaponDamageValue', { min: n(wpn.weapon.min), max: n(wpn.weapon.max) })))
+        + row(t('game.charPane.weaponSpeed'), esc(t('game.charPane.weaponSpeedValue', { seconds: formatNumber(wpn.weapon.speed, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })));
+    }
+    // regen ticks every 2 s in the sim (updateRegen); shown classic-style per 5 s
+    const hp5 = Math.round(p.stats.sta * 0.3 + 2) * 2.5;
+    const mp5 = Math.round(p.stats.spi / 3 + 4 + Math.floor(p.level / 5)) * 2.5;
+    const regenRows = row(t('game.charPane.healthRegen'), n(hp5))
+      + (p.resourceType === 'mana' ? row(t('game.charPane.manaRegen'), n(mp5)) : '');
     return `<div class="char-stat-groups">
       <div class="char-stat-group">
         <div class="char-stat-group-title">${esc(t('itemUi.equipment.statsPrimary'))}</div>
@@ -4115,13 +4693,46 @@ export class Hud {
         <div class="char-stat-grid">
           ${row(t('itemUi.stats.attackPower'), n(p.attackPower))}
           ${row(t('itemUi.stats.dps'), formatNumber(dps, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}
+          ${weaponRows}
           ${row(t('itemUi.stats.critChance'), pct(p.critChance))}
           ${row(t('itemUi.stats.dodge'), pct(p.dodgeChance))}
           ${row(t('itemUi.stats.armor'), n(p.stats.armor))}
+          ${row(t('game.charPane.damageReduction'), pct(armorReduction(p.stats.armor, p.level)))}
           ${row(t('itemUi.stats.maxHealth'), n(p.maxHp))}
+          ${regenRows}
         </div>
       </div>
     </div>`;
+  }
+
+  /** Equipped-set summary for the Character tab: piece counts + tier bonuses. */
+  private setSummaryHtml(): string {
+    const counts = new Map<string, number>();
+    for (const slot of EQUIP_SLOTS) {
+      const id = this.sim.equipment[slot];
+      const setId = id ? ITEMS[id]?.setId : undefined;
+      if (setId) counts.set(setId, (counts.get(setId) ?? 0) + 1);
+    }
+    if (counts.size === 0) return '';
+    const num = (v: number) => formatNumber(v, { maximumFractionDigits: 0 });
+    let html = `<div class="char-sets"><div class="char-stat-group-title">${esc(t('game.charPane.setsTitle'))}</div>`;
+    for (const [setId, have] of counts) {
+      const set = SETS[setId];
+      if (!set) continue;
+      const nameKey = SET_NAME_KEYS[setId];
+      const setName = nameKey ? t(nameKey) : set.name;
+      const total = Object.keys(ITEMS).filter((id) => ITEMS[id].setId === setId).length;
+      html += `<div class="char-set"><div class="char-set-name">${esc(t('itemUi.set.header', { name: setName, have: num(have), total: num(total) }))}</div>`;
+      for (const bonus of set.bonuses) {
+        const active = have >= bonus.pieces;
+        const parts = Object.entries(bonus.stats)
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => t('itemUi.tooltip.stat', { value: num(v as number), stat: itemStatName(k) }));
+        html += `<div class="char-set-tier${active ? ' on' : ''}">${esc(t('itemUi.set.tier', { pieces: num(bonus.pieces), bonus: parts.join(', ') }))}</div>`;
+      }
+      html += `</div>`;
+    }
+    return html + `</div>`;
   }
 
   private appendEquipSlot(parent: HTMLElement, slotKey: EquipSlot): void {
@@ -4146,7 +4757,7 @@ export class Hud {
           ev.preventDefault();
           this.sim.unequipItem(slotKey);
           this.renderChar();
-          if ($('#bags').style.display === 'block') this.renderBags();
+          if ($('#bags').style.display === 'flex') this.renderBags();
         });
       }
       if (item.use?.type === 'trinketUse' && itemId) {
@@ -4163,7 +4774,60 @@ export class Hud {
     } else {
       row.title = slotLabel;
     }
+    // click a non-usable slot (occupied or empty) to pick an equippable bag item
+    if (item?.use?.type !== 'trinketUse') {
+      row.setAttribute('role', 'button');
+      row.tabIndex = 0;
+      row.style.cursor = 'pointer';
+      const open = (x: number, y: number) => { this.hideTooltip(); this.openEquipSlotMenu(slotKey, x, y); };
+      row.addEventListener('click', (ev) => open(ev.clientX, ev.clientY));
+      row.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        const r = row.getBoundingClientRect();
+        open(r.left + r.width / 2, r.top + r.height / 2);
+      });
+    }
     parent.appendChild(row);
+  }
+
+  /** Click-to-equip picker: bag items that fit the clicked paperdoll slot. */
+  private openEquipSlotMenu(slotKey: EquipSlot, x: number, y: number): void {
+    const el = $('#ctx-menu');
+    const cls = this.sim.cfg.playerClass;
+    const fits = (def: ItemDef): boolean => {
+      if ((def.kind !== 'weapon' && def.kind !== 'armor') || !def.slot) return false;
+      if (def.requiredClass && !def.requiredClass.includes(cls)) return false;
+      // ring items declare slot 'ring1'; either ring socket accepts them
+      if (slotKey === 'ring1' || slotKey === 'ring2') return def.slot === 'ring1' || def.slot === 'ring2';
+      return def.slot === slotKey;
+    };
+    const candidates = this.sim.inventory
+      .map((s) => ITEMS[s.itemId])
+      .filter((def): def is ItemDef => !!def && fits(def));
+    let html = `<div class="ctx-title">${esc(itemSlotName(slotKey))}</div>`;
+    for (const def of candidates) {
+      const qColor = QUALITY_COLOR[def.quality ?? 'common'] ?? '#fff';
+      html += `<div class="ctx-item ctx-equip-item" data-act="eq:${def.id}">${this.itemIcon(def)}<span style="color:${qColor}">${esc(itemDisplayName(def))}</span></div>`;
+    }
+    if (candidates.length === 0) {
+      html += `<div class="ctx-note">${esc(t('game.charPane.equipPickerEmpty'))}</div>`;
+    }
+    if (this.sim.equipment[slotKey]) {
+      html += `<div class="ctx-item" data-act="unequip">${esc(t('game.charPane.unequip'))}</div>`;
+    }
+    html += `<div class="ctx-item" data-act="close">${esc(t('game.bags.ctxCancel'))}</div>`;
+    el.innerHTML = html;
+    el.style.left = `${Math.min(window.innerWidth - 200, x)}px`;
+    el.style.top = `${Math.min(window.innerHeight - 240, y)}px`;
+    el.style.display = 'block';
+    this.bindContextMenuActions((act) => {
+      if (act.startsWith('eq:')) this.sim.equipItem(act.slice(3));
+      else if (act === 'unequip') this.sim.unequipItem(slotKey);
+      else return;
+      this.renderChar();
+      if ($('#bags').style.display === 'flex') this.renderBags();
+    });
   }
 
   private renderCharPreview(): void {
@@ -4493,7 +5157,7 @@ export class Hud {
 
   toggleSpellbook(): void {
     const el = $('#spellbook');
-    if (el.style.display === 'block') { this.closeHudWindow(el); return; }
+    if (el.style.display === 'block') { this.sbQuery = ''; this.closeHudWindow(el); return; }
     this.openHudWindow(el, () => this.renderSpellbook());
   }
 
@@ -4502,6 +5166,7 @@ export class Hud {
     const sim = this.sim;
     const cls = CLASSES[sim.cfg.playerClass];
     const className = classDisplayName(cls.id);
+    const hadSearchFocus = document.activeElement instanceof HTMLInputElement && document.activeElement.id === 'sb-search';
     el.setAttribute('aria-label', t('abilityUi.spellbook.title'));
     el.innerHTML = `<div class="panel-title"><span>${esc(t('abilityUi.spellbook.title'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('abilityUi.spellbook.close'))}">${svgIcon('close')}</button></div>`;
     const body = document.createElement('div');
@@ -4513,8 +5178,10 @@ export class Hud {
       const known = sim.known.find((k) => k.def.id === abilityId) ?? null;
       return { abilityId, def, known };
     });
-    const knownEntries = entries.filter((e) => e.known).sort((a, b) => a.def.learnLevel - b.def.learnLevel);
-    const lockedEntries = entries.filter((e) => !e.known).sort((a, b) => a.def.learnLevel - b.def.learnLevel);
+    const q = this.sbQuery.trim().toLowerCase();
+    const matches = (e: typeof entries[number]) => !q || abilityDisplayName(e.def).toLowerCase().includes(q);
+    const knownEntries = entries.filter((e) => e.known && matches(e)).sort((a, b) => a.def.learnLevel - b.def.learnLevel);
+    const lockedEntries = entries.filter((e) => !e.known && matches(e)).sort((a, b) => a.def.learnLevel - b.def.learnLevel);
 
     const head = document.createElement('div');
     head.className = 'sb-head';
@@ -4522,9 +5189,24 @@ export class Hud {
     head.innerHTML = `<img class="sb-crest" src="${iconDataUrl('crest', `class_${sim.cfg.playerClass}`, 48)}" alt="" draggable="false">
       <div class="sb-meta">
         <div class="sb-class">${esc(className)}</div>
-        <div class="sb-count">${esc(t('abilityUi.spellbook.learnedCount', { known: knownEntries.length, total: entries.length }))}</div>
+        <div class="sb-count">${esc(t('abilityUi.spellbook.learnedCount', { known: entries.filter((e) => e.known).length, total: entries.length }))}</div>
       </div>`;
     body.appendChild(head);
+
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.id = 'sb-search';
+    search.className = 'sb-search';
+    search.placeholder = t('game.spellbook.searchPlaceholder');
+    search.setAttribute('aria-label', t('game.spellbook.searchAria'));
+    search.autocomplete = 'off';
+    search.spellcheck = false;
+    search.value = this.sbQuery;
+    search.addEventListener('input', () => {
+      this.sbQuery = search.value;
+      this.renderSpellbook();
+    });
+    body.appendChild(search);
 
     const list = document.createElement('div');
     list.className = 'spell-list';
@@ -4551,7 +5233,13 @@ export class Hud {
       empty.className = 'sb-empty';
       empty.textContent = t('abilityUi.spellbook.empty');
       list.appendChild(empty);
+    } else if (knownEntries.length === 0 && lockedEntries.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sb-empty';
+      empty.textContent = t('game.spellbook.noMatches');
+      list.appendChild(empty);
     }
+    if (hadSearchFocus) search.focus();
 
     const foot = document.createElement('div');
     foot.className = 'sb-foot';
@@ -4581,9 +5269,14 @@ export class Hud {
     const rankHtml = known && known.rank > 1
       ? ` <span class="spell-rank">${esc(t('abilityUi.tooltip.rank', { rank: formatAbilityNumber(known.rank) }))}</span>`
       : '';
+    // a known ability with ranks still to come shows when the next one unlocks
+    const nextRank = known && def.ranks
+      ? def.ranks.filter((r) => r.rank > known.rank).sort((a, b) => a.level - b.level)[0] ?? null
+      : null;
+    const nextRankHint = nextRank ? t('game.spellbook.nextRank', { level: formatAbilityNumber(nextRank.level) }) : '';
     const sub = locked
       ? t('abilityUi.spellbook.trainableAtLevel', { level: learnLevel })
-      : summary;
+      : (nextRankHint ? (summary ? `${summary} · ${nextRankHint}` : nextRankHint) : summary);
     const badge = locked
       ? `<span class="spell-lvl">${esc(learnLevel)}</span>`
       : (known && known.cost > 0
@@ -4621,7 +5314,7 @@ export class Hud {
 
   toggleTalents(): void {
     const el = $('#talents-window');
-    if (el.style.display === 'block') { this.closeHudWindow(el, () => { this.talentStage = null; }); return; }
+    if (el.style.display === 'block') { this.closeHudWindow(el, () => { this.talentStage = null; this.talentBuildsOpen = false; }); return; }
     this.talentStage = cloneAllocation(this.sim.talents);
     this.openHudWindow(el, () => this.renderTalents());
   }
@@ -4678,9 +5371,10 @@ export class Hud {
       + `<div class="tal-tabs" role="tablist" aria-label="${esc(t('game.talents.title'))}">`
       + `<div class="tal-tab${this.talentTab === 'class' ? ' active' : ''}" role="tab" tabindex="${this.talentTab === 'class' ? '0' : '-1'}" aria-selected="${this.talentTab === 'class'}" aria-controls="tal-body" data-tab="class"><span class="tal-tab-label">${t('game.talents.classTab')}</span><span class="tt-pts">${treeSpent('class')}</span></div>`
       + `<div class="tal-tab${this.talentTab === 'spec' ? ' active' : ''}" role="tab" tabindex="${this.talentTab === 'spec' ? '0' : '-1'}" aria-selected="${this.talentTab === 'spec'}" aria-controls="tal-body" data-tab="spec"><span class="tal-tab-label">${t('game.talents.specTab')}</span><span class="tt-pts">${treeSpent('spec')}</span></div>`
-      + `</div><div id="tal-body" role="tabpanel"></div>`
       + `</div>`
-      + this.talentSidebarHtml(stage, ct)
+      + this.talentLegendHtml()
+      + `<div id="tal-body" role="tabpanel"></div>`
+      + `</div>`
       + `</div>`
       + this.talentFooterHtml(stage, total, spent)
       + `</div>`;
@@ -4693,7 +5387,7 @@ export class Hud {
       tab.addEventListener('click', () => switchTab(tab as HTMLElement));
       tab.addEventListener('keydown', (e) => this.keyboardActivate(e as KeyboardEvent, () => switchTab(tab as HTMLElement)));
     });
-    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeHudWindow(el, () => { this.talentStage = null; }));
+    el.querySelector('[data-close]')?.addEventListener('click', () => this.closeHudWindow(el, () => { this.talentStage = null; this.talentBuildsOpen = false; }));
 
     const body = el.querySelector('#tal-body') as HTMLElement;
     if (this.talentTab === 'class') {
@@ -4780,7 +5474,7 @@ export class Hud {
     if (nodes.length === 0) { host.innerHTML = `<div class="tal-empty">${t('game.talents.pickSpecFirst')}</div>`; return; }
     const cols = Math.max(...nodes.map((n) => n.col)) + 1;
     const rows = Math.max(...nodes.map((n) => n.row)) + 1;
-    const CW = 86, CH = 70, NS = 46, TOP = 6;
+    const CW = 68, CH = 54, NS = 38, TOP = 4;
     const W = cols * CW, H = rows * CH + TOP;
     host.style.width = `${W}px`; host.style.height = `${H}px`;
     const cx = (n: TalentNode) => n.col * CW + CW / 2;
@@ -4899,11 +5593,17 @@ export class Hud {
     const valid = validateAllocation(cls, stage, total).ok;
     const hasChanges = !this.allocsEqual(stage, this.sim.talents);
     const avail = Math.max(0, total - spent);
+    const ct = talentsFor(cls);
+    const sp = ct?.specs.find((s) => s.id === stage.spec);
+    const specBadge = sp
+      ? `<div class="tal-spec-badge"><b>${esc(tTalent({ kind: 'talentSpec', spec: sp, field: 'name' }))}</b> · ${this.roleLabel(sp.role)}</div>`
+      : '';
     return `<div class="tal-toolbar">`
       + `<div class="tal-points" aria-live="polite">`
       + `<span class="tal-points-num">${formatNumber(avail, { maximumFractionDigits: 0 })}</span>`
       + `<span class="tal-points-label">${t('game.talents.available')}</span>`
       + `<span class="tal-points-sub">${t('game.talents.spent')}: ${formatNumber(spent, { maximumFractionDigits: 0 })} / ${formatNumber(total, { maximumFractionDigits: 0 })}</span>`
+      + specBadge
       + `</div>`
       + (hasChanges ? `<span class="tal-pending">${t('game.talents.unsaved')}</span>` : '')
       + `<div class="tal-toolbar-actions">`
@@ -4913,29 +5613,23 @@ export class Hud {
       + `</div></div>`;
   }
 
-  private talentSidebarHtml(stage: TalentAllocation, ct: NonNullable<ReturnType<typeof talentsFor>>): string {
-    const sp = ct.specs.find((s) => s.id === stage.spec);
-    let specLine = `<span>${t('game.talents.noSpec')}</span>`;
-    if (sp) {
-      specLine = `<b>${esc(tTalent({ kind: 'talentSpec', spec: sp, field: 'name' }))}</b>`
-        + `<span> · ${this.roleLabel(sp.role)}</span>`;
-    }
-    return `<aside class="tal-sidebar" aria-label="${esc(t('game.talents.title'))}">`
-      + `<div class="tal-sidebar-title">${t('game.talents.specTab')}</div>`
-      + `<div>${specLine}</div>`
-      + `<div class="tal-sidebar-title">${t('game.talents.rank')}</div>`
-      + `<div class="tal-legend-item"><span class="tal-legend-shape square" aria-hidden="true"></span><span>${t('game.talents.legendActive')}</span></div>`
-      + `<div class="tal-legend-item"><span class="tal-legend-shape circle" aria-hidden="true"></span><span>${t('game.talents.legendPassive')}</span></div>`
-      + `<div class="tal-legend-item"><span class="tal-legend-shape octagon" aria-hidden="true"></span><span>${t('game.talents.legendChoice')}</span></div>`
-      + `<div class="tal-sidebar-title">${t('game.talents.controlsTitle')}</div>`
-      + `<div>${esc(t('game.talents.editHint'))}</div>`
-      + `</aside>`;
+  private talentLegendHtml(): string {
+    return `<div class="tal-legend-row" aria-hidden="true">`
+      + `<span class="tal-legend-item"><span class="tal-legend-shape square"></span><span>${t('game.talents.legendActive')}</span></span>`
+      + `<span class="tal-legend-item"><span class="tal-legend-shape circle"></span><span>${t('game.talents.legendPassive')}</span></span>`
+      + `<span class="tal-legend-item"><span class="tal-legend-shape octagon"></span><span>${t('game.talents.legendChoice')}</span></span>`
+      + `</div>`;
   }
 
   private talentFooterHtml(stage: TalentAllocation, total: number, spent: number): string {
     const cls = this.sim.cfg.playerClass;
     const valid = validateAllocation(cls, stage, total).ok;
+    const buildsOpen = this.talentBuildsOpen;
     return `<div class="tal-foot">`
+      + `<button type="button" class="btn tal-secondary tal-builds-toggle" data-act="toggle-builds" aria-expanded="${buildsOpen}">`
+      + `${buildsOpen ? t('game.talents.hideBuilds') : t('game.talents.loadouts')}`
+      + `</button>`
+      + `<div class="tal-build-panel"${buildsOpen ? '' : ' hidden'}>`
       + `<div class="tal-build-row" aria-label="${esc(t('game.talents.currentBuild'))}">`
       + `<span class="tal-build-label">${t('game.talents.currentBuild')}</span>`
       + `<span class="tal-loadslot"></span>`
@@ -4946,12 +5640,16 @@ export class Hud {
       + `<button type="button" class="btn tal-secondary" data-act="new"${valid ? '' : ' disabled'}>${t('game.talents.newBuild')}</button>`
       + `<button type="button" class="btn tal-secondary" data-act="import">${t('game.talents.import')}</button>`
       + `</div></div>`
-      + `<p class="tal-build-help">${t('game.talents.buildHint')}</p>`
+      + `</div>`
       + `</div>`;
   }
 
   private wireTalentFooter(el: HTMLElement, stage: TalentAllocation, total: number): void {
     const cls = this.sim.cfg.playerClass;
+    el.querySelector('[data-act="toggle-builds"]')?.addEventListener('click', () => {
+      this.talentBuildsOpen = !this.talentBuildsOpen;
+      this.renderTalents();
+    });
     el.querySelector('[data-act="apply"]')?.addEventListener('click', () => {
       if (this.allocsEqual(stage, this.sim.talents)) {
         this.showError(t('game.talents.nothingStaged'));
@@ -5119,8 +5817,18 @@ export class Hud {
       item.className = 'ql-item' + (qp.questId === this.selectedQuestLogId ? ' sel' : '');
       item.setAttribute('aria-pressed', qp.questId === this.selectedQuestLogId ? 'true' : 'false');
       item.setAttribute('aria-label', t('questUi.log.selectedQuestAria', { name: title, status }));
-      item.innerHTML = `${esc(title)}${qp.state === 'ready' ? ` <span class="quest-complete">(${esc(t('questUi.log.readyStatus'))})</span>` : ''}`;
-      item.addEventListener('click', () => { this.selectedQuestLogId = qp.questId; this.renderQuestLog(); });
+      const tracked = !this.untrackedQuests.has(qp.questId);
+      item.innerHTML = `${tracked ? '<span class="ql-track-dot" aria-hidden="true"></span>' : ''}${esc(title)}${qp.state === 'ready' ? ` <span class="quest-complete">(${esc(t('questUi.log.readyStatus'))})</span>` : ''}`;
+      item.addEventListener('click', (ev) => {
+        // shift+click toggles on-screen tracking, classic style
+        if (ev.shiftKey) {
+          this.setQuestTracked(qp.questId, this.untrackedQuests.has(qp.questId));
+          this.renderQuestLog();
+          return;
+        }
+        this.selectedQuestLogId = qp.questId;
+        this.renderQuestLog();
+      });
       list.appendChild(item);
     }
     if (this.selectedQuestLogId) {
@@ -5140,16 +5848,38 @@ export class Hud {
       detail.innerHTML = html;
       const rewardRow = detail.querySelector('[data-reward]') as HTMLElement | null;
       if (rewardRow && rewardItem) this.attachTooltip(rewardRow, () => this.itemTooltip(ITEMS[rewardItem]));
+      const actions = document.createElement('div');
+      actions.className = 'ql-actions';
+      const selId = this.selectedQuestLogId;
+      const trackBtn = document.createElement('button');
+      trackBtn.className = 'btn';
+      trackBtn.type = 'button';
+      const isTracked = !this.untrackedQuests.has(selId);
+      trackBtn.textContent = t(isTracked ? 'game.questLog.untrack' : 'game.questLog.track');
+      trackBtn.setAttribute('aria-pressed', isTracked ? 'true' : 'false');
+      trackBtn.addEventListener('click', () => {
+        this.setQuestTracked(selId, !isTracked);
+        this.renderQuestLog();
+      });
+      const mapBtn = document.createElement('button');
+      mapBtn.className = 'btn';
+      mapBtn.type = 'button';
+      mapBtn.textContent = t('game.questLog.showOnMap');
+      mapBtn.addEventListener('click', () => {
+        this.closeQuestLog();
+        this.showQuestOnMap(selId);
+      });
       const abandon = document.createElement('button');
       abandon.className = 'btn';
       abandon.type = 'button';
       abandon.textContent = t('questUi.log.abandon');
       abandon.addEventListener('click', () => {
-        sim.abandonQuest(this.selectedQuestLogId!);
+        sim.abandonQuest(selId);
         this.touchQuestTracker();
         this.renderQuestLog();
       });
-      detail.appendChild(abandon);
+      actions.append(trackBtn, mapBtn, abandon);
+      detail.appendChild(actions);
     }
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeQuestLog());
     this.focusFirstInteractive(el);
@@ -5189,7 +5919,7 @@ export class Hud {
       const badge = m.dead ? `<span class="pf-badge dead" title="${esc(t('hud.social.status.dead'))}">${svgIcon('skull')}</span>`
         : m.inCombat ? `<span class="pf-badge combat" title="${esc(t('hud.social.status.combat'))}">${svgIcon('arena')}</span>` : '';
       const range = m.oor ? `<span class="pf-badge oor" title="${esc(t('hud.errors.outOfRange'))}">⤢</span>` : '';
-      const crest = m.cls ? `<img class="pfm-crest" src="${iconDataUrl('crest', `class_${m.cls}`, 20)}" alt="">` : '';
+      const crest = m.cls ? `<img class="pfm-crest" src="${classIconUrl(m.cls)}" alt="">` : '';
       frame.innerHTML = `
         <div class="pfm-name"><span class="pfm-id">${crest}${esc(m.name)}</span><span class="pfm-meta">${badge}${range}<span class="lead">${info.leader === m.pid ? '★' : ''}${m.level}</span></span></div>
         <div class="bar hp"><div class="bar-fill" style="transform:scaleX(${(m.hp / Math.max(1, m.mhp)).toFixed(3)})"></div></div>
@@ -5525,7 +6255,8 @@ export class Hud {
     el.classList.add('open');
     this.socialNotice = null;
     this.lastSocialStruct = this.socialStructSig();
-    this.lastSocialContent = JSON.stringify(this.sim.socialInfo);
+    this.lastSocialContent = JSON.stringify([this.sim.socialInfo, this.sim.whoInfo]);
+    if (this.socialTab === 'who') this.sim.requestWho();
     this.renderSocial();
   }
 
@@ -5550,6 +6281,7 @@ export class Hud {
       + `<button type="button" class="soc-tab ${tab === 'friends' ? 'on' : ''}" data-tab="friends" aria-pressed="${tab === 'friends' ? 'true' : 'false'}">${esc(t('hud.social.friendsTab'))}</button>`
       + `<button type="button" class="soc-tab ${tab === 'guild' ? 'on' : ''}" data-tab="guild" aria-pressed="${tab === 'guild' ? 'true' : 'false'}">${esc(t('hud.social.guildTab'))}</button>`
       + `<button type="button" class="soc-tab ${tab === 'ignore' ? 'on' : ''}" data-tab="ignore" aria-pressed="${tab === 'ignore' ? 'true' : 'false'}">${esc(t('hud.social.ignoreTab'))}</button>`
+      + `<button type="button" class="soc-tab ${tab === 'who' ? 'on' : ''}" data-tab="who" aria-pressed="${tab === 'who' ? 'true' : 'false'}">${esc(t('game.social.whoTab'))}</button>`
       + `</div>`
       + `<div class="soc-body"></div>`
       + `<div class="soc-notice"></div>`
@@ -5569,7 +6301,8 @@ export class Hud {
       ? `<div class="soc-empty">${esc(t('hud.social.offlineEmpty'))}</div>`
       : this.socialTab === 'friends' ? this.friendsHtml()
         : this.socialTab === 'guild' ? this.guildHtml()
-          : this.ignoreHtml();
+          : this.socialTab === 'who' ? this.whoHtml()
+            : this.ignoreHtml();
     this.wireSocialRows(body);
   }
 
@@ -5604,6 +6337,34 @@ export class Hud {
       + `</div>`).join('');
   }
 
+  // The realm roster (structured /who) for the Who tab. Online play only.
+  private whoHtml(): string {
+    const info = this.sim.whoInfo;
+    if (!info) return `<div class="soc-empty">${esc(t('game.social.whoLoading'))}</div>`;
+    if (info.rows.length === 0) return `<div class="soc-empty">${esc(t('game.social.whoEmpty'))}</div>`;
+    const head = `<div class="soc-guild-head">${esc(t('game.social.whoCount', { count: formatNumber(info.total, { maximumFractionDigits: 0 }) }))}</div>`;
+    const rows = info.rows.map((w) => {
+      const self = w.name === this.sim.player.name;
+      const dot = w.status ?? 'online';
+      const name = !self
+        ? `<button type="button" class="soc-name soc-link" data-whisper="${esc(w.name)}" title="${esc(t('hud.social.whisperTitle', { name: w.name }))}">${esc(w.name)}</button>`
+        : `<span class="soc-name">${esc(w.name)}</span>`;
+      const meta = `<span class="zone">${esc(w.zone ? localizeZone(w.zone) : '')}</span><br>${esc(statusLabel(w.status))}`;
+      const whisper = !self ? `<button type="button" class="soc-x" data-whisper="${esc(w.name)}" title="${esc(t('hud.social.whisperTitle', { name: w.name }))}">${svgIcon('whisper')}</button>` : '';
+      const tip = esc(dotTitle(true, w.status, w.zone));
+      return `<div class="soc-row">`
+        + `<span class="soc-dot ${dot}" title="${tip}"></span>`
+        + `<span class="soc-id">${name}<span class="soc-sub">${esc(t('hud.social.levelClass', { level: formatNumber(w.level, { maximumFractionDigits: 0 }), className: playerClassDisplayName(w.cls) }))}</span></span>`
+        + `<span class="soc-meta" title="${tip}">${meta}</span>`
+        + (whisper ? `<span class="soc-actions">${whisper}</span>` : '')
+        + `</div>`;
+    }).join('');
+    const more = info.total > info.rows.length
+      ? `<div class="soc-empty">${esc(t('game.social.whoMore', { count: formatNumber(info.total - info.rows.length, { maximumFractionDigits: 0 }) }))}</div>`
+      : '';
+    return head + rows + more;
+  }
+
   private guildHtml(): string {
     const guild = this.sim.socialInfo?.guild ?? null;
     if (!guild) return `<div class="soc-empty">${esc(t('hud.social.noGuild'))}</div>`;
@@ -5611,6 +6372,14 @@ export class Hud {
     const guildHeadKey = guild.members.length === 1 ? 'hud.social.guildHeadOne' : 'hud.social.guildHeadMany';
     const guildCount = formatNumber(guild.members.length, { maximumFractionDigits: 0 });
     const head = `<div class="soc-guild-head">&lt;${esc(guild.name)}&gt; <span class="gm">${esc(t(guildHeadKey, { rank: rankLabel(me), count: guildCount }))}</span></div>`;
+    // guild Message of the Day, with an inline edit action for officers+
+    const motdText = (guild.motd ?? '').trim();
+    const canEditMotd = me !== 'member';
+    const motd = `<div class="soc-motd">`
+      + `<span class="soc-motd-label">${esc(t('game.social.motdLabel'))}</span>`
+      + `<span class="soc-motd-text${motdText ? '' : ' empty'}">${esc(motdText || t('game.social.motdEmpty'))}</span>`
+      + (canEditMotd ? `<button type="button" class="soc-x" data-act="gmotd" title="${esc(t('game.social.motdEditAria'))}" aria-label="${esc(t('game.social.motdEditAria'))}">${svgIcon('edit')}</button>` : '')
+      + `</div>`;
     const rows = guild.members.map((m) => {
       const dot = m.online ? (m.status ?? 'online') : 'off';
       const meta = m.online
@@ -5636,7 +6405,7 @@ export class Hud {
         + (actions ? `<span class="soc-actions">${actions}</span>` : '')
         + `</div>`;
     }).join('');
-    return head + rows;
+    return head + motd + rows;
   }
 
   // The add/action row changes with the tab (and guild membership). Inputs
@@ -5644,6 +6413,7 @@ export class Hud {
   private socialFooter(): string {
     if (this.socialTab === 'friends') return this.addRow('friend', 'friend-add', t('hud.social.friendSearchPlaceholder'), t('hud.social.add'), 16, true);
     if (this.socialTab === 'ignore') return this.addRow('ignore', 'block-add', t('hud.social.ignoreSearchPlaceholder'), t('hud.social.ignoreAction'), 16, true);
+    if (this.socialTab === 'who') return `<div class="soc-add soc-leave"><button class="btn" data-act="who-refresh">${esc(t('game.social.whoRefresh'))}</button></div>`;
     const guild = this.sim.socialInfo?.guild ?? null;
     if (!guild) return this.addRow('gname', 'guild-create', t('hud.social.guildNamePlaceholder'), t('hud.social.found'), 24, false);
     let foot = '';
@@ -5667,9 +6437,10 @@ export class Hud {
   private wireSocialChrome(el: HTMLElement): void {
     el.querySelector('[data-close]')?.addEventListener('click', () => this.toggleSocial());
     el.querySelectorAll('.soc-tab').forEach((t) => t.addEventListener('click', () => {
-      this.socialTab = (t as HTMLElement).dataset.tab as 'friends' | 'guild' | 'ignore';
+      this.socialTab = (t as HTMLElement).dataset.tab as 'friends' | 'guild' | 'ignore' | 'who';
       this.socialNotice = null;
       this.lastSocialStruct = this.socialStructSig();
+      if (this.socialTab === 'who') this.sim.requestWho();
       this.renderSocial();
     }));
     const field = (sel: string): string => (el.querySelector(`input[data-field="${sel}"]`) as HTMLInputElement | null)?.value.trim() ?? '';
@@ -5680,6 +6451,7 @@ export class Hud {
       else if (act === 'guild-create') { const n = field('gname'); if (n) { this.sim.guildCreate(n); this.clearSocialInput('gname'); } }
       else if (act === 'guild-leave') this.showPrompt(esc(t('hud.social.leavePrompt')), t('hud.social.leaveGuild'), () => this.sim.guildLeave(), () => {});
       else if (act === 'guild-disband') this.showPrompt(esc(t('hud.social.disbandPrompt')), t('hud.social.disbandConfirm'), () => this.sim.guildDisband(), () => { /* keep */ });
+      else if (act === 'who-refresh') this.sim.requestWho();
     };
     el.querySelectorAll('.soc-add .btn').forEach((b) => b.addEventListener('click', () => submit((b as HTMLElement).dataset.act)));
     // Enter-to-submit only for plain inputs (the guild name). Search inputs get
@@ -5702,6 +6474,7 @@ export class Hud {
       else if (act === 'promote') this.sim.guildPromote(name);
       else if (act === 'demote') this.sim.guildDemote(name);
       else if (act === 'gtransfer') this.showPrompt(t('hud.social.transferPrompt', { name: `<b>${esc(name)}</b>` }), t('hud.social.transferConfirm'), () => this.sim.guildTransfer(name), () => { /* keep */ });
+      else if (act === 'gmotd') this.showGuildMotdPrompt();
     }));
     scope.querySelectorAll('[data-whisper]').forEach((w) => w.addEventListener('click', () => {
       this.startWhisper((w as HTMLElement).dataset.whisper ?? '');

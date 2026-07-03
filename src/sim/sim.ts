@@ -25,8 +25,8 @@ import type { LeaderboardEntry } from '../world_api';
 import {
   AbilityDef, AbilityEffect, Aura, AuraKind, CAST_PUSHBACK_SEC, CHANNEL_PUSHBACK_FRACTION, CONSUME_DURATION,
   CONSUME_TICKS, CrowdControlDrCategory, DT, Entity, EquipSlot, EQUIP_SLOTS, FISHING_CAST_ID, FISHING_CAST_TIME, GCD,
-  INTERACT_RANGE, InvSlot, LootEntry, LootSlot, MELEE_RANGE, MAX_LEVEL, MobFamily, MobTemplate,
-  MoveInput, OverheadEmoteId, PetMode, PlayerClass, QuestProgress, QuestState, RUN_SPEED, SimConfig, SimEvent, TURN_SPEED, Vec3,
+  INTERACT_RANGE, InvSlot, LootEntry, LootRollChoice, LootSlot, MELEE_RANGE, MAX_LEVEL, MobFamily, MobTemplate,
+  MoveInput, OverheadEmoteId, PetMode, PlayerClass, QuestObjective, QuestProgress, QuestState, RUN_SPEED, SimConfig, SimEvent, TURN_SPEED, Vec3,
   angleTo, armorReduction, dist2d, emptyMoveInput, isConsuming, meleeMissChance, mobXpValue, normAngle,
   rageFromDealing, rageFromTaking, spellHitChance, xpForLevel,
   MILESTONES, virtualLevel, xpToReachLevel, canPrestige,
@@ -38,6 +38,13 @@ const ESCORT_FOLLOW_DISTANCE = 4;
 const ESCORT_SPEED = 2.5;
 const ESCORT_TELEPORT_DISTANCE = 45;
 const ESCORT_PLAYER_RANGE = 40; // player must be within this of destination when escort arrives
+// 'defend' quest objectives: waves of attackers spawn at the objective point
+// while the player holds the area. Leaving the leash or dying fails the wave
+// event and resets the objective count; slaying every attacker completes it.
+const DEFEND_WAVE_SIZE = 2;
+const DEFEND_WAVE_DELAY = 4; // seconds between waves
+const DEFEND_SPAWN_RADIUS = 11; // yards from the point where attackers appear
+const DEFEND_LEASH = 40; // player straying beyond this fails the defense
 const DUNGEON_LEASH_DISTANCE = 70;
 // Classic "trivial con": a wild mob this many levels below the player goes
 // passive and will not auto-aggro from proximity (it still fights back if
@@ -73,6 +80,7 @@ const FALL_SAFE_DISTANCE = 12; // yards of free fall before damage
 const OBJECT_RESPAWN = 30;
 const PARTY_MAX = 5;
 const PARTY_XP_RANGE = 80; // yards: members this close share kill xp/credit
+const LOOT_ROLL_SECONDS = 30; // Need/Greed/Pass window before unanswered rolls auto-pass
 const DUEL_COUNTDOWN = 3;
 // Ashen Coliseum 1v1 arena
 const ARENA_COUNTDOWN = 5; // gates pre-fight: heal up, no swings land yet
@@ -497,6 +505,16 @@ export class Sim {
   tradeInvites = new Map<number, { fromPid: number; expires: number }>();
   duels = new Map<number, DuelState>(); // pid -> shared duel (both pids)
   duelInvites = new Map<number, { fromPid: number; expires: number }>();
+  // interactive group loot: pending Need/Greed/Pass rolls, keyed by roll id.
+  // `fallbackPid` receives the item when everyone passes (the original looter).
+  lootRolls = new Map<number, {
+    itemId: string;
+    candidates: number[];
+    choices: Map<number, LootRollChoice>;
+    remaining: number; // seconds until auto-pass resolution
+    fallbackPid: number;
+  }>();
+  private nextLootRollId = 1;
   // arena: a matchmaking queue (pids, oldest first), live bouts keyed by both
   // pids, and the set of busy instance slots
   arenaQueue: number[] = [];
@@ -520,6 +538,11 @@ export class Sim {
   private pendingMobRespawns: PendingMobRespawn[] = [];
   private npcPatrol = new Map<number, { points: Vec3[]; index: number; pause: number }>();
   private escortByPlayer = new Map<number, { npcId: number; questId: string }>();
+  // Active 'defend' wave events, one at most per player. Wave mobs never
+  // respawn: their ids go to noRespawnMobIds and updateMob drops them after
+  // the corpse window instead of rearming them.
+  private defendByPlayer = new Map<number, { questId: string; objIdx: number; spawned: number; alive: Set<number>; nextWaveIn: number }>();
+  private noRespawnMobIds = new Set<number>();
 
   constructor(cfg: SimConfig) {
     this.devCommands = cfg.devCommands ?? false;
@@ -753,6 +776,7 @@ export class Sim {
     const pet = this.petOf(pid, true);
     if (pet) this.despawnPersistentPet(pet);
     this.despawnEscortForPlayer(pid);
+    this.cancelDefendEvent(pid, false);
     for (const m of this.entities.values()) {
       if (m.kind !== 'mob') continue;
       m.threat.delete(pid);
@@ -1245,6 +1269,7 @@ export class Sim {
         this.updatePlayerMovement(p, meta);
         this.updateExploreObjectives(p, meta);
         this.updateEscortObjectives(p, meta);
+        this.updateDefendObjectives(p, meta);
         this.updateDoorTriggers(p);
         this.updateCasting(p, meta);
         this.updatePlayerAutoAttack(p, meta);
@@ -1294,6 +1319,7 @@ export class Sim {
 
     this.updateDuels();
     this.updateArena();
+    this.updateLootRolls();
     this.updateTradesAndInvites();
     this.updateInstances();
     this.updateMarket();
@@ -3625,6 +3651,9 @@ export class Sim {
     }
   }
 
+  // Uncommon+ drops looted in a party open an interactive Need/Greed/Pass roll
+  // among nearby members instead of going straight to the looter. Returns true
+  // when the item was claimed by a pending roll.
   private rollGroupLoot(itemId: string, mob: Entity, looter: PlayerMeta): boolean {
     if (!this.itemRequiresGroupRoll(itemId) || mob.tappedById === null) return false;
     const party = this.partyOf(mob.tappedById);
@@ -3636,21 +3665,78 @@ export class Sim {
       if (candidate && e && !e.dead && dist2d(e.pos, mob.pos) <= PARTY_XP_RANGE) candidates.push(candidate);
     }
     if (candidates.length <= 1) return false;
-    let winner = candidates[0];
-    let bestRoll = -1;
+    const rollId = this.nextLootRollId++;
+    this.lootRolls.set(rollId, {
+      itemId,
+      candidates: candidates.map((c) => c.entityId),
+      choices: new Map(),
+      remaining: LOOT_ROLL_SECONDS,
+      fallbackPid: looter.entityId,
+    });
     for (const candidate of candidates) {
-      const roll = this.rng.int(1, 100);
-      if (roll > bestRoll) {
-        bestRoll = roll;
-        winner = candidate;
-      }
+      this.emit({ type: 'lootRollStart', rollId, itemId, seconds: LOOT_ROLL_SECONDS, pid: candidate.entityId });
     }
-    const itemName = ITEMS[itemId]?.name ?? itemId;
-    for (const candidate of candidates) {
-      this.emit({ type: 'loot', text: `${winner.name} wins ${itemName} (${bestRoll})`, pid: candidate.entityId });
-    }
-    this.addItem(itemId, 1, winner.entityId);
     return true;
+  }
+
+  // A candidate answers a pending Need/Greed/Pass roll.
+  lootRoll(rollId: number, choice: LootRollChoice, pid?: number): void {
+    const r = this.resolve(pid);
+    if (!r) return;
+    const roll = this.lootRolls.get(rollId);
+    if (!roll || !roll.candidates.includes(r.meta.entityId) || roll.choices.has(r.meta.entityId)) return;
+    roll.choices.set(r.meta.entityId, choice);
+    const itemName = ITEMS[roll.itemId]?.name ?? roll.itemId;
+    for (const cPid of roll.candidates) {
+      if (choice === 'need') this.emit({ type: 'loot', text: `${r.meta.name} has selected Need for ${itemName}.`, pid: cPid });
+      else if (choice === 'greed') this.emit({ type: 'loot', text: `${r.meta.name} has selected Greed for ${itemName}.`, pid: cPid });
+      else this.emit({ type: 'loot', text: `${r.meta.name} passes on ${itemName}.`, pid: cPid });
+    }
+    if (roll.choices.size >= roll.candidates.length) this.resolveLootRoll(rollId);
+  }
+
+  // Tick pending group-loot rolls down; unanswered rolls auto-pass on expiry.
+  private updateLootRolls(): void {
+    for (const [rollId, roll] of [...this.lootRolls]) {
+      roll.remaining -= DT;
+      if (roll.remaining <= 0) this.resolveLootRoll(rollId);
+    }
+  }
+
+  private resolveLootRoll(rollId: number): void {
+    const roll = this.lootRolls.get(rollId);
+    if (!roll) return;
+    this.lootRolls.delete(rollId);
+    const itemName = ITEMS[roll.itemId]?.name ?? roll.itemId;
+    // candidates who left the world since the roll opened forfeit their claim
+    const present = roll.candidates.filter((pid) => this.players.has(pid));
+    for (const pid of present) this.emit({ type: 'lootRollEnd', rollId, pid });
+    const needers = present.filter((pid) => roll.choices.get(pid) === 'need');
+    const greeders = present.filter((pid) => roll.choices.get(pid) === 'greed');
+    const pool = needers.length > 0 ? needers : greeders;
+    if (pool.length > 0) {
+      let winnerPid = pool[0];
+      let bestRoll = -1;
+      for (const pid of pool) {
+        const value = this.rng.int(1, 100);
+        if (value > bestRoll) { bestRoll = value; winnerPid = pid; }
+      }
+      const winnerName = this.players.get(winnerPid)?.name ?? '?';
+      for (const pid of present) {
+        if (needers.length > 0) this.emit({ type: 'loot', text: `${winnerName} wins ${itemName} with a Need roll of ${bestRoll}.`, pid });
+        else this.emit({ type: 'loot', text: `${winnerName} wins ${itemName} with a Greed roll of ${bestRoll}.`, pid });
+      }
+      this.addItem(roll.itemId, 1, winnerPid);
+      return;
+    }
+    // everyone passed (or timed out): the item goes to whoever looted the corpse
+    const fallbackPid = this.players.has(roll.fallbackPid) ? roll.fallbackPid : present[0];
+    if (fallbackPid === undefined) return; // nobody left to receive it
+    const fallbackName = this.players.get(fallbackPid)?.name ?? '?';
+    for (const pid of present) {
+      this.emit({ type: 'loot', text: `Everyone passed on ${itemName}. It goes to ${fallbackName}.`, pid });
+    }
+    this.addItem(roll.itemId, 1, fallbackPid);
   }
 
   private lootSlotVisibleTo(slot: LootSlot, pid: number): boolean {
@@ -3785,6 +3871,15 @@ export class Sim {
       // a slain summoned demon unravels rather than respawning into the wild
       if (mob.ownerId !== null && MOBS[mob.templateId]?.family === 'demon') {
         if (mob.corpseTimer <= 0) this.despawnPet(mob);
+        return;
+      }
+      // defend-wave attackers despawn after the loot window instead of respawning
+      if (this.noRespawnMobIds.has(mob.id)) {
+        if (mob.respawnTimer <= 0 && (mob.corpseTimer <= 0 || !mob.lootable)) {
+          this.noRespawnMobIds.delete(mob.id);
+          this.clearEntityMarker(mob.id);
+          this.dropEntity(mob.id);
+        }
         return;
       }
       // dungeon mobs stay dead until the instance resets
@@ -4777,7 +4872,7 @@ export class Sim {
     }
   }
 
-  buyItem(npcId: number, itemId: string, pid?: number): void {
+  buyItem(npcId: number, itemId: string, count = 1, pid?: number): void {
     const r = this.resolve(pid);
     if (!r) return;
     const { meta, e: p } = r;
@@ -4790,9 +4885,10 @@ export class Sim {
     if (!npc.vendorItems.includes(itemId)) { this.error(meta.entityId, 'That item is not sold here.'); return; }
     if (!def?.buyValue) { this.error(meta.entityId, 'That item is not for sale.'); return; }
     if (dist2d(p.pos, npc.pos) > INTERACT_RANGE + 2) { this.error(meta.entityId, 'Too far away.'); return; }
-    if (meta.copper < def.buyValue) { this.error(meta.entityId, 'Not enough money.'); return; }
-    meta.copper -= def.buyValue;
-    this.addItem(itemId, 1, meta.entityId);
+    const buyCount = Number.isFinite(count) ? Math.max(1, Math.min(100, Math.floor(count))) : 1;
+    if (meta.copper < def.buyValue * buyCount) { this.error(meta.entityId, 'Not enough money.'); return; }
+    meta.copper -= def.buyValue * buyCount;
+    this.addItem(itemId, buyCount, meta.entityId);
     this.emit({ type: 'vendor', action: 'buy', itemId, pid: meta.entityId });
   }
 
@@ -4913,6 +5009,46 @@ export class Sim {
     }
     this.pruneCorpseLoot(mob);
     if (p.targetId === mobId) p.targetId = null;
+  }
+
+  // Loot one row of a corpse: a single item slot (all its copies), or just the
+  // coins when itemId is null. Mirrors lootCorpse's permission rules so the
+  // loot window can hand out items click-by-click.
+  lootCorpseItem(mobId: number, itemId: string | null, pid?: number): void {
+    const r = this.resolve(pid);
+    if (!r) return;
+    const { meta, e: p } = r;
+    const mob = this.entities.get(mobId);
+    if (!mob || !mob.lootable || !mob.loot) return;
+    const tapperParty = mob.tappedById !== null ? this.partyOf(mob.tappedById) : null;
+    const hasSharedLootRights = mob.tappedById === null
+      || mob.tappedById === meta.entityId
+      || !!tapperParty?.members.includes(meta.entityId);
+    if (dist2d(p.pos, mob.pos) > INTERACT_RANGE) { this.error(meta.entityId, 'Too far away.'); return; }
+    if (itemId === null) {
+      if (!hasSharedLootRights) { this.error(meta.entityId, "You don't have permission to loot that."); return; }
+      if (mob.loot.copper > 0) {
+        meta.copper += mob.loot.copper;
+        meta.counters.lootCopper += mob.loot.copper;
+        this.emit({ type: 'loot', text: `You loot ${formatMoney(mob.loot.copper)}.`, pid: meta.entityId });
+        mob.loot.copper = 0;
+      }
+    } else {
+      const s = mob.loot.items.find((slot) => slot.itemId === itemId && this.lootSlotVisibleTo(slot, meta.entityId));
+      if (!s) return;
+      if (s.personalFor) {
+        this.addItem(s.itemId, 1, meta.entityId);
+        s.personalFor = s.personalFor.filter((id) => id !== meta.entityId);
+      } else {
+        if (!hasSharedLootRights) { this.error(meta.entityId, "You don't have permission to loot that."); return; }
+        for (let i = 0; i < s.count; i++) {
+          if (!this.rollGroupLoot(s.itemId, mob, meta)) this.addItem(s.itemId, 1, meta.entityId);
+        }
+        s.count = 0;
+      }
+    }
+    this.pruneCorpseLoot(mob);
+    if (!mob.lootable && p.targetId === mobId) p.targetId = null;
   }
 
   pickUpObject(objId: number, pid?: number): void {
@@ -5041,6 +5177,7 @@ export class Sim {
     const { meta } = r;
     if (!meta.questLog.has(questId)) return;
     this.despawnEscortForQuest(meta.entityId, questId);
+    this.cancelDefendForQuest(meta.entityId, questId);
     meta.questLog.delete(questId);
     this.emit({ type: 'log', text: `Quest abandoned: ${QUESTS[questId].name}`, color: '#f66', pid: meta.entityId });
   }
@@ -5064,6 +5201,7 @@ export class Sim {
       if (obj.type === 'collect' && obj.itemId) this.removeItem(obj.itemId, obj.count, meta.entityId);
     }
     this.despawnEscortForQuest(meta.entityId, questId);
+    this.cancelDefendForQuest(meta.entityId, questId);
     qp.state = 'done';
     meta.questLog.delete(questId);
     meta.questsDone.add(questId);
@@ -5178,6 +5316,106 @@ export class Sim {
     }
   }
 
+  // 'defend' objectives: entering the objective area arms a wave event that
+  // spawns attackers around the point until `count` have been slain. Straying
+  // beyond DEFEND_LEASH or dying fails the event and resets the objective.
+  // Deterministic: fixed wave sizes/delays, spawn angles from the wave index.
+  private updateDefendObjectives(p: Entity, meta: PlayerMeta): void {
+    const event = this.defendByPlayer.get(meta.entityId);
+    if (event) {
+      const qp = meta.questLog.get(event.questId);
+      const quest = QUESTS[event.questId];
+      const obj = quest?.objectives[event.objIdx];
+      if (!qp || qp.state !== 'active' || !obj?.point) {
+        // quest turned in / abandoned / already ready — stand down quietly
+        this.cancelDefendEvent(meta.entityId, false);
+        return;
+      }
+      for (const id of event.alive) {
+        const m = this.entities.get(id);
+        if (!m || m.dead) event.alive.delete(id);
+      }
+      const dx = p.pos.x - obj.point.x;
+      const dz = p.pos.z - obj.point.z;
+      if (p.dead || dx * dx + dz * dz > DEFEND_LEASH * DEFEND_LEASH) {
+        this.cancelDefendEvent(meta.entityId, true);
+        return;
+      }
+      if (qp.counts[event.objIdx] >= obj.count) {
+        this.defendByPlayer.delete(meta.entityId);
+        return;
+      }
+      if (event.alive.size === 0 && event.spawned < obj.count) {
+        event.nextWaveIn -= DT;
+        if (event.nextWaveIn <= 0) this.spawnDefendWave(event, obj, p);
+      }
+      return;
+    }
+    if (meta.questLog.size === 0 || p.dead) return;
+    for (const qp of meta.questLog.values()) {
+      if (qp.state !== 'active') continue;
+      const quest = QUESTS[qp.questId];
+      for (let i = 0; i < quest.objectives.length; i++) {
+        const obj = quest.objectives[i];
+        if (obj.type !== 'defend' || !obj.point || !obj.targetMobId || qp.counts[i] >= obj.count) continue;
+        const dx = p.pos.x - obj.point.x;
+        const dz = p.pos.z - obj.point.z;
+        const radius = obj.radius ?? EXPLORE_RADIUS;
+        if (dx * dx + dz * dz > radius * radius) continue;
+        this.defendByPlayer.set(meta.entityId, { questId: qp.questId, objIdx: i, spawned: 0, alive: new Set(), nextWaveIn: 0 });
+        this.emit({ type: 'log', text: 'Enemies approach! Defend the position.', color: '#f96', pid: meta.entityId });
+        return;
+      }
+    }
+  }
+
+  private spawnDefendWave(event: { questId: string; objIdx: number; spawned: number; alive: Set<number>; nextWaveIn: number }, obj: QuestObjective, p: Entity): void {
+    const template = MOBS[obj.targetMobId!];
+    if (!template || !obj.point) return;
+    const n = Math.min(DEFEND_WAVE_SIZE, obj.count - event.spawned);
+    for (let k = 0; k < n; k++) {
+      const ang = ((event.spawned + k) / obj.count) * Math.PI * 2 + 0.9;
+      const safe = this.findSafePos(obj.point.x + Math.sin(ang) * DEFEND_SPAWN_RADIUS, obj.point.z + Math.cos(ang) * DEFEND_SPAWN_RADIUS, WATER_LEVEL + 0.4);
+      const pos = this.groundPos(safe.x, safe.z);
+      const level = this.rng.int(template.minLevel, template.maxLevel);
+      const mob = createMob(this.nextId++, template, level, pos);
+      mob.spawnPos = this.groundPos(obj.point.x, obj.point.z); // leash to the defended point
+      this.addEntity(mob);
+      this.noRespawnMobIds.add(mob.id);
+      event.alive.add(mob.id);
+      if (!p.dead) this.aggroMob(mob, p, false);
+    }
+    event.spawned += n;
+    event.nextWaveIn = DEFEND_WAVE_DELAY;
+  }
+
+  // A failed defense despawns the remaining attackers and resets the
+  // objective count so the player can rally and try again.
+  private cancelDefendEvent(playerId: number, failed: boolean): void {
+    const event = this.defendByPlayer.get(playerId);
+    if (!event) return;
+    this.defendByPlayer.delete(playerId);
+    for (const id of event.alive) {
+      const m = this.entities.get(id);
+      if (!m || m.dead) continue;
+      this.noRespawnMobIds.delete(id);
+      this.clearEntityMarker(id);
+      this.dropEntity(id);
+    }
+    if (!failed) return;
+    const meta = this.players.get(playerId);
+    const qp = meta?.questLog.get(event.questId);
+    if (meta && qp && qp.state === 'active') {
+      qp.counts[event.objIdx] = 0;
+      this.emit({ type: 'log', text: 'The position is overrun! The defense must start again.', color: '#f66', pid: playerId });
+    }
+  }
+
+  private cancelDefendForQuest(playerId: number, questId: string): void {
+    const event = this.defendByPlayer.get(playerId);
+    if (event?.questId === questId) this.cancelDefendEvent(playerId, false);
+  }
+
   private updateExploreObjectives(p: Entity, meta: PlayerMeta): void {
     if (meta.questLog.size === 0) return;
     for (const qp of meta.questLog.values()) {
@@ -5207,8 +5445,17 @@ export class Sim {
       if (qp.state !== 'active') continue;
       const quest = QUESTS[qp.questId];
       let changed = false;
+      const defendEvent = this.defendByPlayer.get(meta.entityId);
       quest.objectives.forEach((obj, i) => {
         if (obj.type === 'kill' && obj.targetMobId === mob.templateId && qp.counts[i] < obj.count) {
+          qp.counts[i]++;
+          changed = true;
+          meta.counters.questProgress++;
+          this.emit({ type: 'questProgress', questId: qp.questId, text: `${obj.label}: ${qp.counts[i]}/${obj.count}`, pid: meta.entityId });
+        }
+        // defend kills only count for attackers of this player's own wave event
+        if (obj.type === 'defend' && defendEvent?.questId === qp.questId && defendEvent.objIdx === i
+          && defendEvent.alive.has(mob.id) && qp.counts[i] < obj.count) {
           qp.counts[i]++;
           changed = true;
           meta.counters.questProgress++;
@@ -6029,6 +6276,9 @@ export class Sim {
   // the IWorld surface with inert stubs.
   realm = '';
   socialInfo: null = null;
+  whoInfo: null = null;
+  requestWho(): void {}
+  guildSetMotd(_text: string): void {}
   friendAdd(_name: string): void {}
   friendRemove(_name: string): void {}
   blockAdd(_name: string): void {}

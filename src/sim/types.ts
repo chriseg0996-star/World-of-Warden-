@@ -6,6 +6,9 @@ export const RUN_SPEED = 7; // yards/sec, classic run speed
 export const TURN_SPEED = Math.PI; // rad/sec keyboard turning (WoW Classic)
 export const MELEE_RANGE = 5; // yards
 export const INTERACT_RANGE = 5;
+
+// interactive group-loot roll choices (Need/Greed/Pass window)
+export type LootRollChoice = 'need' | 'greed' | 'pass';
 export const GCD = 1.5; // seconds
 export const CAST_PUSHBACK_SEC = 0.5; // vanilla: each hit delays a cast by 0.5s
 export const CHANNEL_PUSHBACK_FRACTION = 0.25; // vanilla: each hit shaves 25% off a channel
@@ -443,15 +446,15 @@ export function emptyZoneProps(): ZonePropsDef {
 }
 
 export interface QuestObjective {
-  type: 'kill' | 'collect' | 'talk' | 'explore' | 'escort';
+  type: 'kill' | 'collect' | 'talk' | 'explore' | 'escort' | 'defend';
   /** When set on an explore objective, credit on dungeon entry instead of position. */
   dungeonId?: string;
-  targetMobId?: string; // for kill
+  targetMobId?: string; // for kill/defend: the mob template to slay
   itemId?: string; // for collect
   targetNpcId?: string; // for talk: the NPC template id to speak with
   escortNpcId?: string; // for escort: template id of the NPC to guide
-  point?: { x: number; z: number }; // for explore/escort: center of the discovery or destination area
-  radius?: number; // for explore: discovery radius in yards (defaults to EXPLORE_RADIUS)
+  point?: { x: number; z: number }; // for explore/escort/defend: center of the objective area
+  radius?: number; // for explore/defend: trigger radius in yards (defaults to EXPLORE_RADIUS)
   count: number;
   label: string;
 }
@@ -627,6 +630,10 @@ export type SimEvent = { pid?: number } & (
   | { type: 'milestoneUnlocked'; milestoneId: string }
   | { type: 'learnAbility'; abilityId: string; rank: number }
   | { type: 'loot'; text: string }
+  // interactive group loot: a Need/Greed/Pass roll opened for this candidate,
+  // and its later resolution (the result itself arrives as 'loot' text)
+  | { type: 'lootRollStart'; rollId: number; itemId: string; seconds: number }
+  | { type: 'lootRollEnd'; rollId: number }
   | { type: 'error'; text: string }
   | { type: 'questAccepted'; questId: string }
   | { type: 'questProgress'; questId: string; text: string }

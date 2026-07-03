@@ -42,7 +42,7 @@ const QUEST_IDS = [
   'q_breaking_the_seal', 'q_voice_below', 'q_sanctum_gate', 'q_korgath', 'q_velkhar',
   'q_gravewyrm',
   'q_word_with_lin', 'q_scout_pinewood', 'q_scout_chapel', 'q_scout_stalker_ridge',
-  'q_escort_to_inn', 'q_fen_courier_chain',
+  'q_escort_to_inn', 'q_fen_courier_chain', 'q_hold_south_gate',
 ] as const;
 
 const ZONE_IDS = ['eastbrook_vale', 'mirefen_marsh', 'thornpeak_heights'] as const;
@@ -197,6 +197,7 @@ const OBJECTIVE_SPECS: readonly (readonly ObjectiveSpec[])[] = [
     { kind: 'text', es: 'Habla con el hermano Aldric' },
     { kind: 'text', es: 'Habla con el proveedor Hale' },
   ],
+  [{ kind: 'text', es: 'Repele la incursión de bandidos en la puerta sur' }],
 ];
 
 function normalizeSourceText(text: string): string {
@@ -483,6 +484,7 @@ const esQuestNarratives = {
   q_scout_stalker_ridge: [`Antes de enviar patrullas al sur quiero ojos en la Cresta de los Acechadores, {playerName}. Sigue el camino de montaña hasta la cima y mira qué se mueve entre los felinos.`, `Así que la cresta aún se puede transitar, por ahora. Con eso basta para empezar.`],
   q_escort_to_inn: [`Un explorador volvió cojeando del camino de pinos con una mordida de lobo aún sangrando. Escóltalo hasta Eliza en la posada antes de que más lobos encuentren el rastro, {playerName}.`, `Lo trajiste respirando. Eliza lo curará; Eastbrook te debe una.`],
   q_fen_courier_chain: [`Necesito mensajeros que hablen con mi gente sin desenvainar la espada, {playerName}. Lleva mi recuento a Yara en el cobertizo de hierbas, luego a Aldric en el muelle de la capilla y después a Hale en el almacén. Cuando los tres hayan respondido, vuelve conmigo.`, `Tres respuestas y ni una gota de sangre derramada. Así se sostiene Fenbridge.`],
+  q_hold_south_gate: [`Los degolladores que diezmaste han dejado de esconderse, {playerName}: mis exploradores dicen que el resto planea asaltar la puerta sur en masa. Planta cara en el camino de la puerta y recházalos cuando lleguen. Eastbrook resiste, o arde.`, `Ni uno solo pasó de la puerta. El mariscal sabrá cómo mantuviste la línea, {playerName}.`],
 } satisfies QuestNarrativeTranslations;
 
 
@@ -551,7 +553,7 @@ const esData: LocaleData = {
     'El anillo de filacterias', 'Los campos de aparecidos', 'Huesos de la vanguardia', 'Sigilos del Wyrm', 'Romper el sello',
     'La voz de abajo', 'La puerta del Santuario', 'El guardián encadenado', 'El gran nigromante', 'Korzul el Gravewyrm',
     'Unas palabras con Lin', 'Explorar el camino de pinos', 'Ojos en la capilla', 'Recorrer la cresta',
-    'A salvo en la posada', 'Palabra por la calzada',
+    'A salvo en la posada', 'Palabra por la calzada', 'Defiende la puerta sur',
   ],
   objectiveItems: [
     'Piel de lobo',

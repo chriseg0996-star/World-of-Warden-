@@ -5,12 +5,14 @@
 Wardenfall is a freshly-rebranded fork of the open-source `world-of-claudecraft`
 MMO: a deterministic, WoW-Classic-fidelity micro-MMO whose single `src/sim/` core runs
 identically in three hosts (offline browser, authoritative server, headless RL env).
-Current verified state on `main`: `tsc` clean, **1237 tests / 122 files green**, `npm run build`
-succeeds. The game today ships 9 classes (137 ability defs with ranks), a **complete** talent
-system (41+ nodes/class, loadouts, base64 build strings), 3 zones (levels 1–20), 3 dungeons
-(9 bosses), ~61 quests (kill/collect only), ~260 mobs, ~164 items (only 4 armor slots, no sets),
-basic economy (vendor + one auction house + trade, copper-only), party/guild/duel/arena(Elo)
-social, a partial post-cap virtual-level system, and a single-agent RL env. It is a
+Current verified state on `main` (July 2026): ~1310 tests green (2 known pre-existing failures in
+guided-quest flow tests: `sim.test.ts` q_boars auto-accept, `fixes.test.ts` q_fenbridge_muster;
+29 pre-existing `tsc` errors), `npm run build` succeeds. The game today ships 9 classes (~100 ability defs with ranks), a **complete** talent
+system for all 9 classes (loadouts, base64 build strings), 3 zones + the Glimmermere/Drowned
+Temple band (levels 1–20), 4 dungeons, ~82 quests (kill/collect/explore/talk/escort), ~76 mob
+templates, ~166 items with 4 item sets and a full 14-slot paperdoll, basic economy (vendor +
+one auction house + trade, copper-only), party/guild/duel/arena(Elo) social, a shipped post-cap
+virtual-level/prestige system, and a single-agent RL env. It is a
 production-grade engine; the gaps are **content breadth, deep systems, and live-ops/scale**, not
 architecture.
 

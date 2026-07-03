@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS guilds (
   realm TEXT NOT NULL DEFAULT '${DEFAULT_REALM.replace(/'/g, "''")}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS motd TEXT NOT NULL DEFAULT '';
 -- guild names are likewise unique per realm
 ALTER TABLE guilds DROP CONSTRAINT IF EXISTS guilds_name_key;
 CREATE UNIQUE INDEX IF NOT EXISTS guilds_realm_name ON guilds(realm, name);
@@ -259,6 +260,15 @@ export class PgSocialDb implements SocialDb {
 
   async setGuildRank(charId: number, rank: GuildRank): Promise<void> {
     await this.pool.query('UPDATE guild_members SET rank = $2 WHERE character_id = $1', [charId, rank]);
+  }
+
+  async getGuildMotd(guildId: number): Promise<string> {
+    const res = await this.pool.query('SELECT motd FROM guilds WHERE id = $1', [guildId]);
+    return res.rows[0]?.motd ?? '';
+  }
+
+  async setGuildMotd(guildId: number, motd: string): Promise<void> {
+    await this.pool.query('UPDATE guilds SET motd = $2 WHERE id = $1', [guildId, motd]);
   }
 
   async guildMembers(guildId: number): Promise<(CharInfo & { rank: GuildRank })[]> {

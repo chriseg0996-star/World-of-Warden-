@@ -7,11 +7,11 @@ import {
   type TalentAllocation, type SavedLoadout, type Role,
 } from '../sim/content/talents';
 import {
-  Entity, EquipSlot, InvSlot, MoveInput, PlayerClass, QuestProgress, QuestState, SimEvent,
+  Entity, EquipSlot, InvSlot, LootRollChoice, MoveInput, PlayerClass, QuestProgress, QuestState, SimEvent,
   emptyMoveInput,
 } from '../sim/types';
 import { normalizeMoveFacing, sanitizeMoveInput } from '../sim/move_input';
-import { isOverheadEmoteId, type ArenaInfo, type CharacterSearchResult, type DuelInfo, type FriendInfo, type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId, type PartyInfo, type PresenceStatus, type SocialInfo, type TradeInfo } from '../world_api';
+import { isOverheadEmoteId, type ArenaInfo, type CharacterSearchResult, type DuelInfo, type FriendInfo, type IWorld, type LeaderboardEntry, type MarketInfo, type OverheadEmoteId, type PartyInfo, type PresenceStatus, type SocialInfo, type TradeInfo, type WhoInfo } from '../world_api';
 import { apiUrl, resolveApiOrigin, resolveWebSocketUrl } from '../desktop/shell';
 
 // ---------------------------------------------------------------------------
@@ -261,6 +261,7 @@ export class ClientWorld implements IWorld {
   tradeInfo: TradeInfo | null = null;
   duelInfo: DuelInfo | null = null;
   socialInfo: SocialInfo | null = null;
+  whoInfo: WhoInfo | null = null;
   arenaInfo: ArenaInfo | null = null;
   marketInfo: MarketInfo | null = null;
   markers: Record<number, number> = {}; // entityId -> markerId, mirrored from the self-wire
@@ -449,6 +450,11 @@ export class ClientWorld implements IWorld {
     }
     if (msg.t === 'social') {
       this.socialInfo = { friends: msg.friends ?? [], blocks: msg.blocks ?? [], guild: msg.guild ?? null };
+      this.socialDirty = true;
+      return;
+    }
+    if (msg.t === 'who') {
+      this.whoInfo = { rows: Array.isArray(msg.rows) ? msg.rows : [], total: typeof msg.total === 'number' ? msg.total : 0 };
       this.socialDirty = true;
       return;
     }
@@ -768,6 +774,12 @@ export class ClientWorld implements IWorld {
   lootCorpse(id: number): void {
     this.cmd({ cmd: 'loot', id });
   }
+  lootCorpseItem(id: number, itemId: string | null): void {
+    this.cmd({ cmd: 'lootItem', id, item: itemId });
+  }
+  lootRoll(rollId: number, choice: LootRollChoice): void {
+    this.cmd({ cmd: 'lootRoll', roll: rollId, choice });
+  }
   pickUpObject(id: number): void {
     this.cmd({ cmd: 'pickup', id });
   }
@@ -797,8 +809,8 @@ export class ClientWorld implements IWorld {
   discardItem(itemId: string, count?: number): void {
     this.cmd({ cmd: 'discard', item: itemId, count });
   }
-  buyItem(npcId: number, itemId: string): void {
-    this.cmd({ cmd: 'buy', npc: npcId, item: itemId });
+  buyItem(npcId: number, itemId: string, count?: number): void {
+    this.cmd({ cmd: 'buy', npc: npcId, item: itemId, count });
   }
   sellItem(itemId: string, count?: number): void {
     this.cmd({ cmd: 'sell', item: itemId, count });
@@ -915,6 +927,8 @@ export class ClientWorld implements IWorld {
   guildDemote(name: string): void { this.cmd({ cmd: 'guild_demote', name }); }
   guildTransfer(name: string): void { this.cmd({ cmd: 'guild_transfer', name }); }
   guildDisband(): void { this.cmd({ cmd: 'guild_disband' }); }
+  guildSetMotd(text: string): void { this.cmd({ cmd: 'guild_motd', text }); }
+  requestWho(): void { this.cmd({ cmd: 'who' }); }
   async searchCharacters(query: string): Promise<CharacterSearchResult[]> {
     const q = query.trim();
     if (!q) return [];

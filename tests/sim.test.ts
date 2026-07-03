@@ -695,6 +695,20 @@ describe('food, drink, vendor', () => {
     expect(sim.countItem('wolf_fang')).toBe(1);
   });
 
+  it('vendor stack purchases charge and deliver the full count', () => {
+    const sim = makeSim('warrior');
+    const wilkes = [...sim.entities.values()].find((e) => e.templateId === 'trader_wilkes')!;
+    teleportTo(sim, wilkes.pos.x + 2, wilkes.pos.z);
+    sim.copper = 100;
+    sim.buyItem(wilkes.id, 'baked_bread', 3);
+    expect(sim.countItem('baked_bread')).toBe(3);
+    expect(sim.copper).toBe(25);
+    // cannot afford another stack of 3: nothing changes
+    sim.buyItem(wilkes.id, 'baked_bread', 3);
+    expect(sim.countItem('baked_bread')).toBe(3);
+    expect(sim.copper).toBe(25);
+  });
+
   it('vendor buyback restores recently sold gear for the sale price', () => {
     const sim = makeSim('warrior');
     const wilkes = [...sim.entities.values()].find((e) => e.templateId === 'trader_wilkes')!;

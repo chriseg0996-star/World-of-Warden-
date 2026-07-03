@@ -1,4 +1,4 @@
-import { OVERHEAD_EMOTE_IDS, type Entity, type EquipSlot, type InvSlot, type MoveInput, type OverheadEmoteId, type PetMode, type PlayerClass, type QuestProgress, type QuestState, type ResourceType } from './sim/types';
+import { OVERHEAD_EMOTE_IDS, type Entity, type EquipSlot, type InvSlot, type LootRollChoice, type MoveInput, type OverheadEmoteId, type PetMode, type PlayerClass, type QuestProgress, type QuestState, type ResourceType } from './sim/types';
 import type { ResolvedAbility } from './sim/sim';
 import type { TalentAllocation, SavedLoadout, Role } from './sim/content/talents';
 
@@ -59,7 +59,7 @@ export const OVERHEAD_EMOTES = [
   { id: 'kneel', label: 'Kneel' },
 ] as const satisfies readonly { id: OverheadEmoteId; label: string }[];
 
-export type { OverheadEmoteId };
+export type { OverheadEmoteId, LootRollChoice };
 
 export function isOverheadEmoteId(value: unknown): value is OverheadEmoteId {
   return typeof value === 'string' && (OVERHEAD_EMOTE_IDS as readonly string[]).includes(value);
@@ -93,6 +93,23 @@ export interface GuildInfo {
   name: string;
   rank: GuildRank;
   members: GuildMemberInfo[];
+  // guild Message of the Day, settable by officers and the Guild Master
+  motd?: string;
+}
+
+// One row of the realm's /who roster (structured form of the chat command,
+// for the Social window's Who tab). Online play only.
+export interface WhoRosterEntry {
+  name: string;
+  cls: string;
+  level: number;
+  zone: string;
+  status: PresenceStatus;
+}
+
+export interface WhoInfo {
+  rows: WhoRosterEntry[];
+  total: number;
 }
 
 export interface SocialInfo {
@@ -206,6 +223,10 @@ export interface IWorld {
   stopAutoAttack(): void;
   interact(): void;
   lootCorpse(id: number): void;
+  // loot a single corpse row: an item slot, or the coins when itemId is null
+  lootCorpseItem(id: number, itemId: string | null): void;
+  // answer a pending Need/Greed/Pass group-loot roll
+  lootRoll(rollId: number, choice: LootRollChoice): void;
   pickUpObject(id: number): void;
   acceptQuest(questId: string): void;
   turnInQuest(questId: string): void;
@@ -214,7 +235,7 @@ export interface IWorld {
   unequipItem(slot: EquipSlot): void;
   useItem(itemId: string): void;
   discardItem(itemId: string, count?: number): void;
-  buyItem(npcId: number, itemId: string): void;
+  buyItem(npcId: number, itemId: string, count?: number): void;
   sellItem(itemId: string, count?: number): void;
   buyBackItem(itemId: string): void;
   changeSkin(skin: number): void;
@@ -270,6 +291,11 @@ export interface IWorld {
   guildDemote(name: string): void;
   guildTransfer(name: string): void;
   guildDisband(): void;
+  // set (or clear, with '') the guild Message of the Day; officers and leader only
+  guildSetMotd(text: string): void;
+  // the realm /who roster: request a refresh, read the last answer (online only)
+  whoInfo: WhoInfo | null;
+  requestWho(): void;
   // realm-scoped username typeahead for friend/ignore/guild search
   searchCharacters(query: string): Promise<CharacterSearchResult[]>;
   arenaQueueJoin(): void;

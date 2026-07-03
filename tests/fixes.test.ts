@@ -471,7 +471,7 @@ describe('boss loot and encounter resets', () => {
     }
   });
 
-  it('uncommon and better corpse drops are rolled among nearby party members', () => {
+  it('uncommon and better corpse drops open a Need/Greed/Pass roll among nearby party members', () => {
     const sim = makeSim();
     const a = sim.playerId;
     const b = sim.addPlayer('mage', 'Bert');
@@ -489,12 +489,76 @@ describe('boss loot and encounter resets', () => {
     sim.events.length = 0;
     sim.lootCorpse(mob.id, a);
 
-    const total =
-      sim.countItem('greyjaw_hide_boots', a) +
-      sim.countItem('greyjaw_hide_boots', b);
-    expect(total).toBe(1);
-    expect(sim.events.some((e) => e.type === 'loot' && e.text.includes('wins Greyjaw Hide Boots'))).toBe(true);
+    // the drop is claimed by a pending roll, not delivered instantly
+    expect(sim.countItem('greyjaw_hide_boots', a) + sim.countItem('greyjaw_hide_boots', b)).toBe(0);
     expect(mob.loot).toBeNull();
+    const starts = sim.events.filter((e) => e.type === 'lootRollStart');
+    expect(starts.length).toBe(2); // one window per candidate
+    const rollId = (starts[0] as { rollId: number }).rollId;
+
+    // Need beats Greed regardless of the numbers rolled
+    sim.lootRoll(rollId, 'greed', a);
+    expect(sim.events.some((e) => e.type === 'loot' && e.text.includes('has selected Greed for Greyjaw Hide Boots'))).toBe(true);
+    sim.lootRoll(rollId, 'need', b);
+    expect(sim.countItem('greyjaw_hide_boots', b)).toBe(1);
+    expect(sim.countItem('greyjaw_hide_boots', a)).toBe(0);
+    expect(sim.events.some((e) => e.type === 'loot' && /Bert wins Greyjaw Hide Boots with a Need roll of \d+\./.test(e.text))).toBe(true);
+    expect(sim.events.filter((e) => e.type === 'lootRollEnd').length).toBe(2);
+    expect(sim.lootRolls.size).toBe(0);
+  });
+
+  it('an unanswered group-loot roll times out and falls back to the looter', () => {
+    const sim = makeSim();
+    const a = sim.playerId;
+    const b = sim.addPlayer('mage', 'Bert');
+    sim.partyInvite(b, a);
+    sim.partyAccept(b);
+    teleportTo(sim, 20, 20, a);
+    teleportTo(sim, 21, 20, b);
+    const mob = createMob(990102, MOBS.forest_wolf, 2, { x: 20, y: 0, z: 22 });
+    mob.dead = true;
+    mob.lootable = true;
+    mob.tappedById = a;
+    mob.loot = { copper: 0, items: [{ itemId: 'greyjaw_hide_boots', count: 1 }] };
+    sim.entities.set(mob.id, mob);
+
+    sim.lootCorpse(mob.id, a);
+    expect(sim.lootRolls.size).toBe(1);
+    sim.events.length = 0;
+    // tick() drains the event queue each step, so gather what each tick returns
+    const ticked: ReturnType<typeof sim.tick> = [];
+    for (let i = 0; i < 20 * 31; i++) ticked.push(...sim.tick());
+    expect(sim.lootRolls.size).toBe(0);
+    expect(sim.countItem('greyjaw_hide_boots', a)).toBe(1);
+    expect(ticked.some((e) => e.type === 'loot' && e.text.includes('Everyone passed on Greyjaw Hide Boots'))).toBe(true);
+  });
+
+  it('lootCorpseItem hands out a single corpse row (and the coins) per click', () => {
+    const sim = makeSim();
+    const a = sim.playerId;
+    teleportTo(sim, 20, 20, a);
+    const mob = createMob(990103, MOBS.forest_wolf, 2, { x: 20, y: 0, z: 22 });
+    mob.dead = true;
+    mob.lootable = true;
+    mob.tappedById = a;
+    mob.loot = { copper: 25, items: [{ itemId: 'wolf_pelt', count: 2 }, { itemId: 'baked_bread', count: 1 }] };
+    sim.entities.set(mob.id, mob);
+
+    sim.lootCorpseItem(mob.id, 'wolf_pelt', a);
+    expect(sim.countItem('wolf_pelt', a)).toBe(2);
+    expect(sim.countItem('baked_bread', a)).toBe(0);
+    expect(mob.loot?.copper).toBe(25);
+    expect(mob.loot?.items.length).toBe(1);
+
+    const copperBefore = sim.meta(a)!.copper;
+    sim.lootCorpseItem(mob.id, null, a);
+    expect(sim.meta(a)!.copper).toBe(copperBefore + 25);
+    expect(mob.lootable).toBe(true); // bread still on the corpse
+
+    sim.lootCorpseItem(mob.id, 'baked_bread', a);
+    expect(sim.countItem('baked_bread', a)).toBe(1);
+    expect(mob.loot).toBeNull();
+    expect(mob.lootable).toBe(false);
   });
 
   it('quest drops stay on the corpse as personal loot for every eligible nearby party member', () => {
