@@ -61,6 +61,17 @@ const ENTITY_LOD_RANGE_SQ = 50 * 50;
 // it but a jump (apex ~1.1u) does. Needed because online snapshots don't carry
 // `onGround`, so the flag alone never fires the jump clip for the mirrored world.
 const AIRBORNE_EPS = 0.4;
+
+/** Feet Y for render: snap to terrain when grounded so slope lerp doesn't float. */
+function groundedFootY(e: Entity, rx: number, rz: number, lerpedY: number, seed: number): number {
+  if (e.dead) return lerpedY;
+  const renderGh = groundHeight(rx, rz, seed);
+  const swimming = renderGh < WATER_LEVEL - 0.8 && e.pos.y <= WATER_LEVEL - 0.5;
+  if (swimming) return lerpedY;
+  const simGh = groundHeight(e.pos.x, e.pos.z, seed);
+  if (e.pos.y - simGh > AIRBORNE_EPS) return lerpedY;
+  return renderGh;
+}
 // fire/torch point lights beyond this never shine (their falloff range is
 // shorter anyway); the nearest GFX.maxPointLights within it win the budget
 const LIGHT_BUDGET_RANGE_SQ = 55 * 55;
@@ -1155,8 +1166,9 @@ export class Renderer {
         ? Math.min(1.25, (now - e.netUpdatedAt) / Math.max(20, e.netInterval))
         : alpha;
       const x = e.prevPos.x + (e.pos.x - e.prevPos.x) * ea;
-      const y = e.prevPos.y + (e.pos.y - e.prevPos.y) * ea;
+      let y = e.prevPos.y + (e.pos.y - e.prevPos.y) * ea;
       const z = e.prevPos.z + (e.pos.z - e.prevPos.z) * ea;
+      if (id === p.id) y = groundedFootY(e, x, z, y, this.sim.cfg.seed);
       const vx = x - v.lastX;
       const vz = z - v.lastZ;
       v.group.position.set(x, y, z);
@@ -1465,8 +1477,9 @@ export class Renderer {
     const p = this.sim.player;
     const seed = this.sim.cfg.seed;
     const px = p.prevPos.x + (p.pos.x - p.prevPos.x) * alpha;
-    const py = p.prevPos.y + (p.pos.y - p.prevPos.y) * alpha;
+    let py = p.prevPos.y + (p.pos.y - p.prevPos.y) * alpha;
     const pz = p.prevPos.z + (p.pos.z - p.prevPos.z) * alpha;
+    py = groundedFootY(p, px, pz, py, seed);
     const eyeY = py + 2.0;
     let cx = px - Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
     let cy = eyeY + Math.sin(this.camPitch) * this.camDist;

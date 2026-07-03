@@ -980,7 +980,7 @@ export class Sim {
     const dx = target.x - npc.pos.x;
     const dz = target.z - npc.pos.z;
     const dist = Math.hypot(dx, dz);
-    const speed = 2.4;
+    const speed = NPCS[npc.templateId]?.patrolSpeed ?? 2.4;
     if (dist < 0.4) {
       state.index = (state.index + 1) % state.points.length;
       state.pause = 1.2 + this.rng.range(0, 2.5);

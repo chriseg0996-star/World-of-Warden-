@@ -303,6 +303,9 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     pos: { x: -3, z: 14 }, facing: 0.2, color: 0x6e8b3d,
     questIds: ['q_wolf_pelts', 'q_report_marshal', 'q_escort_to_inn'],
     greeting: 'Wolves have been bold on the pinewood road. If you are hunting them, I can put your pelts to use.',
+    // short pinewood-road loop — visible life without crossing the whole town
+    patrol: [{ x: -3, z: 14 }, { x: 1, z: 17 }, { x: -6, z: 19 }, { x: -9, z: 15 }],
+    patrolSpeed: 2.0,
   },
   guard_ashford: {
     id: 'guard_ashford', name: 'Guard Ashford', title: 'Town Guard',
@@ -315,6 +318,9 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     pos: { x: -10, z: 0 }, facing: Math.PI / 2, color: 0x85929e,
     questIds: ['q_hold_south_gate'],
     greeting: 'Eyes up on the south road. Bandits love an unwatched gate.',
+    // tight south-gate beat — not a town-wide circuit
+    patrol: [{ x: -10, z: 0 }, { x: -10, z: -5 }, { x: -6, z: -5 }, { x: -6, z: 0 }],
+    patrolSpeed: 2.2,
   },
   wounded_scout: {
     id: 'wounded_scout', name: 'Wounded Scout', title: 'Scout',

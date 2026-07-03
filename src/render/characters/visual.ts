@@ -31,7 +31,7 @@ export interface AnimState {
 type BaseState = 'idle' | 'walk' | 'walkBack' | 'run' | 'cast' | 'swim' | 'sit' | 'jump';
 
 const FADE = 0.22;
-const ONESHOT_FADE = 0.1;
+const ONESHOT_FADE = 0.08;
 const RUN_SPEED_THRESHOLD = 4.5; // u/s — sim walk/wander sits well below
 const HIT_REACT_COOLDOWN = 0.38;
 const DEFAULT_WALK_REF = 2.2;
@@ -278,7 +278,7 @@ export class CharacterVisual {
     const clips = this.def.clips.attack;
     if (clips.length === 0) return;
     const name = clips[this.attackIdx++ % clips.length];
-    this.playOneShot(name, this.def.attackTimeScale ?? 1.3);
+    this.playOneShot(name, this.def.attackTimeScale ?? 1.5);
   }
 
   playHit(): void {
