@@ -472,6 +472,7 @@ function showLoadingScreen(statusText: string): void {
   }
   el.classList.remove('fade');
   el.classList.add('visible');
+  el.removeAttribute('aria-hidden');
   resetLoadingProgress();
   setLoadingStatus(statusText);
 }
@@ -483,7 +484,10 @@ function setLoadingStatus(text: string): void {
 function hideLoadingScreen(): void {
   const el = $('#loading-screen');
   if (!el.classList.contains('visible')) return;
+  stopLoadBarTicker();
+  resetLoadingProgress();
   el.classList.add('fade');
+  el.setAttribute('aria-hidden', 'true');
   loadingHideTimer = window.setTimeout(() => {
     el.classList.remove('visible', 'fade');
     loadingHideTimer = null;

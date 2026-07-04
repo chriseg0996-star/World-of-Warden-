@@ -2744,10 +2744,11 @@
 
   /* ---------- loading screen (entering the world) ---------- */
   #loading-screen {
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: 150;
     display: none;
+    pointer-events: none;
     /* clean castle key-art (no baked UI) + a soft scrim for legibility. The logo,
        status and bar below are all real DOM, so there is no duplicate baked bar. */
     background:
@@ -2760,8 +2761,19 @@
     opacity: 1;
     transition: opacity .35s ease;
   }
-  #loading-screen.visible { display: flex; }
+  #loading-screen.visible { display: flex; pointer-events: auto; }
   #loading-screen.fade { opacity: 0; }
+  /* Collapse progress chrome as soon as we fade — the dark .ls-bar track was
+     reading as a stuck black bar at the top after world entry. */
+  #loading-screen.fade .ls-logo,
+  #loading-screen.fade .ls-progress {
+    opacity: 0;
+    visibility: hidden;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0;
+    transition: opacity .12s ease, max-height .12s ease, visibility 0s .12s;
+  }
   /* real DOM logo (the art no longer has a baked one) */
   #loading-screen .ls-logo {
     display: block;
