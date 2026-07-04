@@ -621,6 +621,7 @@ export class Hud {
         this.setWindowPixelPosition(el, rect.left, rect.top, rect);
       });
     });
+    this.bindQuestDialogKeyboard();
   }
 
   private isWindowVisible(el: HTMLElement): boolean {
@@ -3424,6 +3425,43 @@ export class Hud {
   // Quest dialog (gossip)
   // -------------------------------------------------------------------------
 
+  isQuestDialogOpen(): boolean {
+    return $('#quest-dialog').style.display === 'block';
+  }
+
+  private questDialogFocusables(root: HTMLElement): HTMLElement[] {
+    return [...root.querySelectorAll<HTMLElement>('.qd-list-item, .btn:not([data-close])')];
+  }
+
+  private bindQuestDialogKeyboard(): void {
+    $('#quest-dialog').addEventListener('keydown', (e) => this.handleQuestDialogKeydown(e as KeyboardEvent));
+  }
+
+  private handleQuestDialogKeydown(e: KeyboardEvent): void {
+    const el = $('#quest-dialog');
+    if (el.style.display !== 'block') return;
+    const items = this.questDialogFocusables(el);
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const idx = active ? items.indexOf(active) : -1;
+    const forward = e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey);
+    const back = e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey);
+    if (forward || back) {
+      if (items.length === 0) { e.preventDefault(); el.focus(); return; }
+      e.preventDefault();
+      const nextIdx = idx >= 0
+        ? (forward ? (idx + 1) % items.length : (idx - 1 + items.length) % items.length)
+        : (forward ? 0 : items.length - 1);
+      items[nextIdx]?.focus();
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (active === el) {
+        e.preventDefault();
+        items[0]?.click();
+      }
+    }
+  }
+
   openQuestDialog(npcId: number): void {
     const npc = this.sim.entities.get(npcId);
     if (!npc || npc.kind !== 'npc') return;
@@ -3488,7 +3526,7 @@ export class Hud {
     });
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeQuestDialog());
     el.style.display = 'block';
-    this.focusFirstInteractive(el);
+    this.focusFirstInteractive(el, '.qd-list-item');
   }
 
   private renderQuestDetail(npc: Entity, questId: string): void {
@@ -3542,7 +3580,7 @@ export class Hud {
     el.appendChild(back);
     el.querySelector('[data-close]')?.addEventListener('click', () => this.closeQuestDialog());
     el.style.display = 'block';
-    this.focusFirstInteractive(el);
+    this.focusFirstInteractive(el, '.btn:not([data-close])');
   }
 
   closeQuestDialog(restoreFocus = true): void {
@@ -6747,7 +6785,8 @@ export class Hud {
 
   // True while a menu that should pause character movement is up.
   isModalOpen(): boolean {
-    return this.optionsOpen || this.emoteWheelOpen || $('#emote-editor').style.display === 'block';
+    return this.optionsOpen || this.emoteWheelOpen || $('#emote-editor').style.display === 'block'
+      || this.isQuestDialogOpen();
   }
 
   toggleOptionsMenu(): void {
